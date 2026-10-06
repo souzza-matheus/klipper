@@ -15,6 +15,9 @@ import { PaymentsScreen } from './src/screens/Payments';
 import { CustomerScreen, CustomersScreen } from './src/screens/Customers';
 import { BarberEditScreen, BarbersScreen, BlocksScreen, ServiceEditScreen, ServicesScreen } from './src/screens/Catalog';
 import { ReportsScreen, ReviewsScreen } from './src/screens/Insights';
+import {
+  CommissionRuleEditScreen, CommissionRulesScreen, CommissionsScreen, SettlementsScreen,
+} from './src/screens/Finance';
 import { MoreScreen, SettingsScreen, WhatsAppScreen } from './src/screens/Settings';
 
 const Tab = createBottomTabNavigator();
@@ -79,6 +82,10 @@ function MoreStack({ onLogout, shopName }) {
       <Stack.Screen name="Blocks" component={BlocksScreen} options={{ title: 'Bloqueios' }} />
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ title: 'Avaliações' }} />
       <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Relatórios' }} />
+      <Stack.Screen name="Commissions" component={CommissionsScreen} options={{ title: 'Comissões e repasses' }} />
+      <Stack.Screen name="CommissionRules" component={CommissionRulesScreen} options={{ title: 'Regras de repasse' }} />
+      <Stack.Screen name="CommissionRuleEdit" component={CommissionRuleEditScreen} options={{ title: 'Regra de repasse' }} />
+      <Stack.Screen name="Settlements" component={SettlementsScreen} options={{ title: 'Acertos' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
       <Stack.Screen name="WhatsApp" component={WhatsAppScreen} options={{ title: 'WhatsApp' }} />
       {shared()}

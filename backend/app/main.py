@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import admin, webhook
+from .api import admin, finance, webhook
 from .db import Base, engine
 from .jobs import start_scheduler
 
@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="BarberBot", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(admin.router, prefix="/api")
+app.include_router(finance.router, prefix="/api")
 app.include_router(webhook.router)
 
 

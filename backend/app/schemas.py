@@ -242,4 +242,90 @@ class ReportOut(BaseModel):
     by_service: list[dict]
 
 
+# ---- comissões e repasses
+class CommissionRuleIn(BaseModel):
+    barber_id: int
+    beneficiary_type: str = Field(pattern="^(shop|barber)$")
+    beneficiary_barber_id: int | None = None
+    percentage: Decimal = Field(gt=0, le=100, decimal_places=2)
+    service_id: int | None = None
+    valid_from: date
+    valid_to: date | None = None
+    notes: str = ""
+
+
+class CommissionRuleOut(ORM):
+    id: int
+    barber_id: int
+    barber_name: str
+    beneficiary_type: str
+    beneficiary_barber_id: int | None
+    beneficiary_name: str
+    percentage: Decimal
+    service_id: int | None
+    service_name: str | None
+    valid_from: date
+    valid_to: date | None
+    notes: str
+
+
+class CommissionDueOut(BaseModel):
+    beneficiary_type: str
+    beneficiary_barber_id: int | None
+    beneficiary_name: str
+    percentages: list[Decimal]  # mais de uma quando a regra muda no período ou há regra por serviço
+    base: Decimal               # faturamento sobre o qual o repasse incidiu
+    amount: Decimal
+    settled: Decimal
+    open: Decimal
+
+
+class BarberCommissionOut(BaseModel):
+    barber_id: int
+    barber_name: str
+    gross: Decimal
+    appointments: int
+    dues: list[CommissionDueOut]
+    total_due: Decimal
+    net: Decimal       # faturamento bruto menos os repasses
+    received: Decimal  # repasses que recebe de outros barbeiros (padrinho)
+    settled: Decimal
+    open: Decimal
+
+
+class CommissionReportOut(BaseModel):
+    date_from: date
+    date_to: date
+    barbers: list[BarberCommissionOut]
+    total_gross: Decimal
+    total_due: Decimal
+    total_open: Decimal
+
+
+class SettlementIn(BaseModel):
+    payer_barber_id: int
+    beneficiary_type: str = Field(pattern="^(shop|barber)$")
+    beneficiary_barber_id: int | None = None
+    period_start: date
+    period_end: date
+    amount: Decimal = Field(gt=0, decimal_places=2)
+    paid_at: datetime | None = None
+    notes: str = ""
+    notify: bool = True
+
+
+class SettlementOut(ORM):
+    id: int
+    payer_barber_id: int
+    payer_name: str
+    beneficiary_type: str
+    beneficiary_barber_id: int | None
+    beneficiary_name: str
+    period_start: date
+    period_end: date
+    amount: Decimal
+    paid_at: datetime
+    notes: str
+
+
 CustomerDetail.model_rebuild()

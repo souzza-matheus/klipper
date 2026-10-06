@@ -20,6 +20,8 @@ barberbot/
 
 **App admin:** agenda por dia e barbeiro, novo agendamento manual, confirmar, concluir, falta, remarcar, cancelar, enviar Pix, clientes com histórico, Pix pendentes, serviços, barbeiros com expediente, bloqueios, avaliações, relatórios, configurações do bot e do Pix, conexão do WhatsApp por QR Code.
 
+**Comissões e repasses:** regras de quanto cada barbeiro repassa para a barbearia ou para um barbeiro padrinho (várias ao mesmo tempo, por serviço ou geral, com vigência; a soma não passa de 100%). O cálculo usa o preço de cada atendimento concluído e a regra vigente no dia dele. Mostra bruto, repasses, líquido, acertado e em aberto por barbeiro, registra acertos e avisa os barbeiros pelo WhatsApp. No app: **Mais > Comissões e repasses**.
+
 **Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave da própria barbearia. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp).
 
 ## Testar em 2 minutos (sem WhatsApp)
@@ -54,7 +56,7 @@ python -m app.seed_mock --reset    # apaga os dados mock e gera de novo
 
 Gera 40 clientes, agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas), Pix, avaliações e 3 bloqueios futuros. O `--reset` apaga só clientes, agendamentos, pagamentos, avaliações, bloqueios e conversas da Barbearia Demo; serviços, barbeiros e o login admin continuam. As datas são relativas ao dia em que o script roda.
 
-Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete e pesquisa).
+Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa e comissões).
 
 ## Colocar no ar (VPS)
 

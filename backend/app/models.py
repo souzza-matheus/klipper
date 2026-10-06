@@ -240,3 +240,50 @@ class OutboxMessage(Base):
     ok: Mapped[bool] = mapped_column(Boolean, default=True)
     error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+
+class Beneficiary:
+    SHOP = "shop"      # dono da barbearia
+    BARBER = "barber"  # outro barbeiro (padrinho/mentor)
+
+
+class CommissionRule(Base):
+    """Repasse de uma porcentagem do que o barbeiro fatura. service_id nulo = todos os serviços;
+    uma regra de serviço substitui a geral para o mesmo beneficiário."""
+    __tablename__ = "commission_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id", ondelete="CASCADE"), index=True)  # quem paga
+    beneficiary_type: Mapped[str] = mapped_column(String(10), default=Beneficiary.SHOP)
+    beneficiary_barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id", ondelete="CASCADE"), nullable=True)
+    percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    service_id: Mapped[int | None] = mapped_column(ForeignKey("services.id", ondelete="CASCADE"), nullable=True)
+    valid_from: Mapped[date] = mapped_column(Date)
+    valid_to: Mapped[date | None] = mapped_column(Date, nullable=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    barber: Mapped[Barber] = relationship(foreign_keys=[barber_id])
+    beneficiary_barber: Mapped[Barber | None] = relationship(foreign_keys=[beneficiary_barber_id])
+    service: Mapped[Service | None] = relationship()
+
+
+class CommissionSettlement(Base):
+    """Acerto: registra que o repasse de um período foi pago ao beneficiário."""
+    __tablename__ = "commission_settlements"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    payer_barber_id: Mapped[int] = mapped_column(ForeignKey("barbers.id", ondelete="CASCADE"), index=True)
+    beneficiary_type: Mapped[str] = mapped_column(String(10), default=Beneficiary.SHOP)
+    beneficiary_barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id", ondelete="CASCADE"), nullable=True)
+    period_start: Mapped[date] = mapped_column(Date)
+    period_end: Mapped[date] = mapped_column(Date)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    paid_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    payer: Mapped[Barber] = relationship(foreign_keys=[payer_barber_id])
+    beneficiary_barber: Mapped[Barber | None] = relationship(foreign_keys=[beneficiary_barber_id])

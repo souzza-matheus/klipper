@@ -66,3 +66,13 @@ export const normHM = (s) => {
   const [h, m] = String(s).trim().split(':');
   return `${pad(Number(h))}:${m}`;
 };
+
+// Primeiro e último dia do mês atual + offset (-1 = mês passado)
+export function monthRange(offset = 0) {
+  const d = new Date();
+  const first = new Date(Date.UTC(d.getFullYear(), d.getMonth() + offset, 1));
+  const last = new Date(Date.UTC(d.getFullYear(), d.getMonth() + offset + 1, 0));
+  return [first.toISOString().slice(0, 10), last.toISOString().slice(0, 10)];
+}
+
+export const pct = (v) => `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
