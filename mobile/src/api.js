@@ -69,7 +69,16 @@ export async function request(method, path, body, query) {
     throw new ApiError('Sessão expirada. Faça login de novo.');
   }
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  // Erro 500 do servidor ou endereço errado (proxy, página HTML) não vem em JSON
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new ApiError(res.ok ? 'Resposta inválida do servidor. Confira o endereço.'
+        : `Erro ${res.status} no servidor: ${text.slice(0, 120)}`, res.status, null);
+    }
+  }
   if (!res.ok) {
     let msg = data?.detail;
     if (Array.isArray(msg)) msg = msg.map((d) => d.msg).join('\n');
