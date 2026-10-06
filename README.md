@@ -7,6 +7,7 @@ barberbot/
 ├── backend/            API em Python (FastAPI), bots, Pix, rotinas automáticas
 ├── mobile/             App admin em React Native (Expo)
 ├── docker-compose.yml  Postgres + Redis + Evolution API + backend
+├── scripts/whatsapp.sh atalhos do Docker e do WhatsApp (up, qr, status...)
 └── .env.example
 ```
 
@@ -137,23 +138,74 @@ Todas as rotas exigem login e enxergam só a barbearia do usuário. Valores em r
 | `GET /api/availability?...&customer_id=` | horários livres já sem os que violam conflitos do cliente |
 | `POST /api/appointments`, `POST /api/appointments/{id}/reschedule` | aceitam `force=true`. Sem ele, um conflito entre clientes devolve 409 com `detail = {code: "customer_conflict", message, conflict: {other_customer_name, start, end, barber_name, gap_minutes, same_day_block}}` |
 
+## WhatsApp de verdade no seu PC (Docker + Evolution API)
+
+Roda tudo localmente (Postgres, Redis, Evolution API v2.3.7 e backend) para testar com um WhatsApp real. Use um **número de teste** (chip da barbearia ou um chip só para isso), nunca o seu número pessoal.
+
+Precisa de Docker com o plugin `docker compose` v2 e o usuário no grupo `docker`.
+
+1. Crie o `.env` com segredos aleatórios (o `.env` está no `.gitignore` e nunca vai para o GitHub):
+   ```bash
+   cp .env.example .env
+   for v in POSTGRES_PASSWORD EVOLUTION_API_KEY JWT_SECRET WEBHOOK_SECRET SETUP_TOKEN; do
+     sed -i "s|^$v=.*|$v=$(openssl rand -hex 24)|" .env
+   done
+   sed -i 's|^EVOLUTION_PUBLIC_URL=.*|EVOLUTION_PUBLIC_URL=http://localhost:8080|; s|^DEV_MODE=.*|DEV_MODE=true|' .env
+   chmod 600 .env
+   ```
+2. Suba tudo. O backend do Docker fica em http://localhost:8002 (`BACKEND_PORT` no `.env`), então não briga com um `uvicorn` local na 8000:
+   ```bash
+   scripts/whatsapp.sh up        # docker compose up -d --build --wait
+   docker compose exec backend python -m app.seed
+   ```
+   O backend só sobe depois que o Postgres e a Evolution estão saudáveis (healthchecks) e aplica as migrações sozinho.
+3. Gere o QR Code e leia com o celular do número de teste (**Aparelhos conectados > Conectar aparelho**):
+   ```bash
+   scripts/whatsapp.sh qr        # salva qrcode.png na raiz do projeto (expira em ~40 s; rode de novo se precisar)
+   scripts/whatsapp.sh status    # espere "state": "open"
+   ```
+4. No app (Configurações) ou em `PUT /api/shop`, coloque em `owner_phone` o WhatsApp do dono, **diferente** do número conectado.
+5. De outro celular, mande "oi" para o número conectado e acompanhe com `scripts/whatsapp.sh logs`.
+
+Como as peças se falam (rede interna do Docker):
+
+- Backend → Evolution: `http://evolution:8080` (header `apikey` = `EVOLUTION_API_KEY`).
+- Evolution → backend: webhook `http://backend:8000/webhook/evolution?secret=WEBHOOK_SECRET`, evento `MESSAGES_UPSERT`, registrado automaticamente quando a instância é criada pelo `qr`.
+- No seu PC o backend fica em `localhost:${BACKEND_PORT}` (padrão 8002); dentro do Docker ele continua em `backend:8000`. No app, use `http://IP_DO_PC:8002` no login.
+- A porta 8080 da Evolution só fica aberta em `127.0.0.1` (manager em http://localhost:8080/manager, com a `EVOLUTION_API_KEY`).
+
+Comandos do `scripts/whatsapp.sh`: `up`, `down`, `logs [serviço]`, `qr`, `status` e `reset-instance` (desconecta e apaga a instância na Evolution para conectar outro número; pede confirmação e não mexe nos dados do BarberBot). `qr` e `status` usam o login da demo; para outra conta, defina `ADMIN_EMAIL` e `ADMIN_PASSWORD`.
+
+Se a mensagem não chegar:
+
+- `docker compose logs evolution | grep -i webhook`: erros de envio do webhook.
+- `curl -s localhost:8080/webhook/find/barbearia-demo -H "apikey: $EVOLUTION_API_KEY"`: confira URL, `enabled: true` e o evento `MESSAGES_UPSERT`.
+- `403 secret inválido` nos logs do backend: o `WEBHOOK_SECRET` mudou depois de a instância ser criada. Rode `reset-instance` e `qr` de novo.
+- Contatos com privacidade de número (LID): a Evolution entrega o número real em `remoteJidAlt`. Se vier só o `@lid`, o backend ignora a mensagem e registra um aviso no log.
+
 ## Colocar no ar (VPS)
 
-1. VPS com Docker (2 vCPU e 4 GB bastam para várias barbearias).
-2. `cp .env.example .env` e troque todos os valores.
-3. `docker compose up -d --build`
-   O backend aplica as migrações do banco (`alembic upgrade head`) toda vez que sobe.
-4. Cadastre a barbearia (uma vez por cliente):
+1. VPS com Docker (2 vCPU e 4 GB bastam para várias barbearias) e um domínio apontando para ela (ex.: `api.suabarbearia.com.br`).
+2. Crie o `.env` como no passo 1 acima, com `DEV_MODE=false` e `EVOLUTION_PUBLIC_URL=https://api.suabarbearia.com.br` (o domínio, não `localhost`).
+3. `docker compose up -d --build --wait`. O backend aplica as migrações (`alembic upgrade head`) toda vez que sobe.
+4. HTTPS com o Caddy na frente do backend, na porta `BACKEND_PORT` (padrão 8002; certificado automático). `/etc/caddy/Caddyfile`:
+   ```
+   api.suabarbearia.com.br {
+       reverse_proxy localhost:8002
+   }
+   ```
+   No firewall, libere só 22, 80 e 443. A porta 8080 da Evolution já fica presa ao `127.0.0.1` no `docker-compose.yml`: não a exponha na internet (para usar o manager, faça um túnel: `ssh -L 8080:localhost:8080 usuario@vps`). Se quiser, prenda também o backend ao `127.0.0.1` (`"127.0.0.1:${BACKEND_PORT:-8002}:8000"`), já que o Caddy roda na própria VPS.
+5. Cadastre a barbearia (uma vez por cliente):
    ```bash
-   curl -X POST http://SEU_SERVIDOR:8000/api/auth/register -H "Content-Type: application/json" -d '{
+   curl -X POST https://api.suabarbearia.com.br/api/auth/register -H "Content-Type: application/json" -d '{
      "setup_token": "o SETUP_TOKEN do .env",
      "shop_name": "Barbearia do Zé", "owner_name": "Zé",
      "email": "ze@email.com", "password": "senha-forte", "owner_phone": "31999998888"
    }'
    ```
-5. No app: entre com o e-mail e a senha, cadastre serviços e barbeiros, configure o Pix e, em **Mais > Conexão do WhatsApp**, gere o QR Code e leia com o celular da barbearia.
+6. No app (apontando para `https://api.suabarbearia.com.br`): entre com o e-mail e a senha, cadastre serviços e barbeiros, configure o Pix e, em **Mais > Conexão do WhatsApp**, gere o QR Code e leia com o celular da barbearia.
 
-Para produção, coloque um proxy com HTTPS na frente (Caddy ou Nginx) e use o domínio no app. Builds Android de produção bloqueiam `http://` por padrão.
+Builds Android de produção bloqueiam `http://`, por isso o domínio com HTTPS é obrigatório para o app.
 
 ## App admin
 

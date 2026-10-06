@@ -8,42 +8,81 @@ services:
       POSTGRES_DB: barberbot
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Só roda na primeira vez (volume vazio): cria o banco "evolution"
       - ./docker/init-evolution-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barberbot -d barberbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   evolution:
-    # Confira a tag estável mais recente em https://doc.evolution-api.com
-    image: evoapicloud/evolution-api:latest
+    # Última versão estável da v2 (https://github.com/evolution-foundation/evolution-api/releases).
+    # Não use "latest": ela acompanha as versões de teste (rc).
+    image: evoapicloud/evolution-api:v2.3.7
     restart: unless-stopped
-    depends_on: [db, redis]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       SERVER_URL: ${EVOLUTION_PUBLIC_URL}
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: postgresql://barberbot:${POSTGRES_PASSWORD}@db:5432/evolution?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: barberbot
       CACHE_REDIS_ENABLED: "true"
       CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evolution
       CACHE_LOCAL_ENABLED: "false"
       DEL_INSTANCE: "false"
+    # Só no localhost: o backend fala com a Evolution pela rede interna (http://evolution:8080).
+    # Em produção a porta 8080 não deve ficar aberta na internet.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - evolution_instances:/evolution/instances
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   backend:
     build: ./backend
     restart: unless-stopped
-    depends_on: [db, evolution]
+    depends_on:
+      db:
+        condition: service_healthy
+      evolution:
+        condition: service_healthy
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://barberbot:${POSTGRES_PASSWORD}@db:5432/barberbot
       EVOLUTION_URL: http://evolution:8080
+      # Endereço do backend na rede do Docker: a Evolution manda o webhook para
+      # http://backend:8000/webhook/evolution?secret=WEBHOOK_SECRET
       PUBLIC_URL: http://backend:8000
+    # Porta no seu PC (BACKEND_PORT no .env); dentro do Docker o backend continua na 8000
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8002}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 volumes:
   pgdata:

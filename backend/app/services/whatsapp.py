@@ -64,6 +64,7 @@ def create_instance(shop: Shop) -> dict:
         "integration": "WHATSAPP-BAILEYS",
         "qrcode": True,
         "webhook": {
+            "enabled": True,
             "url": f"{settings.public_url}/webhook/evolution?secret={settings.webhook_secret}",
             "byEvents": False,
             "base64": False,
@@ -78,12 +79,14 @@ def create_instance(shop: Shop) -> dict:
 
 def connect_qr(shop: Shop) -> dict:
     """Retorna o QR Code (base64) para conectar o celular da barbearia."""
-    r = httpx.get(f"{settings.evolution_url}/instance/connect/{shop.evolution_instance}",
-                  headers=_headers(), timeout=30)
+    url = f"{settings.evolution_url}/instance/connect/{shop.evolution_instance}"
+    r = httpx.get(url, headers=_headers(), timeout=30)
     if r.status_code == 404:
-        create_instance(shop)
-        r = httpx.get(f"{settings.evolution_url}/instance/connect/{shop.evolution_instance}",
-                      headers=_headers(), timeout=30)
+        created = create_instance(shop)
+        # A criação (com qrcode=True) já devolve o QR; o /connect logo em seguida pode vir sem ele
+        if (created.get("qrcode") or {}).get("base64"):
+            return created["qrcode"]
+        r = httpx.get(url, headers=_headers(), timeout=30)
     r.raise_for_status()
     return r.json()
 
@@ -101,6 +104,17 @@ def connection_state(shop: Shop) -> str:
     except Exception:
         log.exception("Falha ao consultar estado da instância")
         return "erro"
+
+
+def _phone_jid(data: dict) -> str:
+    """Escolhe o jid com o número real. Em contas com LID, o remoteJid vem como '<id>@lid' e o número
+    fica em remoteJidAlt (Evolution 2.3+ já troca o remoteJid por ele quando existe) ou senderPn (versões antigas)."""
+    key = data.get("key") or {}
+    candidates = [key.get("remoteJid"), key.get("remoteJidAlt"), key.get("senderPn"), data.get("senderPn")]
+    for jid in candidates:
+        if jid and jid.endswith("@s.whatsapp.net"):
+            return jid
+    return ""
 
 
 def parse_webhook(payload: dict) -> dict | None:
@@ -127,12 +141,14 @@ def parse_webhook(payload: dict) -> dict | None:
         text = (message.get("imageMessage") or message.get("documentMessage") or {}).get("caption") or "[anexo]"
     if not text:
         return None
-    # Em versões novas, o número real pode vir em remoteJidAlt/senderPn quando o jid é @lid
-    if jid.endswith("@lid"):
-        jid = key.get("remoteJidAlt") or key.get("senderPn") or data.get("senderPn") or jid
+    phone_jid = _phone_jid(data)
+    if not phone_jid:
+        # Só veio o LID: ele não é um telefone, então não dá para identificar o cliente
+        log.warning("Mensagem ignorada: contato sem número real (jid %s)", jid)
+        return None
     return {
         "instance": payload.get("instance", ""),
-        "phone": normalize_phone(jid),
+        "phone": normalize_phone(phone_jid),
         "text": text.strip(),
         "name": data.get("pushName", ""),
     }
