@@ -1,0 +1,118 @@
+"""Rotinas que rodam a cada minuto: lembretes, pesquisa de satisfação, expiração de Pix e resumo diário."""
+import logging
+from datetime import timedelta
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import select
+
+from .bot.owner import agenda_text, summary_text
+from .bot.context import Ctx
+from .config import now_local, settings
+from .db import SessionLocal
+from .models import Appointment, ApptStatus, Conversation, Shop
+from .services.fmt import appt_summary
+from .services.notify import notify_staff
+from .services.payments import expire_old
+from .services.whatsapp import send_text
+
+log = logging.getLogger("jobs")
+
+# Estados em que a pessoa está no meio de um fluxo: não interrompemos com lembrete/pesquisa
+BUSY_STATES = {"book_service", "book_barber", "book_day", "book_time", "book_name", "book_confirm",
+               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment"}
+
+
+def _conv(db, shop: Shop, phone: str) -> Conversation:
+    conv = db.scalar(select(Conversation).where(Conversation.shop_id == shop.id, Conversation.phone == phone))
+    if conv is None:
+        conv = Conversation(shop_id=shop.id, phone=phone, state="menu", data={})
+        db.add(conv)
+        db.flush()
+    return conv
+
+
+def send_reminders(db, shop: Shop) -> int:
+    now = now_local()
+    appts = db.scalars(select(Appointment).where(
+        Appointment.shop_id == shop.id, Appointment.status == ApptStatus.SCHEDULED,
+        Appointment.reminder_sent.is_(False), Appointment.start > now,
+        Appointment.start <= now + timedelta(minutes=shop.reminder_minutes_before),
+    )).all()
+    for a in appts:
+        a.reminder_sent = True
+        # Agendamento feito há poucos minutos dentro da janela do lembrete: não precisa lembrar
+        if a.created_at and a.start - a.created_at < timedelta(minutes=shop.reminder_minutes_before):
+            continue
+        send_text(db, shop, a.customer.phone,
+                  f"⏰ *Lembrete*, {a.customer.name.split(' ')[0] if a.customer.name else ''}!\n\n{appt_summary(a)}\n\n"
+                  "*1* - Confirmo presença\n*2* - Preciso cancelar")
+        conv = _conv(db, shop, a.customer.phone)
+        if conv.state not in BUSY_STATES:
+            Ctx(db, shop, conv, a.customer.phone, "").go("reminder", appt_id=a.id)
+    return len(appts)
+
+
+def send_surveys(db, shop: Shop) -> int:
+    now = now_local()
+    delay = timedelta(minutes=shop.survey_delay_minutes)
+    appts = db.scalars(select(Appointment).where(
+        Appointment.shop_id == shop.id,
+        Appointment.status.in_((ApptStatus.SCHEDULED, ApptStatus.CONFIRMED, ApptStatus.COMPLETED)),
+        Appointment.survey_sent.is_(False),
+        Appointment.end <= now - delay, Appointment.end >= now - timedelta(days=1),
+    )).all()
+    count = 0
+    for a in appts:
+        a.survey_sent = True
+        if a.status in ApptStatus.ACTIVE:
+            a.status = ApptStatus.COMPLETED  # passou do horário sem ser marcado como falta: considera atendido
+        if not shop.survey_enabled:
+            continue
+        conv = _conv(db, shop, a.customer.phone)
+        if conv.state in BUSY_STATES:
+            continue
+        send_text(db, shop, a.customer.phone,
+                  f"Oi! Como foi o seu atendimento de hoje com {a.barber.name} na *{shop.name}*? 💈\n\n"
+                  "Dê uma nota de *1* a *5*:\n1 😞  2 🙁  3 😐  4 🙂  5 🤩")
+        Ctx(db, shop, conv, a.customer.phone, "").go("survey_rating", appt_id=a.id)
+        count += 1
+    return count
+
+
+def send_daily_summary(db, shop: Shop) -> bool:
+    now = now_local()
+    if not shop.owner_phone or now.hour < shop.daily_summary_hour or shop.last_summary_date == now.date():
+        return False
+    shop.last_summary_date = now.date()
+    conv = _conv(db, shop, shop.owner_phone)
+    ctx = Ctx(db, shop, conv, shop.owner_phone, "")
+    send_text(db, shop, shop.owner_phone, "☀️ Bom dia! " + summary_text(ctx, now.date()) + "\n\n" + agenda_text(ctx, now.date()))
+    return True
+
+
+def run_all() -> None:
+    db = SessionLocal()
+    try:
+        for shop in db.scalars(select(Shop)).all():
+            try:
+                send_reminders(db, shop)
+                send_surveys(db, shop)
+                expired = expire_old(db, shop)
+                if expired:
+                    notify_staff(db, shop, f"⌛ {expired} Pix pendente(s) expiraram sem confirmação.")
+                send_daily_summary(db, shop)
+                db.commit()
+            except Exception:
+                db.rollback()
+                log.exception("Erro nas rotinas da barbearia %s", shop.id)
+    finally:
+        db.close()
+
+
+def start_scheduler() -> BackgroundScheduler | None:
+    if not settings.run_scheduler:
+        return None
+    sched = BackgroundScheduler(timezone=settings.timezone)
+    sched.add_job(run_all, "interval", minutes=1, id="rotinas", max_instances=1, coalesce=True)
+    sched.start()
+    return sched
