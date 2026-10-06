@@ -74,8 +74,8 @@ import base64, json, os, sys
 data = json.loads(os.environ["QR_JSON"])
 qr = data.get("qrcode")
 if not qr:
-    print(f"Sem QR Code (estado: {data.get('state')}). Se já está 'open', o número já está conectado; "
-          "senão, tente de novo em alguns segundos.")
+    print(f"Sem QR Code (estado: {data.get('state')}). "
+          + (data.get("message") or "Tente de novo em alguns segundos."))
     sys.exit(2)
 with open(sys.argv[1], "wb") as f:
     f.write(base64.b64decode(qr.split(",", 1)[-1]))

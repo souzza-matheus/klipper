@@ -98,17 +98,33 @@ def whatsapp_status(shop: Shop = Depends(shop_of)):
     return {"instance": shop.evolution_instance, "state": wa.connection_state(shop)}
 
 
+def _evolution(fn, *args) -> dict:
+    """Erros da Evolution viram 502 com a mensagem em português; o detalhe técnico já foi para o log."""
+    try:
+        return fn(*args)
+    except wa.EvolutionError as exc:
+        raise HTTPException(502, str(exc))
+
+
 @router.post("/whatsapp/connect", tags=["whatsapp"])
 def whatsapp_connect(shop: Shop = Depends(shop_of)):
-    """Retorna o QR Code para ler com o WhatsApp da barbearia (Aparelhos conectados > Conectar aparelho)."""
-    if not settings.evolution_url:
-        return {"state": "simulacao", "qrcode": None, "message": "EVOLUTION_URL não configurada: rodando em modo simulação"}
-    try:
-        data = wa.connect_qr(shop)
-    except Exception as exc:
-        raise HTTPException(502, f"Falha ao falar com a Evolution API: {exc}")
-    qr = data.get("base64") or (data.get("qrcode") or {}).get("base64")
-    return {"state": wa.connection_state(shop), "qrcode": qr, "pairing_code": data.get("pairingCode")}
+    """Gera o QR Code para ler com o WhatsApp da barbearia (Aparelhos conectados > Conectar aparelho).
+    Sempre devolve state, qrcode (data:image/png;base64,... ou null), pairing_code e message (quando não há QR Code)."""
+    return _evolution(wa.connect, shop)
+
+
+@router.post("/whatsapp/pairing-code", tags=["whatsapp"])
+def whatsapp_pairing_code(body: S.PairingCodeIn, shop: Shop = Depends(shop_of)):
+    """Código de 8 dígitos para conectar sem ler QR Code (Conectar aparelho > Conectar com número de telefone)."""
+    number = wa.normalize_phone(body.number)
+    if not 12 <= len(number) <= 13:
+        raise HTTPException(422, "Número inválido. Use o número do bot com DDD, ex.: (31) 99999-8888.")
+    return _evolution(wa.pairing_code, shop, number)
+
+
+@router.post("/whatsapp/disconnect", tags=["whatsapp"])
+def whatsapp_disconnect(shop: Shop = Depends(shop_of)):
+    return _evolution(wa.disconnect, shop)
 
 
 # ---------------------------------------------------------------- serviços

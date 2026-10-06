@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Image, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { phoneLabel } from '../format';
 import { colors } from '../theme';
@@ -102,30 +103,110 @@ export function SettingsScreen() {
 
 const STATE_INFO = {
   open: { label: 'Conectado', fg: colors.good, bg: colors.goodBg },
-  connecting: { label: 'Aguardando leitura do QR Code', fg: colors.warn, bg: colors.warnBg },
+  connecting: { label: 'Aguardando conexão', fg: colors.warn, bg: colors.warnBg },
   close: { label: 'Desconectado', fg: colors.bad, bg: colors.badBg },
   nao_criada: { label: 'Ainda não conectado', fg: colors.bad, bg: colors.badBg },
   simulacao: { label: 'Modo simulação (sem WhatsApp)', fg: colors.muted, bg: '#EEECE8' },
   erro: { label: 'Erro ao consultar', fg: colors.bad, bg: colors.badBg },
 };
 
+const QR_SECONDS = 40; // o WhatsApp troca o QR Code a cada ~20-40 s
+const POLL_MS = 3000;
+
+// O backend manda com o prefixo data:image/png;base64, mas aceita também só o base64
+export function qrUri(raw) {
+  if (!raw) return null;
+  return raw.startsWith('data:') ? raw : `data:image/png;base64,${raw}`;
+}
+
+// "WZYEH1YY" -> "WZYE-H1YY", como o WhatsApp mostra
+const formatCode = (c) => (c && c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c);
+
 export function WhatsAppScreen() {
   const st = useLoad(() => api.get('/whatsapp/status'), []);
+  const [mode, setMode] = useState('qr');
   const [qr, setQr] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState(null);
+  const [number, setNumber] = useState('');
+  const [busy, setBusy] = useState('');
+  const [left, setLeft] = useState(0);
+  const waiting = !!(qr || code);
+
+  // Ao sair da tela o QR Code/código some e a consulta de status para
+  useFocusEffect(useCallback(() => () => { setQr(null); setCode(null); }, []));
+
+  // Enquanto o QR Code ou o código está na tela, consulta o status até conectar
+  useEffect(() => {
+    if (!waiting) return undefined;
+    const id = setInterval(async () => {
+      try {
+        const r = await api.get('/whatsapp/status');
+        st.setData(r);
+        if (r.state === 'open') {
+          setQr(null);
+          setCode(null);
+        }
+      } catch (e) {
+        // falha passageira de rede: a próxima consulta tenta de novo
+      }
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [waiting]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!qr || left <= 0) return undefined;
+    const id = setTimeout(() => setLeft((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [qr, left]);
+
+  const show = (r, field) => {
+    if (!r) return; // erro (ex.: 502 da Evolution) já foi mostrado pelo run
+    st.setData((d) => ({ ...d, state: r.state }));
+    if (field === 'qrcode' && r.qrcode) {
+      setCode(null);
+      setQr(qrUri(r.qrcode));
+      setLeft(QR_SECONDS);
+      return;
+    }
+    if (field === 'pairing_code' && r.pairing_code) {
+      setQr(null);
+      setCode(r.pairing_code);
+      return;
+    }
+    setQr(null);
+    setCode(null);
+    Alert.alert(r.state === 'open' ? 'Já conectado' : 'Não foi possível gerar',
+      r.message || 'O servidor não devolveu o QR Code. Tente de novo em alguns segundos.');
+  };
 
   const connect = async () => {
-    setBusy(true);
+    setBusy('qr');
     const r = await run(() => api.post('/whatsapp/connect'));
-    setBusy(false);
-    if (r) {
-      setQr(r.qrcode);
-      if (r.message) setQr(null);
-      st.reload();
-    }
+    setBusy('');
+    show(r, 'qrcode');
   };
+  const requestCode = async () => {
+    if (number.replace(/\D/g, '').length < 10) {
+      Alert.alert('Número do bot', 'Digite o número do WhatsApp da barbearia com DDD, ex.: (31) 99999-8888.');
+      return;
+    }
+    setBusy('code');
+    const r = await run(() => api.post('/whatsapp/pairing-code', { number }));
+    setBusy('');
+    show(r, 'pairing_code');
+  };
+  const disconnect = () => confirm('Desconectar WhatsApp',
+    'O bot para de responder os clientes até você conectar de novo. Desconectar?', async () => {
+      setBusy('disconnect');
+      const r = await run(() => api.post('/whatsapp/disconnect'));
+      setBusy('');
+      if (r) st.setData((d) => ({ ...d, state: r.state }));
+      st.reload();
+    }, 'Desconectar', true);
+
   const state = st.data?.state;
   const info = STATE_INFO[state] || { label: state || '...', fg: colors.muted, bg: '#EEECE8' };
+  if (!st.data && st.error) return <Loading error={st.error} onRetry={st.reload} />;
 
   return (
     <Screen onRefresh={st.reload} refreshing={st.loading && !!st.data}>
@@ -134,19 +215,76 @@ export function WhatsAppScreen() {
         <Badge info={info} />
         {st.data ? <Muted style={{ marginTop: 8 }}>Instância: {st.data.instance}</Muted> : null}
       </Card>
-      {state !== 'open' ? (
+
+      {state === 'open' ? (
         <>
-          <Muted style={{ marginVertical: 10 }}>
-            No celular da barbearia, abra o WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho e leia o QR Code abaixo.
-          </Muted>
-          <Button title={busy ? 'Gerando...' : 'Gerar QR Code'} icon="qr-code-outline" onPress={connect} disabled={busy} />
+          <Muted style={{ marginVertical: 10 }}>O bot está respondendo os clientes por este WhatsApp.</Muted>
+          <Button title={busy === 'disconnect' ? 'Desconectando...' : 'Desconectar WhatsApp'} icon="log-out-outline"
+                  kind="danger" onPress={disconnect} disabled={!!busy} />
         </>
-      ) : null}
+      ) : (
+        <>
+          <View style={{ marginTop: 10 }}>
+            <Chips options={[{ value: 'qr', label: 'Ler QR Code' }, { value: 'code', label: 'Conectar com código' }]}
+                   value={mode} onChange={(m) => { setMode(m); setQr(null); setCode(null); }} />
+          </View>
+          {mode === 'qr' ? (
+            <>
+              <Muted style={{ marginVertical: 10 }}>
+                No celular da barbearia, abra o WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho e leia o QR Code.
+              </Muted>
+              {!qr ? (
+                <Button title={busy === 'qr' ? 'Gerando QR Code...' : 'Gerar QR Code'} icon="qr-code-outline"
+                        onPress={connect} disabled={!!busy} />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Muted style={{ marginVertical: 10 }}>
+                Use quando não houver outro aparelho para ler o QR Code: você digita um código no próprio celular da barbearia.
+              </Muted>
+              <Field label="Número do WhatsApp do bot" value={number} onChangeText={setNumber} keyboardType="phone-pad"
+                     placeholder="(31) 99999-8888" />
+              <Button title={busy === 'code' ? 'Gerando código...' : code ? 'Gerar novo código' : 'Gerar código'}
+                      icon="keypad-outline" onPress={requestCode} disabled={!!busy} />
+            </>
+          )}
+          {busy === 'qr' || busy === 'code' ? (
+            <Card style={{ alignItems: 'center', marginTop: 12 }}>
+              <ActivityIndicator color={colors.primary} />
+              <Muted style={{ marginTop: 8 }}>Pedindo para a Evolution API, pode levar alguns segundos...</Muted>
+            </Card>
+          ) : null}
+        </>
+      )}
+
       {qr ? (
-        <Card style={{ alignItems: 'center' }}>
-          <Image source={{ uri: qr.startsWith('data:') ? qr : `data:image/png;base64,${qr}` }} style={{ width: 260, height: 260 }} />
-          <Muted style={{ marginTop: 8 }}>O QR Code expira em cerca de 1 minuto. Gere outro se precisar.</Muted>
-          <Button title="Já li, atualizar status" kind="ghost" onPress={() => { setQr(null); st.reload(); }} style={{ marginTop: 10 }} />
+        <Card style={{ alignItems: 'center', marginTop: 12 }}>
+          {left > 0 ? (
+            <>
+              <Image source={{ uri: qr }} style={{ width: 260, height: 260 }} resizeMode="contain" />
+              <Muted style={{ marginTop: 8 }}>Expira em {left} s. Aguardando a leitura...</Muted>
+            </>
+          ) : (
+            <>
+              <Muted style={{ marginBottom: 10 }}>O QR Code venceu.</Muted>
+              <Button title={busy === 'qr' ? 'Gerando QR Code...' : 'Gerar novo QR Code'} icon="refresh-outline"
+                      onPress={connect} disabled={!!busy} />
+            </>
+          )}
+        </Card>
+      ) : null}
+
+      {code ? (
+        <Card style={{ alignItems: 'center', marginTop: 12 }}>
+          <Muted>Código de pareamento</Muted>
+          <Text selectable style={{ fontSize: 34, fontWeight: '700', letterSpacing: 4, color: colors.ink, marginVertical: 10 }}>
+            {formatCode(code)}
+          </Text>
+          <Muted style={{ alignSelf: 'stretch' }}>
+            No celular da barbearia: WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho &gt; Conectar com número de
+            telefone, e digite o código acima. Aguardando a conexão...
+          </Muted>
         </Card>
       ) : null}
     </Screen>

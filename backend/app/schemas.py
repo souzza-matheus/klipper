@@ -521,3 +521,8 @@ class FinanceDayOut(BaseModel):
 
 
 CustomerDetail.model_rebuild()
+
+
+# ---- whatsapp
+class PairingCodeIn(BaseModel):
+    number: str

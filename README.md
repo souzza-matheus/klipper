@@ -164,6 +164,7 @@ Precisa de Docker com o plugin `docker compose` v2 e o usuário no grupo `docker
    scripts/whatsapp.sh qr        # salva qrcode.png na raiz do projeto (expira em ~40 s; rode de novo se precisar)
    scripts/whatsapp.sh status    # espere "state": "open"
    ```
+   Ou pelo app: **Mais > Conexão do WhatsApp** (detalhes em [Conectar o WhatsApp pelo app](#conectar-o-whatsapp-pelo-app)).
 4. No app (Configurações) ou em `PUT /api/shop`, coloque em `owner_phone` o WhatsApp do dono, **diferente** do número conectado.
 5. De outro celular, mande "oi" para o número conectado e acompanhe com `scripts/whatsapp.sh logs`.
 
@@ -173,6 +174,27 @@ Como as peças se falam (rede interna do Docker):
 - Evolution → backend: webhook `http://backend:8000/webhook/evolution?secret=WEBHOOK_SECRET`, evento `MESSAGES_UPSERT`, registrado automaticamente quando a instância é criada pelo `qr`.
 - No seu PC o backend fica em `localhost:${BACKEND_PORT}` (padrão 8002); dentro do Docker ele continua em `backend:8000`. No app, use `http://IP_DO_PC:8002` no login.
 - A porta 8080 da Evolution só fica aberta em `127.0.0.1` (manager em http://localhost:8080/manager, com a `EVOLUTION_API_KEY`).
+
+### Conectar o WhatsApp pelo app
+
+Em **Mais > Conexão do WhatsApp** (o app precisa estar logado em `http://IP_DO_PC:8002`, o backend do Docker; um `uvicorn` local na 8000 sem `EVOLUTION_URL` fica em **modo simulação** e não gera QR Code):
+
+- **Ler QR Code:** toque em **Gerar QR Code** e, no celular do número da barbearia, abra **WhatsApp > Aparelhos conectados > Conectar aparelho** e leia o código. Ele vale cerca de 40 s; quando vencer, toque em **Gerar novo QR Code**. O app consulta o status a cada 3 s e mostra **Conectado** sozinho.
+- **Conectar com código** (sem outro aparelho para ler o QR Code): digite o número do bot com DDD e toque em **Gerar código**. No celular da barbearia: **WhatsApp > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone** e digite o código de 8 caracteres.
+- **Desconectar WhatsApp** aparece quando está conectado (pede confirmação). O bot para de responder até conectar de novo.
+
+Se não der para gerar, o app mostra o motivo (já conectado, modo simulação ou o erro da Evolution).
+
+Rotas usadas (todas com login):
+
+| Rota | O que faz |
+|---|---|
+| `GET /api/whatsapp/status` | `{instance, state}`: `open`, `connecting`, `close`, `nao_criada`, `simulacao` ou `erro` |
+| `POST /api/whatsapp/connect` | Cria a instância (com o webhook) se não existir; se estiver travada ou com o QR Code vencido, reinicia a sessão. Devolve `{state, qrcode, pairing_code, message}`; `qrcode` vem como `data:image/png;base64,...` ou `null`, e `message` explica quando não há QR Code |
+| `POST /api/whatsapp/pairing-code` | Corpo `{"number": "31999998888"}`. Mesmo formato, com `pairing_code` preenchido |
+| `POST /api/whatsapp/disconnect` | Faz logout da instância na Evolution |
+
+Falhas da Evolution (fora do ar, `apikey` errada, erro interno) voltam como HTTP 502 com a mensagem em português; o detalhe técnico fica em `docker compose logs backend`.
 
 Comandos do `scripts/whatsapp.sh`: `up`, `down`, `logs [serviço]`, `qr`, `status` e `reset-instance` (desconecta e apaga a instância na Evolution para conectar outro número; pede confirmação e não mexe nos dados do BarberBot). `qr` e `status` usam o login da demo; para outra conta, defina `ADMIN_EMAIL` e `ADMIN_PASSWORD`.
 
