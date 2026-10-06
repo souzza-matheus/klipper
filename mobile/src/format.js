@@ -129,3 +129,17 @@ export const EXPENSE_CATEGORIES = [
   { value: 'marketing', label: 'Marketing' }, { value: 'salarios', label: 'Salários' },
   { value: 'impostos', label: 'Impostos' }, { value: 'outros', label: 'Outros' },
 ];
+
+// Distância em minutos: 90 -> "1 h 30 min", 240 -> "4 h"
+export function gapLabel(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+export const ACCESS_OPTIONS = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'approval', label: 'Precisa de aprovação' },
+  { value: 'blocked', label: 'Bloqueado' },
+];

@@ -1,21 +1,24 @@
-"""Bot do estabelecimento: o dono (ou barbeiro) consulta agenda, horários livres, clientes, Pix e avaliações pelo WhatsApp."""
+"""Bot do estabelecimento: o dono (ou barbeiro) consulta agenda, horários livres, clientes, Pix e avaliações pelo WhatsApp.
+Só o dono aprova ou recusa pedidos de clientes que precisam de aprovação."""
 import re
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, or_, select
 
 from ..config import now_local
-from ..models import Appointment, ApptStatus, Barber, Block, Customer, PayStatus, Review
+from ..models import AccessStatus, Appointment, ApptStatus, Barber, Block, Customer, PayStatus, Review
+from ..services import approvals
 from ..services import scheduling as sch
-from ..services.fmt import day_label, dt_label, money
+from ..services.fmt import appt_summary, day_label, dt_label, money
 from ..services.payments import confirm_payment, pending_payments
 from ..services.whatsapp import phones_match, send_text
 from .context import RESET_WORDS, Ctx, pick
 
 STATUS_ICON = {
     ApptStatus.SCHEDULED: "🕐", ApptStatus.CONFIRMED: "✅", ApptStatus.COMPLETED: "✔️",
-    ApptStatus.NO_SHOW: "🚫", ApptStatus.CANCELLED: "❌",
+    ApptStatus.NO_SHOW: "🚫", ApptStatus.CANCELLED: "❌", ApptStatus.PENDING_APPROVAL: "⏳",
 }
+ACCESS_LABEL = {AccessStatus.APPROVAL: "🟡 Agendamento precisa de aprovação", AccessStatus.BLOCKED: "⛔ Bloqueado no bot"}
 
 
 def staff_barber(ctx: Ctx) -> Barber | None:
@@ -46,11 +49,15 @@ def show_menu(ctx: Ctx) -> None:
     who = f"Olá, {b.name}! " if b else "Olá! "
     ctx.reset()
     ctx.go("o_menu")
+    approve = ""
+    if b is None:
+        n = len(approvals.pending_approvals(ctx.db, ctx.shop))
+        approve = "\n*10* - Pedidos para aprovar" + (f" ({n})" if n else "")
     ctx.say(
         f"{who}Painel da *{ctx.shop.name}* 💈\n\n"
         "*1* - Agenda de hoje\n*2* - Agenda de amanhã\n*3* - Horários livres de um dia\n"
         "*4* - Buscar cliente\n*5* - Pix pendentes\n*6* - Bloquear horário\n"
-        "*7* - Avaliações recentes\n*8* - Resumo do dia\n*9* - Testar o bot como cliente"
+        "*7* - Avaliações recentes\n*8* - Resumo do dia\n*9* - Testar o bot como cliente" + approve
     )
 
 
@@ -80,6 +87,8 @@ def st_menu(ctx: Ctx) -> None:
         ctx.reset(keep=())
         ctx.go("menu", as_customer=True)
         ctx.say("Modo cliente ligado. Mande *oi* para ver o bot como seus clientes veem. Para voltar, mande *painel*.")
+    elif t == "10" and staff_barber(ctx) is None:
+        list_approvals(ctx)
     else:
         show_menu(ctx)
 
@@ -166,8 +175,11 @@ def st_search(ctx: Ctx) -> None:
         nxt = [a for a in appts if a.start >= now and a.status in ApptStatus.ACTIVE]
         done = [a for a in appts if a.status == ApptStatus.COMPLETED]
         faltas = sum(1 for a in appts if a.status == ApptStatus.NO_SHOW)
-        lines = [f"👤 *{c.name or 'Sem nome'}* - wa.me/{c.phone}",
-                 f"Atendimentos: {len(done)} | Faltas: {faltas} | Total: {money(sum(a.price for a in done))}"]
+        lines = [f"👤 *{c.name or 'Sem nome'}* - wa.me/{c.phone}"]
+        if c.access_status in ACCESS_LABEL:
+            lines.append(ACCESS_LABEL[c.access_status] + (f" ({c.access_reason})" if c.access_reason else ""))
+        lines += [
+            f"Atendimentos: {len(done)} | Faltas: {faltas} | Total: {money(sum(a.price for a in done))}"]
         if done:
             lines.append(f"Último: {dt_label(done[0].start)} ({done[0].service.name})")
         for a in reversed(nxt):
@@ -213,6 +225,65 @@ def st_pix(ctx: Ctx) -> None:
     ctx.go("o_menu")
 
 
+# ---------------------------------------------------------------- pedidos para aprovar
+
+def list_approvals(ctx: Ctx) -> None:
+    appts = approvals.pending_approvals(ctx.db, ctx.shop)
+    if not appts:
+        ctx.say("Nenhum pedido para aprovar. 👍")
+        ctx.go("o_menu")
+        return
+    lines = [f"*{i}* - {a.customer.name or a.customer.phone} | {dt_label(a.start)} | {a.service.name} com {a.barber.name}"
+             for i, a in enumerate(appts, 1)]
+    ctx.go("o_approve_pick", appt_ids=[a.id for a in appts])
+    ctx.say("🟡 *Pedidos para aprovar*\n\n" + "\n".join(lines) + "\n\nResponda com o número do pedido.")
+
+
+def _pending(ctx: Ctx, appt_id: int | None) -> Appointment | None:
+    a = ctx.db.get(Appointment, appt_id or 0)
+    if a and a.shop_id == ctx.shop.id and a.status == ApptStatus.PENDING_APPROVAL:
+        return a
+    return None
+
+
+def st_approve_pick(ctx: Ctx) -> None:
+    ids = ctx.get("appt_ids", [])
+    i = pick(ctx.text, len(ids))
+    if i is None:
+        st_menu(ctx)
+        return
+    a = _pending(ctx, ids[i])
+    if a is None:
+        ctx.say("Esse pedido não está mais pendente (já foi respondido ou expirou).")
+        ctx.go("o_menu")
+        return
+    c = a.customer
+    info = f"\nMotivo interno: {c.access_reason}" if c.access_reason else ""
+    ctx.go("o_approve_action", appt_id=a.id)
+    ctx.say(f"👤 *{c.name or 'Sem nome'}* - wa.me/{c.phone}{info}\n\n{appt_summary(a)}\n\n"
+            f"Expira {dt_label(approvals.approval_deadline(ctx.shop, a)).lower()}.\n\n"
+            "*1* - Aprovar\n*2* - Recusar")
+
+
+def st_approve_action(ctx: Ctx) -> None:
+    a = _pending(ctx, ctx.get("appt_id"))
+    if a is None:
+        ctx.say("Esse pedido não está mais pendente (já foi respondido ou expirou).")
+        ctx.go("o_menu")
+        return
+    name = a.customer.name or a.customer.phone
+    if ctx.low in ("1", "aprovar", "sim"):
+        approvals.approve(ctx.db, ctx.shop, a)
+        ctx.say(f"✅ Pedido de {name} aprovado. O cliente foi avisado.")
+    elif ctx.low in ("2", "recusar", "nao"):
+        approvals.refuse(ctx.db, ctx.shop, a)
+        ctx.say(f"❌ Pedido de {name} recusado e horário liberado. O cliente foi avisado.")
+    else:
+        ctx.say("Responda *1* para aprovar ou *2* para recusar (ou *menu* para voltar).")
+        return
+    ctx.go("o_menu")
+
+
 # ---------------------------------------------------------------- bloqueio
 
 def st_block(ctx: Ctx) -> None:
@@ -237,7 +308,7 @@ def st_block(ctx: Ctx) -> None:
     ctx.db.add(Block(shop_id=ctx.shop.id, barber_id=me.id if me else None, start=start, end=end,
                      reason=m.group(4).strip()[:120]))
     conflicts = [a for a in sch.appointments_on(ctx.db, ctx.shop, day, me.id if me else None)
-                 if a.status in ApptStatus.ACTIVE and a.start < end and a.end > start]
+                 if a.status in ApptStatus.OCCUPYING and a.start < end and a.end > start]
     who = me.name if me else "a barbearia inteira"
     msg = f"🔒 Bloqueado {day_label(day)} das {start:%H:%M} às {end:%H:%M} para {who}."
     if conflicts:
@@ -297,4 +368,6 @@ STATES = {
     "o_search": st_search,
     "o_pix": st_pix,
     "o_block": st_block,
+    "o_approve_pick": st_approve_pick,
+    "o_approve_action": st_approve_action,
 }

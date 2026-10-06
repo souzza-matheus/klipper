@@ -52,6 +52,8 @@ class ShopIn(BaseModel):
     daily_summary_hour: int | None = Field(None, ge=0, le=23)
     welcome_text: str | None = None
     human_pause_hours: int | None = Field(None, ge=1, le=48)
+    approval_expire_hours: int | None = Field(None, ge=1, le=72)
+    conflict_default_gap_minutes: int | None = Field(None, ge=0, le=1440)
 
 
 class ShopOut(ORM):
@@ -77,6 +79,8 @@ class ShopOut(ORM):
     daily_summary_hour: int
     welcome_text: str
     human_pause_hours: int
+    approval_expire_hours: int
+    conflict_default_gap_minutes: int
     evolution_instance: str
 
 
@@ -146,11 +150,17 @@ class CustomerIn(BaseModel):
     notes: str | None = None
 
 
+ACCESS_STATUS = "^(normal|approval|blocked)$"
+
+
 class CustomerOut(ORM):
     id: int
     name: str
     phone: str
     notes: str
+    access_status: str
+    access_reason: str
+    access_changed_at: datetime | None
     created_at: datetime
 
 
@@ -158,7 +168,65 @@ class CustomerDetail(CustomerOut):
     visits: int
     no_shows: int
     total_spent: Decimal
+    future_appointments: int  # agendamentos futuros ativos (inclui pedidos aguardando aprovação)
     appointments: list["AppointmentOut"]
+
+
+class CustomerAccessIn(BaseModel):
+    access_status: str = Field(pattern=ACCESS_STATUS)
+    access_reason: str = Field("", max_length=1000)
+    cancel_future: bool = False      # ao bloquear: cancela os agendamentos futuros
+    notify_customer: bool = False    # ...e avisa o cliente (mensagem neutra)
+
+
+class CustomerAccessOut(BaseModel):
+    customer: CustomerOut
+    cancelled: int
+
+
+# ---- clientes que não podem se encontrar
+class ConflictIn(BaseModel):
+    customer_id: int
+    other_customer_id: int
+    min_gap_minutes: int | None = Field(None, ge=0, le=1440)  # nulo = padrão da barbearia
+    same_day_block: bool = False
+    notes: str = Field("", max_length=1000)
+
+
+class ConflictUpdate(BaseModel):
+    min_gap_minutes: int | None = Field(None, ge=0, le=1440)
+    same_day_block: bool = False
+    notes: str = Field("", max_length=1000)
+
+
+class ConflictOut(BaseModel):
+    id: int
+    customer_a_id: int
+    customer_a_name: str
+    customer_b_id: int
+    customer_b_name: str
+    # Preenchidos quando a listagem é de um cliente: o "outro" do par
+    other_customer_id: int | None = None
+    other_customer_name: str | None = None
+    other_customer_phone: str | None = None
+    min_gap_minutes: int | None
+    effective_gap_minutes: int  # o que vale de fato (padrão da barbearia quando min_gap_minutes é nulo)
+    same_day_block: bool
+    notes: str
+    created_at: datetime
+
+
+class ConflictHitOut(BaseModel):
+    """Agendamento de um cliente em conflito (só para o dono)."""
+    conflict_id: int
+    other_customer_id: int
+    other_customer_name: str
+    appointment_id: int
+    start: datetime
+    end: datetime
+    barber_name: str
+    gap_minutes: int
+    same_day_block: bool
 
 
 # ---- appointments
@@ -169,6 +237,7 @@ class AppointmentIn(BaseModel):
     service_id: int
     start: datetime
     notes: str = ""
+    force: bool = False  # agenda mesmo com conflito entre clientes
 
 
 PAY_METHOD = "^(pix|dinheiro|debito|credito)$"
@@ -186,6 +255,7 @@ class RescheduleIn(BaseModel):
     start: datetime
     barber_id: int | None = None
     notify_customer: bool = True
+    force: bool = False
 
 
 class AppointmentOut(ORM):
@@ -206,6 +276,8 @@ class AppointmentOut(ORM):
     service_id: int
     service_name: str
     rating: int | None = None
+    customer_access_status: str = "normal"
+    approval_deadline: datetime | None = None  # só em pending_approval
 
 
 # ---- payments / reviews

@@ -40,6 +40,8 @@ const NUM = [
   ['pix_expire_hours', 'Pix pendente expira em (horas)'],
   ['daily_summary_hour', 'Hora do resumo diário (0-23)'],
   ['human_pause_hours', 'Pausa do bot ao pedir atendente (horas)'],
+  ['approval_expire_hours', 'Pedido para aprovar expira em (horas)'],
+  ['conflict_default_gap_minutes', 'Distância padrão entre clientes que não podem se encontrar (min)'],
 ];
 
 export function SettingsScreen() {

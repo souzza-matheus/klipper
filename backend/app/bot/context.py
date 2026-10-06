@@ -2,12 +2,26 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Conversation, Shop
 from ..services.whatsapp import send_text
 
 RESET_WORDS = {"0", "menu", "inicio", "voltar", "sair", "cancelar fluxo"}
+
+# Estados em que a pessoa está no meio de um fluxo: avisos automáticos não mudam o estado da conversa
+BUSY_STATES = {"book_service", "book_barber", "book_day", "book_time", "book_name", "book_confirm",
+               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment"}
+
+
+def conversation_for(db: Session, shop: Shop, phone: str) -> Conversation:
+    conv = db.scalar(select(Conversation).where(Conversation.shop_id == shop.id, Conversation.phone == phone))
+    if conv is None:
+        conv = Conversation(shop_id=shop.id, phone=phone, state="menu", data={})
+        db.add(conv)
+        db.flush()
+    return conv
 
 
 def norm(text: str) -> str:

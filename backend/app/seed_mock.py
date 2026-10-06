@@ -16,12 +16,12 @@ from sqlalchemy.orm import Session
 from .config import now_local
 from .db import SessionLocal
 from .models import (
-    Appointment, ApptStatus, Barber, Block, CommissionSettlement, Conversation, Customer, Expense, PayMethod,
-    PayStatus, Payment, Review, Service, Shop,
+    Appointment, ApptStatus, Barber, Block, CommissionSettlement, Conversation, Customer, CustomerConflict, Expense,
+    PayMethod, PayStatus, Payment, Review, Service, Shop,
 )
-from .seed import seed, seed_finance
+from .seed import DEMO_PHONES, seed, seed_customers, seed_finance
 from .services.payments import get_or_create_pix
-from .services.scheduling import create_appointment, is_free
+from .services.scheduling import create_appointment, find_conflict, is_free
 
 DAYS_BACK = 30
 DAYS_AHEAD = 7
@@ -102,6 +102,7 @@ def reset_mock(db: Session, shop: Shop) -> None:
     db.execute(delete(Appointment).where(Appointment.shop_id == shop.id))
     db.execute(delete(Block).where(Block.shop_id == shop.id))
     db.execute(delete(Conversation).where(Conversation.shop_id == shop.id))
+    db.execute(delete(CustomerConflict).where(CustomerConflict.shop_id == shop.id))
     db.execute(delete(Customer).where(Customer.shop_id == shop.id))
     db.execute(delete(Expense).where(Expense.shop_id == shop.id))
     db.execute(delete(CommissionSettlement).where(CommissionSettlement.shop_id == shop.id))
@@ -128,6 +129,35 @@ def create_blocks(db: Session, shop: Shop, barbers: list[Barber], today: date) -
     db.add_all(blocks)
     db.flush()
     return blocks
+
+
+def create_access_demo(db: Session, shop: Shop, barbers: list[Barber], services: dict[str, Service],
+                       today: date, now: datetime) -> None:
+    """Agendamentos dos clientes de exemplo do controle de acesso: o bloqueado com um horário futuro (o app avisa),
+    um pedido aguardando aprovação e um horário para um dos clientes em conflito."""
+    demo = seed_customers(db, shop)
+    days = _future_weekdays(today)
+    plans = [("Marcos Teixeira", days[-1], ApptStatus.SCHEDULED),
+             ("Paulo Duarte", days[0], ApptStatus.PENDING_APPROVAL),
+             ("Alexandre Pinto", days[min(2, len(days) - 1)], ApptStatus.SCHEDULED)]
+    service = services["Corte"]
+    for name, day, status in plans:
+        customer = demo[name]
+        done = False
+        for barber in barbers:
+            for start in _candidate_starts(barber, day, service.duration_minutes, shop.slot_step_minutes):
+                end = start + timedelta(minutes=service.duration_minutes)
+                if start.hour >= 14 and is_free(db, shop, barber, start, end) \
+                        and not find_conflict(db, shop, customer, start, end):
+                    a = create_appointment(db, shop, customer, barber, service, start, status=status)
+                    a.created_at = now - timedelta(hours=1)
+                    if status == ApptStatus.PENDING_APPROVAL:
+                        a.approval_requested_at = a.created_at
+                    done = True
+                    break
+            if done:
+                break
+    db.commit()
 
 
 def _candidate_starts(barber: Barber, day: date, duration: int, step: int) -> list[datetime]:
@@ -281,7 +311,7 @@ def create_reviews(db: Session, shop: Shop, appts: list[Appointment], now: datet
 
 
 def create_customers(db: Session, shop: Shop, now: datetime) -> list[Customer]:
-    reserved = {shop.owner_phone, shop.phone} | {b.phone for b in shop.barbers}
+    reserved = {shop.owner_phone, shop.phone} | {b.phone for b in shop.barbers} | DEMO_PHONES
     used = set(reserved)
     names = set()
     customers = []
@@ -313,9 +343,12 @@ def summary(db: Session, shop: Shop) -> None:
     ).one()
     n_blocks = db.scalar(select(func.count()).select_from(Block).where(Block.shop_id == shop.id))
     n_expenses = db.scalar(select(func.count()).select_from(Expense).where(Expense.shop_id == shop.id))
+    access = count_by(Customer.access_status, Customer)
+    n_conflicts = db.scalar(select(func.count()).select_from(CustomerConflict).where(CustomerConflict.shop_id == shop.id))
 
     print("\nResumo da Barbearia Demo")
-    print(f"  Clientes: {n_customers}")
+    print(f"  Clientes: {n_customers} (bloqueados: {access.get('blocked', 0)}, "
+          f"precisam de aprovação: {access.get('approval', 0)}, pares em conflito: {n_conflicts})")
     print(f"  Agendamentos: {sum(appts.values())}")
     for status, n in sorted(appts.items()):
         print(f"    {status}: {n}")
@@ -339,7 +372,7 @@ def main() -> None:
         shop = db.get(Shop, shop_id)
         if args.reset:
             reset_mock(db, shop)
-        elif db.scalar(select(func.count()).select_from(Customer).where(Customer.shop_id == shop.id)):
+        elif db.scalar(select(func.count()).select_from(Appointment).where(Appointment.shop_id == shop.id)):
             print("A Barbearia Demo já tem dados. Use --reset para apagar e gerar de novo.")
             summary(db, shop)
             return
@@ -366,6 +399,7 @@ def main() -> None:
                 c.created_at = first_appt[c.id].created_at - timedelta(minutes=random.randint(1, 30))
 
         db.commit()
+        create_access_demo(db, shop, barbers, services, today, now)
         seed_finance(db, shop, today)  # gastos de exemplo do mês (o --reset apaga os antigos)
         summary(db, shop)
     finally:

@@ -4,7 +4,8 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 
 from ..config import now_local
-from ..models import Appointment, ApptStatus, Barber, PayStatus, Review, Service
+from ..models import AccessStatus, Appointment, ApptStatus, Barber, PayStatus, Review, Service
+from ..services import approvals
 from ..services import scheduling as sch
 from ..services.fmt import WEEKDAYS_FULL, appt_summary, day_label, dt_label, money
 from ..services.notify import notify_staff
@@ -12,6 +13,8 @@ from ..services.payments import get_or_create_pix, pix_messages, pix_ready
 from .context import RESET_WORDS, Ctx, pick
 
 FOOTER = "\n\nResponda com o número de outra opção ou *menu* para ver o menu."
+# Cliente bloqueado: resposta neutra, sem dizer que houve bloqueio
+MSG_BLOCKED = "No momento não conseguimos agendar por aqui. Por favor, fale com a barbearia."
 
 
 # ---------------------------------------------------------------- entrada
@@ -82,7 +85,17 @@ def st_menu(ctx: Ctx) -> None:
 
 # ---------------------------------------------------------------- agendamento
 
+def _blocked(ctx: Ctx) -> bool:
+    if customer(ctx).access_status != AccessStatus.BLOCKED:
+        return False
+    ctx.say(MSG_BLOCKED + FOOTER)
+    ctx.reset()
+    return True
+
+
 def start_booking(ctx: Ctx, reschedule_of: int | None = None, service_id: int | None = None) -> None:
+    if _blocked(ctx):
+        return
     services = sch.active_services(ctx.db, ctx.shop)
     if not services:
         ctx.say("No momento não há serviços disponíveis para agendamento. Fale com a barbearia (opção 7).")
@@ -170,10 +183,15 @@ def st_book_day(ctx: Ctx) -> None:
 def show_times(ctx: Ctx, day: date, prefix: str = "") -> None:
     service, barber = _service(ctx), _barber(ctx)
     ignore = ctx.get("reschedule_of")
+    c = customer(ctx)
+    # Com o cliente, some também o que fica perto demais de alguém em conflito com ele (sem explicar o motivo)
     if barber:
-        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore)]
+        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore, customer=c)]
     else:
-        slots = [(s, b.id) for s, b in sch.free_slots_any(ctx.db, ctx.shop, service, day)]
+        slots = [(s, b.id) for s, b in sch.free_slots_any(ctx.db, ctx.shop, service, day, customer=c)]
+    if c.access_status == AccessStatus.APPROVAL:  # o dono precisa de tempo para responder antes de expirar
+        earliest = now_local() + approvals.APPROVAL_MIN_LEAD
+        slots = [x for x in slots if x[0] >= earliest]
     if not slots:
         ask_day(ctx, prefix=f"Não há horários livres em {day_label(day).lower()}. 😕")
         return
@@ -240,16 +258,26 @@ def _do_book(ctx: Ctx) -> None:
     barber = db.get(Barber, ctx.get("slot_barber_id"))
     start = datetime.fromisoformat(ctx.get("start"))
     c = customer(ctx)
+    if _blocked(ctx):  # o acesso pode ter mudado no meio da conversa
+        return
+    pending = c.access_status == AccessStatus.APPROVAL
+    status = ApptStatus.PENDING_APPROVAL if pending else ApptStatus.SCHEDULED
     old_id = ctx.get("reschedule_of")
     try:
         if old_id:
             appt = db.get(Appointment, old_id)
             old_label = dt_label(appt.start)
-            sch.reschedule_appointment(db, shop, appt, start, barber)
+            sch.reschedule_appointment(db, shop, appt, start, barber, status=status)
         else:
-            appt = sch.create_appointment(db, shop, c, barber, service, start)
-    except sch.SchedulingError:
+            appt = sch.create_appointment(db, shop, c, barber, service, start, status=status)
+    except sch.SchedulingError:  # inclui conflito entre clientes: a mensagem é a mesma de horário ocupado
         show_times(ctx, start.date(), prefix="Poxa, esse horário acabou de ser ocupado. 😕 Escolha outro:")
+        return
+
+    if pending:
+        ctx.say(f"{approvals.MSG_RECEIVED}\n\n{appt_summary(appt)}")
+        approvals.alert_owner(db, shop, appt, rescheduled_from=old_label if old_id else "")
+        ctx.reset()
         return
 
     if old_id:
@@ -301,6 +329,8 @@ def my_appointments(ctx: Ctx) -> None:
     lines = []
     for i, a in enumerate(appts, 1):
         paid = " (pago ✅)" if a.payment_status == PayStatus.PAID else ""
+        if a.status == ApptStatus.PENDING_APPROVAL:
+            paid = " (aguardando confirmação ⏳)"
         lines.append(f"*{i}* - {dt_label(a.start)} | {a.service.name} com {a.barber.name}{paid}")
     ctx.go("my_pick", appt_ids=[a.id for a in appts])
     ctx.say("Seus próximos agendamentos:\n\n" + "\n".join(lines) + "\n\nResponda com o número para cancelar, remarcar ou pagar.")
@@ -314,7 +344,7 @@ def st_my_pick(ctx: Ctx) -> None:
         return
     appt = ctx.db.get(Appointment, ids[i])
     options = ["*1* - Cancelar", "*2* - Remarcar"]
-    if pix_ready(ctx.shop) and appt.payment_status != PayStatus.PAID:
+    if pix_ready(ctx.shop) and appt.payment_status != PayStatus.PAID and appt.status in ApptStatus.ACTIVE:
         options.append("*3* - Pagar via Pix")
     options.append("*4* - Voltar ao menu")
     ctx.go("my_action", appt_id=appt.id)
@@ -323,7 +353,7 @@ def st_my_pick(ctx: Ctx) -> None:
 
 def _my_appt(ctx: Ctx) -> Appointment | None:
     appt = ctx.db.get(Appointment, ctx.get("appt_id") or 0)
-    if appt and appt.customer.phone == ctx.phone and appt.status in ApptStatus.ACTIVE:
+    if appt and appt.customer.phone == ctx.phone and appt.status in ApptStatus.OCCUPYING:
         return appt
     return None
 
@@ -349,7 +379,7 @@ def st_my_action(ctx: Ctx) -> None:
             ctx.reset()
             return
         start_booking(ctx, reschedule_of=appt.id, service_id=appt.service_id)
-    elif t == "3" and pix_ready(ctx.shop):
+    elif t == "3" and pix_ready(ctx.shop) and appt.status in ApptStatus.ACTIVE:
         send_pix(ctx, appt)
         ctx.reset()
     else:
@@ -435,7 +465,9 @@ def info_hours(ctx: Ctx) -> None:
 # ---------------------------------------------------------------- Pix
 
 def pay_menu(ctx: Ctx) -> None:
-    appts = [a for a in sch.upcoming_for_customer(ctx.db, ctx.shop, customer(ctx)) if a.payment_status != PayStatus.PAID]
+    # Pix só depois de aprovado: pedidos pendentes ficam de fora
+    appts = [a for a in sch.upcoming_for_customer(ctx.db, ctx.shop, customer(ctx))
+             if a.payment_status != PayStatus.PAID and a.status in ApptStatus.ACTIVE]
     if not appts:
         ctx.say("Você não tem agendamentos pendentes de pagamento." + FOOTER)
         ctx.reset()
@@ -498,7 +530,7 @@ def talk_to_human(ctx: Ctx) -> None:
 
 def st_reminder(ctx: Ctx) -> None:
     appt = _my_appt(ctx)
-    if appt is None:
+    if appt is None or appt.status not in ApptStatus.ACTIVE:
         ctx.reset()
         st_menu(ctx)
         return

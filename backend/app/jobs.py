@@ -1,4 +1,5 @@
-"""Rotinas que rodam a cada minuto: lembretes, pesquisa de satisfação, expiração de Pix e resumo diário."""
+"""Rotinas que rodam a cada minuto: lembretes, pesquisa de satisfação, expiração de Pix e de pedidos para aprovar
+e resumo diário."""
 import logging
 from datetime import timedelta
 
@@ -6,10 +7,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
 
 from .bot.owner import agenda_text, summary_text
-from .bot.context import Ctx
+from .bot.context import BUSY_STATES, Ctx, conversation_for
 from .config import now_local, settings
 from .db import SessionLocal
-from .models import Appointment, ApptStatus, Conversation, Shop
+from .models import Appointment, ApptStatus, Shop
+from .services.approvals import expire_pending
 from .services.fmt import appt_summary
 from .services.notify import notify_staff
 from .services.expenses import bills_text
@@ -19,18 +21,7 @@ from .services.whatsapp import send_text
 
 log = logging.getLogger("jobs")
 
-# Estados em que a pessoa está no meio de um fluxo: não interrompemos com lembrete/pesquisa
-BUSY_STATES = {"book_service", "book_barber", "book_day", "book_time", "book_name", "book_confirm",
-               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment"}
-
-
-def _conv(db, shop: Shop, phone: str) -> Conversation:
-    conv = db.scalar(select(Conversation).where(Conversation.shop_id == shop.id, Conversation.phone == phone))
-    if conv is None:
-        conv = Conversation(shop_id=shop.id, phone=phone, state="menu", data={})
-        db.add(conv)
-        db.flush()
-    return conv
+_conv = conversation_for
 
 
 def send_reminders(db, shop: Shop) -> int:
@@ -106,6 +97,7 @@ def run_all() -> None:
                 expired = expire_old(db, shop)
                 if expired:
                     notify_staff(db, shop, f"⌛ {expired} Pix pendente(s) expiraram sem confirmação.")
+                expire_pending(db, shop)
                 send_daily_summary(db, shop)
                 db.commit()
             except Exception:

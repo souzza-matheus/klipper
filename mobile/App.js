@@ -10,7 +10,7 @@ import { clearSession, loadSession, setUnauthorizedHandler } from './src/api';
 import { colors } from './src/theme';
 import { Loading } from './src/ui';
 import Login from './src/screens/Login';
-import { AgendaScreen, AppointmentScreen, NewAppointmentScreen } from './src/screens/Agenda';
+import { AgendaScreen, ApprovalsScreen, AppointmentScreen, NewAppointmentScreen } from './src/screens/Agenda';
 import { PaymentsScreen } from './src/screens/Payments';
 import { CustomerScreen, CustomersScreen } from './src/screens/Customers';
 import { BarberEditScreen, BarbersScreen, BlocksScreen, ServiceEditScreen, ServicesScreen } from './src/screens/Catalog';
@@ -39,6 +39,7 @@ function shared() {
       <Stack.Screen name="Appointment" component={AppointmentScreen} options={{ title: 'Agendamento' }} />
       <Stack.Screen name="NewAppointment" component={NewAppointmentScreen} options={{ title: 'Novo agendamento' }} />
       <Stack.Screen name="Customer" component={CustomerScreen} options={{ title: 'Cliente' }} />
+      <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Pedidos para aprovar' }} />
     </>
   );
 }

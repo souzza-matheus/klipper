@@ -31,7 +31,14 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
-export class ApiError extends Error {}
+// status e data permitem tratar respostas específicas (ex.: 409 de conflito entre clientes)
+export class ApiError extends Error {
+  constructor(message, status, data) {
+    super(message);
+    this.status = status;
+    this.data = data;
+  }
+}
 
 function buildUrl(path, query) {
   let url = baseUrl.replace(/\/$/, '') + '/api' + path;
@@ -66,7 +73,8 @@ export async function request(method, path, body, query) {
   if (!res.ok) {
     let msg = data?.detail;
     if (Array.isArray(msg)) msg = msg.map((d) => d.msg).join('\n');
-    throw new ApiError(msg || `Erro ${res.status}`);
+    else if (msg && typeof msg === 'object') msg = msg.message;
+    throw new ApiError(msg || `Erro ${res.status}`, res.status, data);
   }
   return data;
 }

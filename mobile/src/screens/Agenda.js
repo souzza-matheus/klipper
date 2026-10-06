@@ -1,15 +1,115 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
 import {
-  addDays, addMonths, dayLabel, dtLabel, hm, money, moneyInput, monthLabel, parseMoney, PAY_METHODS, payMethodLabel,
-  phoneLabel, todayISO, weekdayMonFirst,
+  addDays, addMonths, dayLabel, dtLabel, gapLabel, hm, money, moneyInput, monthLabel, parseMoney, PAY_METHODS,
+  payMethodLabel, phoneLabel, todayISO, weekdayMonFirst,
 } from '../format';
-import { colors, PAY, STATUS } from '../theme';
+import { ACCESS, colors, PAY, STATUS } from '../theme';
 import {
   Badge, Button, Card, Chips, confirm, Empty, Field, Loading, Muted, Screen, Section, s, Title, run, useLoad,
 } from '../ui';
+
+// Salva um agendamento/remarcação. Se a API recusar por conflito entre clientes (409), mostra quem é o outro
+// cliente e oferece "Agendar mesmo assim" (repete com force=true). call(force) faz a chamada.
+export async function saveWithConflictCheck(call, okMsg) {
+  try {
+    const r = await call(false);
+    if (okMsg) Alert.alert('Pronto', okMsg);
+    return r;
+  } catch (e) {
+    if (e.status !== 409 || e.data?.detail?.code !== 'customer_conflict') {
+      Alert.alert('Ops', e.message);
+      return undefined;
+    }
+    return new Promise((resolve) => {
+      Alert.alert('Clientes que não podem se encontrar', `${e.message}\n\nO cliente não fica sabendo disso.`, [
+        { text: 'Voltar', style: 'cancel', onPress: () => resolve(undefined) },
+        { text: 'Agendar mesmo assim', style: 'destructive', onPress: () => resolve(run(() => call(true), okMsg)) },
+      ]);
+    });
+  }
+}
+
+const ACCESS_WARN = {
+  approval: 'Este cliente precisa de aprovação para agendar pelo WhatsApp.',
+  blocked: 'Este cliente está bloqueado para agendar pelo WhatsApp.',
+};
+
+// Confirma antes de agendar manualmente um cliente com acesso restrito
+function confirmAccess(customer, onYes) {
+  const warn = customer && ACCESS_WARN[customer.access_status];
+  if (!warn) return onYes();
+  const reason = customer.access_reason ? `\nMotivo: ${customer.access_reason}` : '';
+  return confirm('Atenção', `${warn}${reason}\n\nAgendar mesmo assim?`, onYes, 'Agendar');
+}
+
+// Aviso discreto: clientes em conflito com este que já têm horário no dia
+function ConflictDayWarning({ hits }) {
+  if (!hits || !hits.length) return null;
+  return (
+    <View style={{ backgroundColor: colors.warnBg, borderRadius: 10, padding: 10, marginBottom: 12 }}>
+      {hits.map((h) => (
+        <Muted key={h.appointment_id} style={{ color: colors.warn }}>
+          ⚠️ Não agendar junto: {h.other_customer_name} tem horário às {hm(h.start)} ({h.barber_name}) ·{' '}
+          {h.same_day_block ? 'nunca no mesmo dia' : `mínimo ${gapLabel(h.gap_minutes)} de distância`}
+        </Muted>
+      ))}
+    </View>
+  );
+}
+
+// Faixa no topo da agenda com os pedidos de clientes que precisam de aprovação
+function ApprovalsBanner({ navigation }) {
+  const r = useLoad(() => api.get('/approvals'), []);
+  const n = r.data?.length || 0;
+  if (!n) return null;
+  return (
+    <Pressable onPress={() => navigation.navigate('Approvals')}
+               style={({ pressed }) => [s.row, {
+                 backgroundColor: colors.pendingBg, borderRadius: 10, padding: 12, marginBottom: 12, opacity: pressed ? 0.7 : 1,
+               }]}>
+      <Ionicons name="hourglass-outline" size={18} color={colors.pending} style={{ marginRight: 8 }} />
+      <Text style={{ flex: 1, fontWeight: '700', color: colors.pending }}>
+        {n} {n === 1 ? 'pedido para aprovar' : 'pedidos para aprovar'}
+      </Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.pending} />
+    </Pressable>
+  );
+}
+
+export function ApprovalsScreen({ navigation }) {
+  const list = useLoad(() => api.get('/approvals'), []);
+  const act = (a, action) => {
+    const approve = action === 'approve';
+    confirm(approve ? 'Aprovar pedido?' : 'Recusar pedido?',
+      approve ? 'O cliente recebe a confirmação (e a oferta de Pix, se estiver ativo).'
+        : 'O horário é liberado e o cliente recebe uma mensagem neutra dizendo que o horário não está disponível.',
+      () => run(async () => { await api.post(`/appointments/${a.id}/${action}`); list.reload(); },
+        approve ? 'Pedido aprovado. O cliente foi avisado.' : 'Pedido recusado. O cliente foi avisado.'),
+      approve ? 'Aprovar' : 'Recusar', !approve);
+  };
+  return (
+    <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
+      {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
+      {list.data && !list.data.length ? <Empty text="Nenhum pedido para aprovar." /> : null}
+      {(list.data || []).map((a) => (
+        <Card key={a.id}>
+          <Pressable onPress={() => navigation.navigate('Appointment', { id: a.id, item: a })}>
+            <Text style={s.body}>{a.customer_name || phoneLabel(a.customer_phone)}</Text>
+            <Muted>{dtLabel(a.start)} · {a.service_name} · {a.barber_name} · {money(a.price)}</Muted>
+            {a.approval_deadline ? <Muted style={{ marginTop: 4 }}>Expira {dtLabel(a.approval_deadline).toLowerCase()}</Muted> : null}
+          </Pressable>
+          <View style={[s.row, { gap: 8, marginTop: 10 }]}>
+            <Button title="Aprovar" icon="checkmark" onPress={() => act(a, 'approve')} style={{ flex: 1, marginBottom: 0 }} />
+            <Button title="Recusar" kind="ghost" icon="close" onPress={() => act(a, 'refuse')} style={{ flex: 1, marginBottom: 0 }} />
+          </View>
+        </Card>
+      ))}
+    </Screen>
+  );
+}
 
 export function DayNav({ day, onChange }) {
   return (
@@ -172,6 +272,7 @@ export function AgendaScreen({ navigation }) {
   if (mode === 'month') {
     return (
       <Screen>
+        <ApprovalsBanner navigation={navigation} />
         {modeSwitch}
         {barberChips}
         <MonthView month={month} barber={barber} onMonth={setMonth}
@@ -182,6 +283,7 @@ export function AgendaScreen({ navigation }) {
 
   return (
     <Screen onRefresh={appts.reload} refreshing={appts.loading && !!appts.data}>
+      <ApprovalsBanner navigation={navigation} />
       {modeSwitch}
       <DayNav day={day} onChange={setDay} />
       {barberChips}
@@ -190,7 +292,8 @@ export function AgendaScreen({ navigation }) {
       {appts.data && !list.length ? <Empty text="Nenhum agendamento neste dia." /> : null}
       {list.map((a) => (
         <Card key={a.id} onPress={() => navigation.navigate('Appointment', { id: a.id, item: a })}
-              style={a.status === 'cancelled' && { opacity: 0.5 }}>
+              style={[a.status === 'cancelled' && { opacity: 0.5 },
+                      a.status === 'pending_approval' && { borderLeftWidth: 4, borderLeftColor: colors.pending }]}>
           <View style={s.row}>
             <Text style={{ fontSize: 18, fontWeight: '800', color: colors.primary, width: 62 }}>{hm(a.start)}</Text>
             <View style={{ flex: 1 }}>
@@ -199,6 +302,7 @@ export function AgendaScreen({ navigation }) {
               <View style={[s.row, { gap: 6, marginTop: 6 }]}>
                 <Badge info={STATUS[a.status]} />
                 <Badge info={PAY[a.payment_status]} />
+                {a.status !== 'cancelled' ? <Badge info={ACCESS[a.customer_access_status]} /> : null}
                 {a.status === 'completed' && a.payment_method ? <Muted>{payMethodLabel(a.payment_method)}</Muted> : null}
                 {a.created_via === 'bot' && a.status !== 'completed' ? <Muted>via WhatsApp</Muted> : null}
               </View>
@@ -211,17 +315,19 @@ export function AgendaScreen({ navigation }) {
 }
 
 // Seletor de horário livre (usado em novo agendamento e remarcação)
-export function SlotPicker({ serviceId, barberId, value, onChange, initialDay }) {
+// Com customerId, os horários perto demais de clientes em conflito com ele já vêm escondidos.
+export function SlotPicker({ serviceId, barberId, customerId, value, onChange, initialDay, onDayChange }) {
   const [day, setDay] = useState(initialDay || todayISO());
   const [slots, setSlots] = useState(null);
   const [err, setErr] = useState('');
+  useEffect(() => { if (onDayChange) onDayChange(day); }, [day]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!serviceId) return;
     setSlots(null);
     setErr('');
-    api.get('/availability', { service_id: serviceId, day, barber_id: barberId })
+    api.get('/availability', { service_id: serviceId, day, barber_id: barberId, customer_id: customerId })
       .then(setSlots).catch((e) => setErr(e.message));
-  }, [serviceId, barberId, day]);
+  }, [serviceId, barberId, customerId, day]);
   if (!serviceId) return <Muted>Escolha o serviço primeiro.</Muted>;
   return (
     <View>
@@ -247,19 +353,45 @@ export function NewAppointmentScreen({ navigation, route }) {
   const [slot, setSlot] = useState(null);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
+  const [customer, setCustomer] = useState(null);  // cliente já cadastrado com este telefone
+  const [day, setDay] = useState(route.params?.day || todayISO());
+  const [hits, setHits] = useState([]);
+  const [showAll, setShowAll] = useState(false);
 
-  const save = async () => {
+  // Procura o cliente pelo telefone para avisar sobre acesso restrito e conflitos
+  const digits = phone.replace(/\D/g, '');
+  useEffect(() => {
+    if (digits.length < 10) { setCustomer(null); return undefined; }
+    const t = setTimeout(() => {
+      api.get('/customers', { q: digits, limit: 5 })
+        .then((r) => setCustomer(r.find((c) => c.phone.endsWith(digits)) || null)).catch(() => setCustomer(null));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [digits]);
+  useEffect(() => {
+    if (!customer) { setHits([]); return; }
+    api.get('/customer-conflicts/day', { day, customer_id: customer.id }).then(setHits).catch(() => setHits([]));
+  }, [customer, day]);
+
+  const save = () => confirmAccess(customer, async () => {
     setBusy(true);
-    const r = await run(() => api.post('/appointments', {
-      customer_phone: phone, customer_name: name, service_id: serviceId, barber_id: slot.barber_id, start: slot.start, notes,
+    const r = await saveWithConflictCheck((force) => api.post('/appointments', {
+      customer_phone: phone, customer_name: name, service_id: serviceId, barber_id: slot.barber_id, start: slot.start,
+      notes, force,
     }), 'Agendado. O cliente recebeu a confirmação no WhatsApp.');
     setBusy(false);
     if (r) navigation.goBack();
-  };
+  });
 
   return (
     <Screen>
       <Field label="WhatsApp do cliente" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="(31) 99999-8888" />
+      {customer ? (
+        <View style={[s.row, { gap: 6, marginTop: -8, marginBottom: 12 }]}>
+          <Muted>Cliente: {customer.name || 'sem nome'}</Muted>
+          <Badge info={ACCESS[customer.access_status]} />
+        </View>
+      ) : null}
       <Field label="Nome" value={name} onChangeText={setName} placeholder="Opcional se já for cliente" />
       <Section title="Serviço">
         <Chips value={serviceId} onChange={(v) => { setServiceId(v); setSlot(null); }}
@@ -270,7 +402,14 @@ export function NewAppointmentScreen({ navigation, route }) {
                options={[{ value: null, label: 'Qualquer um' }, ...(barbers.data || []).filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }))]} />
       </Section>
       <Section title="Horário">
-        <SlotPicker serviceId={serviceId} barberId={barberId} value={slot} onChange={setSlot} initialDay={route.params?.day} />
+        <ConflictDayWarning hits={hits} />
+        {hits.length ? (
+          <Chips value={showAll} onChange={(v) => { setShowAll(v); setSlot(null); }} options={[
+            { value: false, label: 'Esconder horários próximos' }, { value: true, label: 'Mostrar todos' },
+          ]} />
+        ) : null}
+        <SlotPicker serviceId={serviceId} barberId={barberId} customerId={showAll ? null : customer?.id} value={slot}
+                    onChange={setSlot} initialDay={route.params?.day} onDayChange={setDay} />
       </Section>
       <Field label="Observação" value={notes} onChangeText={setNotes} multiline />
       <Button title={busy ? 'Salvando...' : 'Agendar'} onPress={save} disabled={busy || !phone || !serviceId || !slot} />
@@ -328,13 +467,19 @@ export function AppointmentScreen({ navigation, route }) {
     appt.reload();
   }, msg);
   const active = a.status === 'scheduled' || a.status === 'confirmed';
+  const pending = a.status === 'pending_approval';
+  const decide = (action, msg) => run(async () => {
+    await api.post(`/appointments/${a.id}/${action}`);
+    appt.reload();
+  }, msg);
 
   return (
     <Screen>
       <Title>{a.customer_name || phoneLabel(a.customer_phone)}</Title>
-      <View style={[s.row, { gap: 6, marginBottom: 14 }]}>
+      <View style={[s.row, { gap: 6, marginBottom: 14, flexWrap: 'wrap' }]}>
         <Badge info={STATUS[a.status]} />
         <Badge info={PAY[a.payment_status]} />
+        <Badge info={ACCESS[a.customer_access_status]} />
         {a.rating ? <Muted>{'⭐'.repeat(a.rating)}</Muted> : null}
       </View>
       <Card>
@@ -351,6 +496,15 @@ export function AppointmentScreen({ navigation, route }) {
       <Button title="Ver ficha do cliente" kind="ghost" icon="person-outline"
               onPress={() => navigation.navigate('Customer', { id: a.customer_id })} />
 
+      {pending ? (
+        <Section title="Pedido para aprovar">
+          {a.approval_deadline ? <Muted style={{ marginBottom: 10 }}>Expira {dtLabel(a.approval_deadline).toLowerCase()} se não for respondido.</Muted> : null}
+          <Button title="Aprovar" icon="checkmark" onPress={() => decide('approve', 'Pedido aprovado. O cliente foi avisado.')} />
+          <Button title="Recusar" kind="danger" icon="close" onPress={() => confirm('Recusar pedido?',
+            'O horário é liberado e o cliente recebe uma mensagem neutra.', () => decide('refuse', 'Pedido recusado.'), 'Recusar', true)} />
+        </Section>
+      ) : null}
+
       {active ? (
         <>
           <Section title="Ações">
@@ -366,12 +520,14 @@ export function AppointmentScreen({ navigation, route }) {
           </Section>
           {moving ? (
             <Section title="Novo horário">
-              <SlotPicker serviceId={a.service_id} barberId={a.barber_id} value={slot} onChange={setSlot} initialDay={a.start.slice(0, 10)} />
-              <Button title="Confirmar remarcação" disabled={!slot} onPress={() => run(async () => {
-                await api.post(`/appointments/${a.id}/reschedule`, { start: slot.start, barber_id: slot.barber_id });
-                setMoving(false);
-                appt.reload();
-              }, 'Remarcado. O cliente foi avisado.')} />
+              <SlotPicker serviceId={a.service_id} barberId={a.barber_id} customerId={a.customer_id} value={slot}
+                          onChange={setSlot} initialDay={a.start.slice(0, 10)} />
+              <Button title="Confirmar remarcação" disabled={!slot} onPress={async () => {
+                const r = await saveWithConflictCheck((force) => api.post(`/appointments/${a.id}/reschedule`, {
+                  start: slot.start, barber_id: slot.barber_id, force,
+                }), 'Remarcado. O cliente foi avisado.');
+                if (r) { setMoving(false); appt.reload(); }
+              }} />
             </Section>
           ) : null}
           <Button title="Cancelar agendamento" kind="danger" icon="trash-outline"
@@ -382,7 +538,7 @@ export function AppointmentScreen({ navigation, route }) {
           {a.status === 'completed' ? (completePanel || (
             <Button title="Alterar pagamento ou valor" kind="ghost" icon="card-outline" onPress={openComplete} />
           )) : null}
-          {a.status !== 'cancelled' ? <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} /> : null}
+          {a.status !== 'cancelled' && !pending ? <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} /> : null}
         </>
       )}
     </Screen>

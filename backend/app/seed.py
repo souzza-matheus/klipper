@@ -8,7 +8,10 @@ from sqlalchemy.orm import Session
 from .auth import hash_password
 from .config import now_local
 from .db import Base, SessionLocal, engine
-from .models import Barber, Beneficiary, CommissionRule, Expense, PayMethod, Service, Shop, User, WorkingHour
+from .models import (
+    AccessStatus, Barber, Beneficiary, CommissionRule, Customer, CustomerConflict, Expense, PayMethod, Service, Shop,
+    User, WorkingHour,
+)
 from .services.expenses import ensure_recurring, same_day_in
 
 # (descrição, categoria, valor, dia do vencimento) - contas fixas, cadastradas como recorrentes no mês passado
@@ -25,6 +28,39 @@ ONE_OFF_EXPENSES = [
     ("Impulsionamento no Instagram", "marketing", "150.00", 22),
     ("Afiação das tesouras", "manutencao", "80.00", 26),
 ]
+
+
+# (telefone, nome, acesso, motivo interno) - exemplos do controle de clientes
+DEMO_CUSTOMERS = [
+    ("5531955550001", "Marcos Teixeira", AccessStatus.BLOCKED,
+     "Faltou 3 vezes sem avisar e saiu sem pagar o último corte."),
+    ("5531955550002", "Paulo Duarte", AccessStatus.APPROVAL, "Cancela em cima da hora com frequência."),
+    ("5531955550003", "Renato Vasconcelos", AccessStatus.NORMAL, ""),
+    ("5531955550004", "Alexandre Pinto", AccessStatus.NORMAL, ""),
+]
+DEMO_PHONES = {p for p, *_ in DEMO_CUSTOMERS}
+
+
+def seed_customers(db: Session, shop: Shop) -> dict[str, Customer]:
+    """Um cliente bloqueado, um que precisa de aprovação e um par que não pode se encontrar (distância padrão
+    da barbearia). Só cria o que ainda não existe. Devolve os clientes pelo nome."""
+    out = {}
+    for phone, name, status, reason in DEMO_CUSTOMERS:
+        c = db.scalar(select(Customer).where(Customer.shop_id == shop.id, Customer.phone == phone))
+        if c is None:
+            c = Customer(shop_id=shop.id, phone=phone, name=name, access_status=status, access_reason=reason,
+                         access_changed_at=now_local() if status != AccessStatus.NORMAL else None)
+            db.add(c)
+        out[name] = c
+    db.flush()
+    a, b = sorted((out["Renato Vasconcelos"].id, out["Alexandre Pinto"].id))
+    if not db.scalar(select(CustomerConflict).where(CustomerConflict.shop_id == shop.id,
+                                                    CustomerConflict.customer_a_id == a,
+                                                    CustomerConflict.customer_b_id == b)):
+        db.add(CustomerConflict(shop_id=shop.id, customer_a_id=a, customer_b_id=b,
+                                notes="Discutiram feio na barbearia em agosto. Não deixar os dois juntos."))
+    db.commit()
+    return out
 
 
 def seed_finance(db: Session, shop: Shop, today: date | None = None) -> None:
@@ -75,7 +111,7 @@ def seed_finance(db: Session, shop: Shop, today: date | None = None) -> None:
     db.commit()
 
 
-def seed(owner_phone: str = "5531999990000", demo_finance: bool = True) -> Shop:
+def seed(owner_phone: str = "5531999990000", demo_finance: bool = True, demo_customers: bool = True) -> Shop:
     Base.metadata.create_all(engine)
     db = SessionLocal()
     try:
@@ -83,6 +119,8 @@ def seed(owner_phone: str = "5531999990000", demo_finance: bool = True) -> Shop:
         if shop:
             if demo_finance:
                 seed_finance(db, shop)
+            if demo_customers:
+                seed_customers(db, shop)
             return shop
         shop = Shop(
             name="Barbearia Demo", address="Rua Exemplo, 123 - Centro, Conselheiro Lafaiete/MG",
@@ -107,6 +145,8 @@ def seed(owner_phone: str = "5531999990000", demo_finance: bool = True) -> Shop:
         db.commit()
         if demo_finance:
             seed_finance(db, shop)
+        if demo_customers:
+            seed_customers(db, shop)
         print("Barbearia demo criada. Login do app: admin@demo.com / demo123")
         return shop
     finally:

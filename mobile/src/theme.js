@@ -13,6 +13,8 @@ export const colors = {
   warnBg: '#FBF0DC',
   badBg: '#FBE4E2',
   infoBg: '#E6EAF2',
+  pending: '#6B4FA0',
+  pendingBg: '#EEE8F7',
 };
 
 export const STATUS = {
@@ -21,6 +23,14 @@ export const STATUS = {
   completed: { label: 'Atendido', fg: colors.muted, bg: '#EEECE8' },
   cancelled: { label: 'Cancelado', fg: colors.bad, bg: colors.badBg },
   no_show: { label: 'Faltou', fg: colors.bad, bg: colors.badBg },
+  pending_approval: { label: 'Aguardando aprovação', fg: colors.pending, bg: colors.pendingBg },
+};
+
+// Acesso do cliente ao agendamento pelo bot
+export const ACCESS = {
+  normal: null,
+  approval: { label: 'Precisa de aprovação', fg: colors.warn, bg: colors.warnBg },
+  blocked: { label: 'Bloqueado', fg: colors.bad, bg: colors.badBg },
 };
 
 export const PAY = {

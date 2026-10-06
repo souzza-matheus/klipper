@@ -2,7 +2,7 @@ from datetime import datetime, time, date
 from decimal import Decimal
 
 from sqlalchemy import (
-    JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String,
+    JSON, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, Numeric, String,
     Table, Text, Time, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,7 +17,17 @@ class ApptStatus:
     COMPLETED = "completed"      # atendido
     CANCELLED = "cancelled"      # cancelado
     NO_SHOW = "no_show"          # faltou
+    PENDING_APPROVAL = "pending_approval"  # pedido de cliente "precisa de aprovação", aguardando o dono
     ACTIVE = (SCHEDULED, CONFIRMED)
+    OCCUPYING = (SCHEDULED, CONFIRMED, PENDING_APPROVAL)  # ocupam o horário na disponibilidade
+
+
+class AccessStatus:
+    """Acesso do cliente ao agendamento pelo bot. O motivo é interno e nunca aparece para o cliente."""
+    NORMAL = "normal"
+    APPROVAL = "approval"  # agendamento pelo bot fica pendente até o dono aprovar
+    BLOCKED = "blocked"    # não agenda nem remarca pelo bot
+    ALL = (NORMAL, APPROVAL, BLOCKED)
 
 
 class PayMethod:
@@ -76,6 +86,10 @@ class Shop(Base):
     last_summary_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     welcome_text: Mapped[str] = mapped_column(Text, default="")
     human_pause_hours: Mapped[int] = mapped_column(Integer, default=3)
+    # Pedido de cliente "precisa de aprovação" expira sem resposta do dono
+    approval_expire_hours: Mapped[int] = mapped_column(Integer, default=12)
+    # Distância mínima entre clientes em conflito quando o conflito não define a sua
+    conflict_default_gap_minutes: Mapped[int] = mapped_column(Integer, default=240)
 
     # WhatsApp (Evolution API)
     evolution_instance: Mapped[str] = mapped_column(String(60), unique=True)
@@ -165,7 +179,35 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(String(20))
     name: Mapped[str] = mapped_column(String(120), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
+    access_status: Mapped[str] = mapped_column(String(10), default=AccessStatus.NORMAL)
+    access_reason: Mapped[str] = mapped_column(Text, default="")  # interno, só para o dono
+    access_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+
+class CustomerConflict(Base):
+    """Dois clientes que não devem estar na barbearia ao mesmo tempo. O par é guardado com customer_a_id <
+    customer_b_id, então A-B e B-A são o mesmo registro. min_gap_minutes nulo = padrão da barbearia."""
+    __tablename__ = "customer_conflicts"
+    __table_args__ = (
+        UniqueConstraint("shop_id", "customer_a_id", "customer_b_id"),
+        CheckConstraint("customer_a_id < customer_b_id", name="ck_customer_conflicts_order"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    customer_a_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    customer_b_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    min_gap_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    same_day_block: Mapped[bool] = mapped_column(Boolean, default=False)  # nunca os dois no mesmo dia
+    notes: Mapped[str] = mapped_column(Text, default="")  # motivo interno
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    customer_a: Mapped["Customer"] = relationship(foreign_keys=[customer_a_id])
+    customer_b: Mapped["Customer"] = relationship(foreign_keys=[customer_b_id])
+
+    def other_id(self, customer_id: int) -> int:
+        return self.customer_b_id if customer_id == self.customer_a_id else self.customer_a_id
 
 
 class Appointment(Base):
@@ -188,6 +230,8 @@ class Appointment(Base):
     survey_sent: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Quando o pedido entrou em pending_approval (conta o prazo de expiração)
+    approval_requested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     customer: Mapped[Customer] = relationship()
     barber: Mapped[Barber] = relationship()

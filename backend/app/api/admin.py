@@ -17,6 +17,7 @@ from ..models import (
 )
 from ..services import scheduling as sch
 from ..services import whatsapp as wa
+from ..services.approvals import approval_deadline
 from ..services.fmt import appt_summary, dt_label, money
 from ..services.payments import confirm_payment
 
@@ -229,13 +230,40 @@ def delete_block(bid: int, shop: Shop = Depends(shop_of), db: Session = Depends(
 # ---------------------------------------------------------------- agendamentos
 
 def appt_out(a: Appointment) -> S.AppointmentOut:
+    deadline = approval_deadline(a.barber.shop, a) if a.status == ApptStatus.PENDING_APPROVAL else None
     return S.AppointmentOut(
         id=a.id, start=a.start, end=a.end, status=a.status, payment_status=a.payment_status,
         payment_method=a.payment_method, price=a.price,
         notes=a.notes, created_via=a.created_via, customer_id=a.customer_id, customer_name=a.customer.name,
         customer_phone=a.customer.phone, barber_id=a.barber_id, barber_name=a.barber.name,
         service_id=a.service_id, service_name=a.service.name, rating=a.review.rating if a.review else None,
+        customer_access_status=a.customer.access_status, approval_deadline=deadline,
     )
+
+
+def conflict_hit_out(hit: sch.ConflictHit) -> S.ConflictHitOut:
+    a = hit.other
+    return S.ConflictHitOut(
+        conflict_id=hit.conflict.id, other_customer_id=a.customer_id,
+        other_customer_name=a.customer.name or a.customer.phone, appointment_id=a.id,
+        start=a.start, end=a.end, barber_name=a.barber.name, gap_minutes=hit.gap_minutes,
+        same_day_block=hit.same_day_block,
+    )
+
+
+def conflict_409(e: sch.ConflictError) -> HTTPException:
+    """Conflito entre clientes no agendamento manual: o app mostra o aviso e pode repetir com force=true."""
+    hit = conflict_hit_out(e.hit)
+    rule = ("os dois não podem vir no mesmo dia" if hit.same_day_block
+            else f"a distância mínima entre os dois é de {_gap_label(hit.gap_minutes)}")
+    msg = (f"{hit.other_customer_name} tem horário {dt_label(hit.start).lower()} até {hit.end:%H:%M} "
+           f"com {hit.barber_name}, e {rule}.")
+    return HTTPException(409, {"message": msg, "code": "customer_conflict", "conflict": hit.model_dump(mode="json")})
+
+
+def _gap_label(minutes: int) -> str:
+    h, m = divmod(minutes, 60)
+    return f"{h} h" + (f" {m} min" if m else "") if h else f"{m} min"
 
 
 @router.get("/appointments", response_model=list[S.AppointmentOut], tags=["appointments"])
@@ -261,13 +289,17 @@ def appointments_month(year: int = Query(ge=2000, le=2100), month: int = Query(g
 
 
 @router.get("/availability", tags=["appointments"])
-def availability(service_id: int, day: date, barber_id: int | None = None,
+def availability(service_id: int, day: date, barber_id: int | None = None, customer_id: int | None = None,
                  shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+    """Com customer_id, esconde os horários que ficam perto demais de clientes em conflito com ele."""
     svc = _own(db, Service, service_id, shop)
+    customer = _own(db, Customer, customer_id, shop) if customer_id else None
     if barber_id:
         b = _own(db, Barber, barber_id, shop)
-        return [{"start": s, "barber_id": b.id, "barber_name": b.name} for s in sch.free_slots(db, shop, svc, b, day)]
-    return [{"start": s, "barber_id": b.id, "barber_name": b.name} for s, b in sch.free_slots_any(db, shop, svc, day)]
+        return [{"start": s, "barber_id": b.id, "barber_name": b.name}
+                for s in sch.free_slots(db, shop, svc, b, day, customer=customer)]
+    return [{"start": s, "barber_id": b.id, "barber_name": b.name}
+            for s, b in sch.free_slots_any(db, shop, svc, day, customer=customer)]
 
 
 @router.post("/appointments", response_model=S.AppointmentOut, tags=["appointments"])
@@ -280,7 +312,11 @@ def create_appt(body: S.AppointmentIn, shop: Shop = Depends(shop_of), db: Sessio
     customer = sch.get_or_create_customer(db, shop, phone, body.customer_name.strip().title())
     try:
         a = sch.create_appointment(db, shop, customer, barber, svc, body.start.replace(tzinfo=None),
-                                   created_via="app", notes=body.notes)
+                                   created_via="app", notes=body.notes, force=body.force)
+    except sch.ConflictError as e:
+        err = conflict_409(e)
+        db.rollback()  # desfaz o cliente criado agora, se for o caso
+        raise err
     except sch.SchedulingError as e:
         raise HTTPException(409, str(e))
     wa.send_text(db, shop, phone, f"✅ Seu horário na *{shop.name}* foi agendado:\n\n{appt_summary(a)}\n\n"
@@ -318,7 +354,9 @@ def reschedule(aid: int, body: S.RescheduleIn, shop: Shop = Depends(shop_of), db
     a = _own(db, Appointment, aid, shop)
     barber = _own(db, Barber, body.barber_id, shop) if body.barber_id else None
     try:
-        sch.reschedule_appointment(db, shop, a, body.start.replace(tzinfo=None), barber)
+        sch.reschedule_appointment(db, shop, a, body.start.replace(tzinfo=None), barber, force=body.force)
+    except sch.ConflictError as e:
+        raise conflict_409(e)
     except sch.SchedulingError as e:
         raise HTTPException(409, str(e))
     if body.notify_customer:
@@ -345,9 +383,12 @@ def send_pix(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_
 # ---------------------------------------------------------------- clientes
 
 @router.get("/customers", response_model=list[S.CustomerOut], tags=["customers"])
-def list_customers(q: str = "", limit: int = Query(50, le=200), offset: int = 0,
+def list_customers(q: str = "", access_status: str | None = Query(None, pattern=S.ACCESS_STATUS),
+                   limit: int = Query(50, le=200), offset: int = 0,
                    shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     query = select(Customer).where(Customer.shop_id == shop.id)
+    if access_status:
+        query = query.where(Customer.access_status == access_status)
     if q:
         digits = re.sub(r"\D", "", q)
         cond = Customer.name.ilike(f"%{q}%")
@@ -362,10 +403,13 @@ def get_customer(cid: int, shop: Shop = Depends(shop_of), db: Session = Depends(
     c = _own(db, Customer, cid, shop)
     appts = db.scalars(select(Appointment).where(Appointment.customer_id == c.id).order_by(Appointment.start.desc())).all()
     done = [a for a in appts if a.status == ApptStatus.COMPLETED]
+    now = now_local()
     return S.CustomerDetail(
-        id=c.id, name=c.name, phone=c.phone, notes=c.notes, created_at=c.created_at, visits=len(done),
+        **S.CustomerOut.model_validate(c).model_dump(), visits=len(done),
         no_shows=sum(1 for a in appts if a.status == ApptStatus.NO_SHOW),
-        total_spent=sum((a.price for a in done), Decimal(0)), appointments=[appt_out(a) for a in appts[:50]],
+        total_spent=sum((a.price for a in done), Decimal(0)),
+        future_appointments=sum(1 for a in appts if a.start >= now and a.status in ApptStatus.OCCUPYING),
+        appointments=[appt_out(a) for a in appts[:50]],
     )
 
 

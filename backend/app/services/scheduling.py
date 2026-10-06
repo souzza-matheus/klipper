@@ -1,5 +1,6 @@
-"""Regras de agenda: horários livres, criação, cancelamento, remarcação e visão do mês."""
+"""Regras de agenda: horários livres, criação, cancelamento, remarcação, conflitos entre clientes e visão do mês."""
 import calendar
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -8,12 +9,28 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import now_local
 from ..models import (
-    Appointment, ApptStatus, Barber, Block, Customer, PayMethod, PayStatus, Service, Shop,
+    Appointment, ApptStatus, Barber, Block, Customer, CustomerConflict, PayMethod, PayStatus, Service, Shop,
 )
 
 
 class SchedulingError(Exception):
     pass
+
+
+@dataclass
+class ConflictHit:
+    """Agendamento de outro cliente que impede o horário. Só para o dono: nunca mostrar ao cliente."""
+    conflict: CustomerConflict
+    other: Appointment
+    gap_minutes: int
+    same_day_block: bool
+
+
+class ConflictError(SchedulingError):
+    """Horário livre na agenda, mas perto demais de um cliente em conflito."""
+    def __init__(self, hit: ConflictHit):
+        super().__init__("Esse horário não está mais disponível.")
+        self.hit = hit
 
 
 def active_barbers(db: Session, shop: Shop, service: Service | None = None) -> list[Barber]:
@@ -38,7 +55,7 @@ def _busy_intervals(db: Session, shop: Shop, barber: Barber, day: date, ignore_a
     day_end = day_start + timedelta(days=1)
     appts = db.scalars(select(Appointment).where(
         Appointment.barber_id == barber.id,
-        Appointment.status.in_(ApptStatus.ACTIVE),
+        Appointment.status.in_(ApptStatus.OCCUPYING),
         Appointment.start < day_end, Appointment.end > day_start,
     )).all()
     blocks = db.scalars(select(Block).where(
@@ -69,12 +86,91 @@ def is_free(db: Session, shop: Shop, barber: Barber, start: datetime, end: datet
     return True
 
 
+# ---------------------------------------------------------------- conflitos entre clientes
+
+def conflicts_of(db: Session, shop: Shop, customer_id: int) -> list[CustomerConflict]:
+    return list(db.scalars(select(CustomerConflict).where(
+        CustomerConflict.shop_id == shop.id,
+        or_(CustomerConflict.customer_a_id == customer_id, CustomerConflict.customer_b_id == customer_id),
+    )).all())
+
+
+def conflict_gap(shop: Shop, conflict: CustomerConflict) -> int:
+    return conflict.min_gap_minutes if conflict.min_gap_minutes is not None else shop.conflict_default_gap_minutes
+
+
+def _day_bounds(day: date) -> tuple[datetime, datetime]:
+    start = datetime.combine(day, datetime.min.time())
+    return start, start + timedelta(days=1)
+
+
+def conflict_windows(db: Session, shop: Shop, customer: Customer | None, day: date,
+                     ignore_appt_id: int | None = None) -> list[tuple[datetime, datetime, ConflictHit]]:
+    """Intervalos do dia em que o cliente não pode começar/estar na barbearia por causa de clientes em conflito.
+    Vale para qualquer barbeiro. Um atendimento [s, e) é proibido se cruzar algum intervalo."""
+    if customer is None or customer.id is None:
+        return []
+    conflicts = conflicts_of(db, shop, customer.id)
+    if not conflicts:
+        return []
+    day_start, day_end = _day_bounds(day)
+    by_other = {c.other_id(customer.id): c for c in conflicts}
+    # O intervalo pode passar da meia-noite: olha também o dia anterior e o seguinte
+    others = db.scalars(select(Appointment).where(
+        Appointment.shop_id == shop.id, Appointment.customer_id.in_(by_other),
+        Appointment.status.in_(ApptStatus.OCCUPYING),
+        Appointment.start < day_end + timedelta(days=1), Appointment.end > day_start - timedelta(days=1),
+    ).order_by(Appointment.start)).all()
+    windows = []
+    for a in others:
+        if a.id == ignore_appt_id:
+            continue
+        c = by_other[a.customer_id]
+        gap = conflict_gap(shop, c)
+        hit = ConflictHit(conflict=c, other=a, gap_minutes=gap, same_day_block=c.same_day_block)
+        if c.same_day_block and a.start < day_end and a.end > day_start:
+            windows.append((day_start, day_end, hit))
+        g = timedelta(minutes=gap)
+        if a.start - g < day_end and a.end + g > day_start:
+            windows.append((a.start - g, a.end + g, hit))
+    return windows
+
+
+def find_conflict(db: Session, shop: Shop, customer: Customer | None, start: datetime, end: datetime,
+                  ignore_appt_id: int | None = None) -> ConflictHit | None:
+    """Primeiro agendamento de cliente em conflito que impede [start, end), considerando todos os barbeiros."""
+    for ws, we, hit in conflict_windows(db, shop, customer, start.date(), ignore_appt_id):
+        if start < we and end > ws:
+            return hit
+    if end.date() != start.date():  # atendimento que passa da meia-noite
+        for ws, we, hit in conflict_windows(db, shop, customer, end.date(), ignore_appt_id):
+            if start < we and end > ws:
+                return hit
+    return None
+
+
+def conflicts_on_day(db: Session, shop: Shop, customer: Customer, day: date) -> list[ConflictHit]:
+    """Clientes em conflito com agendamento ativo no dia (para o aviso do dono no app)."""
+    day_start, day_end = _day_bounds(day)
+    seen, out = set(), []
+    for _, _, hit in conflict_windows(db, shop, customer, day):
+        a = hit.other
+        if a.id not in seen and a.start < day_end and a.end > day_start:
+            seen.add(a.id)
+            out.append(hit)
+    return out
+
+
+# ---------------------------------------------------------------- horários livres
+
 def free_slots(db: Session, shop: Shop, service: Service, barber: Barber, day: date,
-               ignore_appt_id: int | None = None) -> list[datetime]:
+               ignore_appt_id: int | None = None, customer: Customer | None = None) -> list[datetime]:
+    """Com customer, esconde também os horários perto demais de clientes em conflito com ele."""
     earliest = now_local() + timedelta(minutes=shop.min_advance_minutes)
     duration = timedelta(minutes=service.duration_minutes)
     step = timedelta(minutes=shop.slot_step_minutes)
     busy = _busy_intervals(db, shop, barber, day, ignore_appt_id)
+    busy += [(ws, we) for ws, we, _ in conflict_windows(db, shop, customer, day)]
     slots: list[datetime] = []
     for wh in barber.working_hours:
         if wh.weekday != day.weekday():
@@ -89,11 +185,12 @@ def free_slots(db: Session, shop: Shop, service: Service, barber: Barber, day: d
     return sorted(set(slots))
 
 
-def free_slots_any(db: Session, shop: Shop, service: Service, day: date) -> list[tuple[datetime, Barber]]:
+def free_slots_any(db: Session, shop: Shop, service: Service, day: date,
+                   customer: Customer | None = None) -> list[tuple[datetime, Barber]]:
     """Horários livres com qualquer barbeiro: para cada horário, o primeiro barbeiro disponível."""
     result: dict[datetime, Barber] = {}
     for barber in active_barbers(db, shop, service):
-        for slot in free_slots(db, shop, service, barber, day):
+        for slot in free_slots(db, shop, service, barber, day, customer=customer):
             result.setdefault(slot, barber)
     return sorted(result.items(), key=lambda x: x[0])
 
@@ -123,14 +220,21 @@ def get_or_create_customer(db: Session, shop: Shop, phone: str, name: str = "") 
 
 def create_appointment(db: Session, shop: Shop, customer: Customer, barber: Barber, service: Service,
                        start: datetime, created_via: str = "bot", notes: str = "",
-                       ignore_appt_id: int | None = None) -> Appointment:
+                       ignore_appt_id: int | None = None, status: str = ApptStatus.SCHEDULED,
+                       force: bool = False) -> Appointment:
+    """force=True ignora só o conflito entre clientes (o dono decidiu agendar mesmo assim), nunca a agenda ocupada."""
     end = start + timedelta(minutes=service.duration_minutes)
     if not is_free(db, shop, barber, start, end, ignore_appt_id):
         raise SchedulingError("Esse horário não está mais disponível.")
+    if not force:
+        hit = find_conflict(db, shop, customer, start, end, ignore_appt_id)
+        if hit:
+            raise ConflictError(hit)
     appt = Appointment(
         shop_id=shop.id, customer_id=customer.id, barber_id=barber.id, service_id=service.id,
         start=start, end=end, price=service.price, created_via=created_via, notes=notes,
-        status=ApptStatus.SCHEDULED, payment_status=PayStatus.NONE,
+        status=status, payment_status=PayStatus.NONE,
+        approval_requested_at=now_local() if status == ApptStatus.PENDING_APPROVAL else None,
     )
     db.add(appt)
     db.flush()
@@ -159,25 +263,32 @@ def cancel_appointment(db: Session, appt: Appointment) -> None:
 
 
 def reschedule_appointment(db: Session, shop: Shop, appt: Appointment, new_start: datetime,
-                           new_barber: Barber | None = None) -> Appointment:
+                           new_barber: Barber | None = None, status: str = ApptStatus.SCHEDULED,
+                           force: bool = False) -> Appointment:
     barber = new_barber or appt.barber
     end = new_start + timedelta(minutes=appt.service.duration_minutes)
     if not is_free(db, shop, barber, new_start, end, ignore_appt_id=appt.id):
         raise SchedulingError("Esse horário não está mais disponível.")
+    if not force:
+        hit = find_conflict(db, shop, appt.customer, new_start, end, ignore_appt_id=appt.id)
+        if hit:
+            raise ConflictError(hit)
     appt.barber_id = barber.id
     appt.barber = barber
     appt.start = new_start
     appt.end = end
     appt.reminder_sent = False
-    appt.status = ApptStatus.SCHEDULED
+    appt.status = status
+    appt.approval_requested_at = now_local() if status == ApptStatus.PENDING_APPROVAL else None
     db.flush()
     return appt
 
 
 def upcoming_for_customer(db: Session, shop: Shop, customer: Customer) -> list[Appointment]:
+    """Próximos agendamentos do cliente, incluindo pedidos aguardando aprovação."""
     return list(db.scalars(select(Appointment).where(
         Appointment.shop_id == shop.id, Appointment.customer_id == customer.id,
-        Appointment.status.in_(ApptStatus.ACTIVE), Appointment.start >= now_local() - timedelta(minutes=30),
+        Appointment.status.in_(ApptStatus.OCCUPYING), Appointment.start >= now_local() - timedelta(minutes=30),
     ).order_by(Appointment.start)).all())
 
 
