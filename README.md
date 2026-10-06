@@ -42,6 +42,18 @@ Sem `EVOLUTION_URL`, o sistema roda em **modo simulação**: as mensagens aparec
 - `POST /dev/run-jobs` roda na hora os lembretes, pesquisas e expiração de Pix.
 - Login do app: `admin@demo.com` / `demo123`.
 
+### Dados de teste (mock)
+
+Para ver a agenda, os relatórios e as avaliações com movimento, popule a demo com dados fictícios:
+
+```bash
+cd backend
+python -m app.seed_mock            # cria a demo (se preciso) e gera os dados
+python -m app.seed_mock --reset    # apaga os dados mock e gera de novo
+```
+
+Gera 40 clientes, agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas), Pix, avaliações e 3 bloqueios futuros. O `--reset` apaga só clientes, agendamentos, pagamentos, avaliações, bloqueios e conversas da Barbearia Demo; serviços, barbeiros e o login admin continuam. As datas são relativas ao dia em que o script roda.
+
 Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete e pesquisa).
 
 ## Colocar no ar (VPS)
