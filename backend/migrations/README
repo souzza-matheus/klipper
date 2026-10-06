@@ -1,0 +1,6 @@
+Migrações do banco (Alembic).
+
+- Aplicar: `alembic upgrade head` (usa a DATABASE_URL do .env)
+- Nova migração depois de mudar app/models.py: `alembic revision --autogenerate -m "descrição"`
+- 0001 representa o esquema de antes do Alembic e só cria as tabelas que faltam,
+  então bancos criados pelo antigo create_all também sobem com `upgrade head`.

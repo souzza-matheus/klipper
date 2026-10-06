@@ -16,7 +16,8 @@ import { CustomerScreen, CustomersScreen } from './src/screens/Customers';
 import { BarberEditScreen, BarbersScreen, BlocksScreen, ServiceEditScreen, ServicesScreen } from './src/screens/Catalog';
 import { ReportsScreen, ReviewsScreen } from './src/screens/Insights';
 import {
-  CommissionRuleEditScreen, CommissionRulesScreen, CommissionsScreen, SettlementsScreen,
+  CommissionRuleEditScreen, CommissionRulesScreen, CommissionsScreen, ExpenseEditScreen, ExpensesScreen,
+  FinanceHomeScreen, SettlementsScreen,
 } from './src/screens/Finance';
 import { MoreScreen, SettingsScreen, WhatsAppScreen } from './src/screens/Settings';
 
@@ -60,6 +61,21 @@ function PaymentsStack() {
   );
 }
 
+function FinanceStack() {
+  return (
+    <Stack.Navigator screenOptions={stackOpts}>
+      <Stack.Screen name="FinanceHome" component={FinanceHomeScreen} options={{ title: 'Financeiro' }} />
+      <Stack.Screen name="Expenses" component={ExpensesScreen} options={{ title: 'Gastos' }} />
+      <Stack.Screen name="ExpenseEdit" component={ExpenseEditScreen} options={{ title: 'Gasto' }} />
+      <Stack.Screen name="Commissions" component={CommissionsScreen} options={{ title: 'Comissões e repasses' }} />
+      <Stack.Screen name="CommissionRules" component={CommissionRulesScreen} options={{ title: 'Regras de repasse' }} />
+      <Stack.Screen name="CommissionRuleEdit" component={CommissionRuleEditScreen} options={{ title: 'Regra de repasse' }} />
+      <Stack.Screen name="Settlements" component={SettlementsScreen} options={{ title: 'Acertos' }} />
+      {shared()}
+    </Stack.Navigator>
+  );
+}
+
 function CustomersStack() {
   return (
     <Stack.Navigator screenOptions={stackOpts}>
@@ -82,10 +98,8 @@ function MoreStack({ onLogout, shopName }) {
       <Stack.Screen name="Blocks" component={BlocksScreen} options={{ title: 'Bloqueios' }} />
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ title: 'Avaliações' }} />
       <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Relatórios' }} />
-      <Stack.Screen name="Commissions" component={CommissionsScreen} options={{ title: 'Comissões e repasses' }} />
-      <Stack.Screen name="CommissionRules" component={CommissionRulesScreen} options={{ title: 'Regras de repasse' }} />
+      {/* aberta pela seção "Comissões" do barbeiro */}
       <Stack.Screen name="CommissionRuleEdit" component={CommissionRuleEditScreen} options={{ title: 'Regra de repasse' }} />
-      <Stack.Screen name="Settlements" component={SettlementsScreen} options={{ title: 'Acertos' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
       <Stack.Screen name="WhatsApp" component={WhatsAppScreen} options={{ title: 'WhatsApp' }} />
       {shared()}
@@ -93,7 +107,7 @@ function MoreStack({ onLogout, shopName }) {
   );
 }
 
-const ICONS = { Agenda: 'calendar', Pix: 'cash', Clientes: 'people', Mais: 'menu' };
+const ICONS = { Agenda: 'calendar', Pix: 'cash', Financeiro: 'wallet', Clientes: 'people', Mais: 'menu' };
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -128,6 +142,7 @@ export default function App() {
           })}>
             <Tab.Screen name="Agenda" component={AgendaStack} />
             <Tab.Screen name="Pix" component={PaymentsStack} />
+            <Tab.Screen name="Financeiro" component={FinanceStack} />
             <Tab.Screen name="Clientes" component={CustomersStack} />
             <Tab.Screen name="Mais">
               {() => <MoreStack onLogout={logout} shopName={session.shop} />}

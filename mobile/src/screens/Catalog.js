@@ -7,6 +7,7 @@ import { colors } from '../theme';
 import {
   Button, Card, Chips, confirm, Empty, Field, ListRow, Loading, Muted, Screen, Section, Toggle, run, s, useLoad,
 } from '../ui';
+import { BarberCommissionRules } from './Finance';
 
 function AddButton({ onPress }) {
   return (
@@ -175,6 +176,7 @@ export function BarberEditScreen({ navigation, route }) {
         ))}
       </Section>
       <Button title="Salvar" onPress={save} disabled={!name} />
+      {item ? <BarberCommissionRules barberId={item.id} navigation={navigation} /> : null}
       {item ? (
         <Button title="Excluir" kind="danger" onPress={() => confirm('Excluir barbeiro?', 'Se já tiver agendamentos, ele só será desativado.',
           () => run(async () => { await api.del(`/barbers/${item.id}`); navigation.goBack(); }), 'Excluir', true)} />

@@ -12,7 +12,9 @@ from .db import SessionLocal
 from .models import Appointment, ApptStatus, Conversation, Shop
 from .services.fmt import appt_summary
 from .services.notify import notify_staff
+from .services.expenses import bills_text
 from .services.payments import expire_old
+from .services.scheduling import complete_appointment
 from .services.whatsapp import send_text
 
 log = logging.getLogger("jobs")
@@ -65,7 +67,7 @@ def send_surveys(db, shop: Shop) -> int:
     for a in appts:
         a.survey_sent = True
         if a.status in ApptStatus.ACTIVE:
-            a.status = ApptStatus.COMPLETED  # passou do horário sem ser marcado como falta: considera atendido
+            complete_appointment(a)  # passou do horário sem ser marcado como falta: considera atendido
         if not shop.survey_enabled:
             continue
         conv = _conv(db, shop, a.customer.phone)
@@ -86,7 +88,11 @@ def send_daily_summary(db, shop: Shop) -> bool:
     shop.last_summary_date = now.date()
     conv = _conv(db, shop, shop.owner_phone)
     ctx = Ctx(db, shop, conv, shop.owner_phone, "")
-    send_text(db, shop, shop.owner_phone, "☀️ Bom dia! " + summary_text(ctx, now.date()) + "\n\n" + agenda_text(ctx, now.date()))
+    parts = ["☀️ Bom dia! " + summary_text(ctx, now.date()), agenda_text(ctx, now.date())]
+    bills = bills_text(db, shop, now.date())
+    if bills:
+        parts.append(bills)
+    send_text(db, shop, shop.owner_phone, "\n\n".join(parts))
     return True
 
 

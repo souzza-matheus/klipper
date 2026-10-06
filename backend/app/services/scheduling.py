@@ -1,12 +1,14 @@
-"""Regras de agenda: horários livres, criação, cancelamento e remarcação."""
+"""Regras de agenda: horários livres, criação, cancelamento, remarcação e visão do mês."""
+import calendar
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
-from sqlalchemy import select, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, selectinload
 
 from ..config import now_local
 from ..models import (
-    Appointment, ApptStatus, Barber, Block, Customer, PayStatus, Service, Shop,
+    Appointment, ApptStatus, Barber, Block, Customer, PayMethod, PayStatus, Service, Shop,
 )
 
 
@@ -135,6 +137,15 @@ def create_appointment(db: Session, shop: Shop, customer: Customer, barber: Barb
     return appt
 
 
+def complete_appointment(appt: Appointment, payment_method: str | None = None) -> None:
+    """Marca como atendido. Sem forma de pagamento informada, um Pix já pago pelo bot vira "pix"."""
+    appt.status = ApptStatus.COMPLETED
+    if payment_method:
+        appt.payment_method = payment_method
+    elif appt.payment_method is None and appt.payment_status == PayStatus.PAID:
+        appt.payment_method = PayMethod.PIX
+
+
 def can_customer_cancel(shop: Shop, appt: Appointment) -> bool:
     return appt.start - now_local() >= timedelta(hours=shop.cancel_min_hours)
 
@@ -179,3 +190,78 @@ def appointments_on(db: Session, shop: Shop, day: date, barber_id: int | None = 
     if barber_id:
         q = q.where(Appointment.barber_id == barber_id)
     return list(db.scalars(q.order_by(Appointment.start)).all())
+
+
+def _merged_minutes(intervals: list[tuple[datetime, datetime]]) -> float:
+    total, cur_s, cur_e = 0.0, None, None
+    for a, b in sorted(intervals):
+        if cur_e is None or a > cur_e:
+            if cur_e is not None:
+                total += (cur_e - cur_s).total_seconds() / 60
+            cur_s, cur_e = a, b
+        else:
+            cur_e = max(cur_e, b)
+    if cur_e is not None:
+        total += (cur_e - cur_s).total_seconds() / 60
+    return total
+
+
+def month_overview(db: Session, shop: Shop, year: int, month: int, barber_id: int | None = None) -> list[dict]:
+    """Resumo de cada dia do mês para o calendário: atendimentos, cancelados, faturamento previsto, ocupação e bloqueios.
+    Ocupação = atendimentos / capacidade do dia, onde capacidade = minutos de expediente livres de bloqueio
+    divididos pela duração média dos serviços ativos. Usa 4 consultas, não uma por dia."""
+    n_days = calendar.monthrange(year, month)[1]
+    first = date(year, month, 1)
+    start = datetime.combine(first, datetime.min.time())
+    end = start + timedelta(days=n_days)
+
+    bq = select(Barber).options(selectinload(Barber.working_hours)).where(Barber.shop_id == shop.id)
+    bq = bq.where(Barber.id == barber_id) if barber_id else bq.where(Barber.active.is_(True))
+    barbers = db.scalars(bq).all()
+
+    aq = select(Appointment.start, Appointment.status, Appointment.price).where(
+        Appointment.shop_id == shop.id, Appointment.start >= start, Appointment.start < end)
+    kq = select(Block).where(Block.shop_id == shop.id, Block.start < end, Block.end > start)
+    if barber_id:
+        aq = aq.where(Appointment.barber_id == barber_id)
+        kq = kq.where(or_(Block.barber_id == barber_id, Block.barber_id.is_(None)))
+    appts = db.execute(aq).all()
+    blocks = db.scalars(kq).all()
+    avg_duration = db.scalar(select(func.avg(Service.duration_minutes)).where(
+        Service.shop_id == shop.id, Service.active.is_(True))) or shop.slot_step_minutes or 30
+
+    days = []
+    for i in range(n_days):
+        d = first + timedelta(days=i)
+        d_start = datetime.combine(d, datetime.min.time())
+        d_end = d_start + timedelta(days=1)
+        day_blocks = [b for b in blocks if b.start < d_end and b.end > d_start]
+        work = free = 0.0
+        for b in barbers:
+            mine = [(k.start, k.end) for k in day_blocks if k.barber_id in (None, b.id)]
+            for wh in b.working_hours:
+                if wh.weekday != d.weekday():
+                    continue
+                ws, we = datetime.combine(d, wh.start), datetime.combine(d, wh.end)
+                minutes = (we - ws).total_seconds() / 60
+                work += minutes
+                free += minutes - _merged_minutes([(max(a, ws), min(z, we)) for a, z in mine if a < we and z > ws])
+        days.append({"date": d, "total": 0, "cancelled": 0, "revenue_expected": Decimal(0),
+                     "capacity": round(free / float(avg_duration), 1), "working": work > 0,
+                     "has_block": bool(day_blocks), "occupancy": 0.0})
+
+    for a in appts:
+        row = days[a.start.day - 1]
+        if a.status == ApptStatus.CANCELLED:
+            row["cancelled"] += 1
+            continue
+        row["total"] += 1
+        if a.status != ApptStatus.NO_SHOW:
+            row["revenue_expected"] += a.price
+    for row in days:
+        row["revenue_expected"] = row["revenue_expected"].quantize(Decimal("0.01"))
+        if row["capacity"] > 0:
+            row["occupancy"] = round(min(1.0, row["total"] / row["capacity"]), 2)
+        elif row["total"]:
+            row["occupancy"] = 1.0
+    return days

@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { File, Paths } from 'expo-file-system';
 
 let baseUrl = '';
 let token = '';
@@ -32,7 +33,7 @@ export function setUnauthorizedHandler(fn) {
 
 export class ApiError extends Error {}
 
-export async function request(method, path, body, query) {
+function buildUrl(path, query) {
   let url = baseUrl.replace(/\/$/, '') + '/api' + path;
   if (query) {
     const qs = Object.entries(query)
@@ -41,6 +42,11 @@ export async function request(method, path, body, query) {
       .join('&');
     if (qs) url += '?' + qs;
   }
+  return url;
+}
+
+export async function request(method, path, body, query) {
+  const url = buildUrl(path, query);
   let res;
   try {
     res = await fetch(url, {
@@ -79,4 +85,18 @@ export async function login(url, email, password) {
   const r = await request('POST', '/auth/login', { email: email.trim(), password });
   await saveSession(baseUrl, r.token, r.user_name, r.shop_name);
   return r;
+}
+
+// Baixa um arquivo da API (com o login) para o cache do aparelho e devolve o caminho local
+export async function download(path, query, filename) {
+  const dest = new File(Paths.cache, filename);
+  try {
+    const file = await File.downloadFileAsync(buildUrl(path, query), dest, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}, idempotent: true,
+    });
+    return file.uri;
+  } catch (e) {
+    throw new ApiError(/401/.test(String(e?.message)) ? 'Sessão expirada. Faça login de novo.'
+      : 'Não foi possível baixar o arquivo. Confira a conexão com o servidor.');
+  }
 }

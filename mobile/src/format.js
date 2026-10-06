@@ -76,3 +76,56 @@ export function monthRange(offset = 0) {
 }
 
 export const pct = (v) => `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+
+// Valor digitado ("1.234,56", "60" ou "60,5") -> número; null se inválido
+export function parseMoney(s) {
+  const t = String(s ?? '').trim().replace(/\s|R\$/g, '');
+  if (!t) return null;
+  const n = Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t);
+  return Number.isFinite(n) ? n : null;
+}
+
+export const moneyInput = (v) => (v === null || v === undefined ? '' : Number(v).toFixed(2).replace('.', ','));
+
+// "2026-10" <-> ano/mês; navegação de meses
+export const monthKey = (y, m) => `${y}-${pad(m)}`;
+export function addMonths(key, n) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + n, 1));
+  return monthKey(d.getUTCFullYear(), d.getUTCMonth() + 1);
+}
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro',
+  'outubro', 'novembro', 'dezembro'];
+export function monthLabel(key) {
+  const [y, m] = key.split('-').map(Number);
+  const name = MONTHS[m - 1];
+  return `${name[0].toUpperCase()}${name.slice(1)} de ${y}`;
+}
+export function monthBounds(key) {
+  const [y, m] = key.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return [`${key}-01`, `${key}-${pad(last)}`];
+}
+// Dia da semana com segunda = 0 (como no backend)
+export const weekdayMonFirst = (iso) => (weekday(iso) + 6) % 7;
+
+// Variação contra o período anterior: "+12,5%" / "-3%"; null quando não há base
+export function change(v) {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return `${n > 0 ? '+' : ''}${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+}
+
+export const PAY_METHODS = [
+  { value: 'pix', label: 'Pix' }, { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'debito', label: 'Débito' }, { value: 'credito', label: 'Crédito' },
+];
+export const payMethodLabel = (v) => PAY_METHODS.find((x) => x.value === v)?.label || 'Não informado';
+
+export const EXPENSE_CATEGORIES = [
+  { value: 'aluguel', label: 'Aluguel' }, { value: 'energia', label: 'Energia' }, { value: 'agua', label: 'Água' },
+  { value: 'internet', label: 'Internet' }, { value: 'produtos', label: 'Produtos' },
+  { value: 'equipamentos', label: 'Equipamentos' }, { value: 'manutencao', label: 'Manutenção' },
+  { value: 'marketing', label: 'Marketing' }, { value: 'salarios', label: 'Salários' },
+  { value: 'impostos', label: 'Impostos' }, { value: 'outros', label: 'Outros' },
+];

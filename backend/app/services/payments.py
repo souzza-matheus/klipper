@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import now_local
-from ..models import Appointment, PayStatus, Payment, Shop
+from ..models import Appointment, PayMethod, PayStatus, Payment, Shop
 from .fmt import appt_summary, money
 from .pix import build_brcode, new_txid
 
@@ -52,6 +52,8 @@ def confirm_payment(db: Session, pay: Payment) -> None:
     pay.status = PayStatus.PAID
     pay.confirmed_at = now_local()
     pay.appointment.payment_status = PayStatus.PAID
+    if pay.appointment.payment_method is None:
+        pay.appointment.payment_method = PayMethod.PIX
 
 
 def pending_payments(db: Session, shop: Shop) -> list[Payment]:

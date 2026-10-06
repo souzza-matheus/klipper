@@ -16,9 +16,10 @@ from sqlalchemy.orm import Session
 from .config import now_local
 from .db import SessionLocal
 from .models import (
-    Appointment, ApptStatus, Barber, Block, Conversation, Customer, PayStatus, Payment, Review, Service, Shop,
+    Appointment, ApptStatus, Barber, Block, CommissionSettlement, Conversation, Customer, Expense, PayMethod,
+    PayStatus, Payment, Review, Service, Shop,
 )
-from .seed import seed
+from .seed import seed, seed_finance
 from .services.payments import get_or_create_pix
 from .services.scheduling import create_appointment, is_free
 
@@ -102,6 +103,8 @@ def reset_mock(db: Session, shop: Shop) -> None:
     db.execute(delete(Block).where(Block.shop_id == shop.id))
     db.execute(delete(Conversation).where(Conversation.shop_id == shop.id))
     db.execute(delete(Customer).where(Customer.shop_id == shop.id))
+    db.execute(delete(Expense).where(Expense.shop_id == shop.id))
+    db.execute(delete(CommissionSettlement).where(CommissionSettlement.shop_id == shop.id))
     db.commit()
     print("Dados mock da Barbearia Demo apagados.")
 
@@ -250,6 +253,18 @@ def create_payments(db: Session, shop: Shop, appts: list[Appointment], now: date
     db.flush()
 
 
+def set_payment_methods(appts: list[Appointment]) -> None:
+    """Forma de pagamento dos atendimentos concluídos: Pix pago pelo bot vira "pix"; o resto é sorteado."""
+    for a in appts:
+        if a.status != ApptStatus.COMPLETED:
+            continue
+        if a.payment_status == PayStatus.PAID:
+            a.payment_method = PayMethod.PIX
+        else:
+            a.payment_method = _pick_weighted({PayMethod.PIX: 30, PayMethod.CASH: 25, PayMethod.DEBIT: 30,
+                                               PayMethod.CREDIT: 15})
+
+
 def create_reviews(db: Session, shop: Shop, appts: list[Appointment], now: datetime) -> None:
     for a in appts:
         if not a.survey_sent or random.random() >= 0.6:
@@ -297,6 +312,7 @@ def summary(db: Session, shop: Shop) -> None:
         select(func.count(Review.id), func.avg(Review.rating)).where(Review.shop_id == shop.id)
     ).one()
     n_blocks = db.scalar(select(func.count()).select_from(Block).where(Block.shop_id == shop.id))
+    n_expenses = db.scalar(select(func.count()).select_from(Expense).where(Expense.shop_id == shop.id))
 
     print("\nResumo da Barbearia Demo")
     print(f"  Clientes: {n_customers}")
@@ -308,6 +324,7 @@ def summary(db: Session, shop: Shop) -> None:
         print(f"    {status}: {n}")
     print(f"  Avaliações: {n_reviews} (nota média {float(avg or 0):.2f})")
     print(f"  Bloqueios: {n_blocks}")
+    print(f"  Gastos: {n_expenses}")
 
 
 def main() -> None:
@@ -337,6 +354,7 @@ def main() -> None:
         appts = create_appointments(db, shop, customers, barbers, services, today)
         apply_statuses(appts, shop, now)
         create_payments(db, shop, appts, now)
+        set_payment_methods(appts)
         create_reviews(db, shop, appts, now)
 
         # Parte dos clientes é nova: cadastro feito no primeiro agendamento do período
@@ -348,6 +366,7 @@ def main() -> None:
                 c.created_at = first_appt[c.id].created_at - timedelta(minutes=random.randint(1, 30))
 
         db.commit()
+        seed_finance(db, shop, today)  # gastos de exemplo do mês (o --reset apaga os antigos)
         summary(db, shop)
     finally:
         db.close()

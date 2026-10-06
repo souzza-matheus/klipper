@@ -18,9 +18,17 @@ barberbot/
 
 **Alertas automáticos:** novo agendamento, cancelamento (com o horário que ficou livre), remarcação, "paguei" do cliente, avaliação baixa, pedido de atendente e resumo diário de manhã.
 
-**App admin:** agenda por dia e barbeiro, novo agendamento manual, confirmar, concluir, falta, remarcar, cancelar, enviar Pix, clientes com histórico, Pix pendentes, serviços, barbeiros com expediente, bloqueios, avaliações, relatórios, configurações do bot e do Pix, conexão do WhatsApp por QR Code.
+**App admin:** agenda por dia ou por mês e por barbeiro, novo agendamento manual, confirmar, concluir (com forma de pagamento e valor final), falta, remarcar, cancelar, enviar Pix, clientes com histórico, Pix pendentes, financeiro, serviços, barbeiros com expediente e comissões, bloqueios, avaliações, relatórios, configurações do bot e do Pix, conexão do WhatsApp por QR Code.
 
-**Comissões e repasses:** regras de quanto cada barbeiro repassa para a barbearia ou para um barbeiro padrinho (várias ao mesmo tempo, por serviço ou geral, com vigência; a soma não passa de 100%). O cálculo usa o preço de cada atendimento concluído e a regra vigente no dia dele. Mostra bruto, repasses, líquido, acertado e em aberto por barbeiro, registra acertos e avisa os barbeiros pelo WhatsApp. No app: **Mais > Comissões e repasses**.
+**Agenda do mês:** na aba Agenda, o seletor **Dia | Mês** mostra o calendário (seg a dom) com o número de atendimentos e uma barra de ocupação em cada dia. Ocupação = atendimentos ÷ capacidade do dia, onde a capacidade é o expediente dos barbeiros (menos os bloqueios) dividido pela duração média dos serviços ativos. Dias sem expediente ficam esmaecidos, dias com bloqueio têm um cadeado e hoje fica destacado. Tocar em um dia abre a visão Dia. Respeita o filtro de barbeiro.
+
+**Forma de pagamento:** ao marcar um atendimento como concluído, o app pergunta como o cliente pagou (Pix, dinheiro, débito ou crédito) e permite ajustar o valor cobrado (desconto ou acréscimo). Se o cliente já pagou o Pix pelo bot, vem "Pix" marcado. O valor final é o que entra no faturamento e nas comissões.
+
+**Gastos:** contas da barbearia por categoria (aluguel, energia, água, internet, produtos, equipamentos, manutenção, marketing, salários, impostos, outros), com vencimento, pagamento, forma de pagamento e barbeiro (opcional). Um gasto marcado como **"Repetir todo mês"** gera automaticamente a conta dos meses seguintes quando o mês é aberto (no app, no resumo ou no aviso diário), sem duplicar. Para parar de repetir, desligue a opção no gasto original. O resumo diário do dono no WhatsApp avisa as contas que vencem hoje ou já venceram.
+
+**Financeiro (aba no app):** faturamento, gastos pagos, lucro e ticket médio do período (este mês, mês passado, 7 dias ou datas escolhidas), com a variação contra o período anterior de mesmo tamanho; gráfico de faturamento x gastos por dia; faturamento por barbeiro, serviço e forma de pagamento; gastos por categoria; exportação em CSV para o Excel (compartilhada pelo celular). Faturamento = atendimentos concluídos; gastos entram no dia em que foram pagos (regime de caixa); lucro = faturamento − gastos pagos.
+
+**Comissões e repasses:** regras de quanto cada barbeiro repassa para a barbearia ou para um barbeiro padrinho (várias ao mesmo tempo, por serviço ou geral, com vigência; a soma não passa de 100%). O cálculo usa o valor cobrado em cada atendimento concluído e a regra vigente no dia dele. Mostra bruto, repasses, líquido, acertado e em aberto por barbeiro, registra acertos e avisa os barbeiros pelo WhatsApp. No app: **Financeiro > Comissões e repasses**; as regras de cada barbeiro também ficam em **Mais > Barbeiros > [barbeiro] > Comissões**.
 
 **Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave da própria barbearia. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp).
 
@@ -29,6 +37,7 @@ barberbot/
 ```bash
 cd backend
 pip install -r requirements.txt
+alembic upgrade head                     # cria/atualiza as tabelas
 python -m app.seed                       # cria a "Barbearia Demo"
 uvicorn app.main:app --reload
 ```
@@ -54,15 +63,57 @@ python -m app.seed_mock            # cria a demo (se preciso) e gera os dados
 python -m app.seed_mock --reset    # apaga os dados mock e gera de novo
 ```
 
-Gera 40 clientes, agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas), Pix, avaliações e 3 bloqueios futuros. O `--reset` apaga só clientes, agendamentos, pagamentos, avaliações, bloqueios e conversas da Barbearia Demo; serviços, barbeiros e o login admin continuam. As datas são relativas ao dia em que o script roda.
+Gera 40 clientes, agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas, e forma de pagamento nos concluídos), Pix, avaliações, 3 bloqueios futuros e os gastos de exemplo. O `--reset` apaga só clientes, agendamentos, pagamentos, avaliações, bloqueios, conversas, gastos e acertos da Barbearia Demo e gera tudo de novo; serviços, barbeiros, regras de comissão e o login admin continuam. As datas são relativas ao dia em que o script roda.
 
-Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa e comissões).
+O `app.seed` já cria exemplos do financeiro: Pedro (barbeiro novo) repassa 40% para a barbearia e 10% para o João (padrinho), João repassa 30% para a barbearia; contas fixas recorrentes (aluguel, internet, luz, água, contador) e alguns gastos avulsos do mês, um deles vencido e outro vencendo hoje.
+
+Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês e migrações).
+
+## Banco de dados e migrações (Alembic)
+
+O esquema do banco é controlado pelo Alembic (`backend/migrations`). A API não cria mais tabelas sozinha.
+
+```bash
+cd backend
+alembic upgrade head                                   # aplica as migrações pendentes
+alembic revision --autogenerate -m "o que mudou"      # depois de alterar app/models.py
+```
+
+- `0001` representa o esquema de antes do Alembic e `0002` adiciona a forma de pagamento nos atendimentos e a tabela de gastos.
+- Bancos criados pela versão antiga (`create_all`) também funcionam: as migrações só criam as tabelas e colunas que faltam e depois passam a controlar o banco normalmente. Não é preciso apagar nada.
+- No Docker, o container do backend roda `alembic upgrade head` antes de subir a API.
+- A URL vem da mesma `DATABASE_URL` da API (ou `alembic -x url=sqlite:///outro.db upgrade head`).
+
+Para recriar o banco de desenvolvimento do zero (SQLite):
+
+```bash
+cd backend
+rm -f barberbot.db
+alembic upgrade head
+python -m app.seed_mock
+```
+
+## API do financeiro
+
+Todas as rotas exigem login e enxergam só a barbearia do usuário. Valores em reais como texto decimal (`"1234.50"`), datas no horário local sem fuso.
+
+| Rota | O que faz |
+| --- | --- |
+| `PATCH /api/appointments/{id}` | além de `status`, aceita `payment_method` (`pix`, `dinheiro`, `debito`, `credito`) e `price` (valor final) |
+| `GET /api/appointments/month?year&month&barber_id` | por dia: total, cancelados, faturamento previsto, capacidade, ocupação (0 a 1), se tem expediente e se tem bloqueio |
+| `GET/POST /api/expenses`, `GET/PUT/DELETE /api/expenses/{id}` | gastos; filtros `month=AAAA-MM`, `category`, `status=paid\|open\|overdue`, `barber_id` |
+| `POST /api/expenses/{id}/pay` | marca como pago (corpo opcional: `paid_at`, `payment_method`) |
+| `GET /api/finance/summary?date_from&date_to` | faturamento, gastos pagos e em aberto, lucro, ticket médio, atendimentos, quebras por barbeiro, serviço, forma de pagamento e categoria, período anterior e variação em % |
+| `GET /api/finance/daily?date_from&date_to` | série diária de faturamento e gastos |
+| `GET /api/finance/export.csv?date_from&date_to` | atendimentos concluídos e gastos em CSV (`;`, vírgula decimal, UTF-8 com BOM) |
+| `/api/commission-rules`, `/api/finance/commissions`, `/api/finance/settlements` | regras de comissão, repasses do período e acertos |
 
 ## Colocar no ar (VPS)
 
 1. VPS com Docker (2 vCPU e 4 GB bastam para várias barbearias).
 2. `cp .env.example .env` e troque todos os valores.
 3. `docker compose up -d --build`
+   O backend aplica as migrações do banco (`alembic upgrade head`) toda vez que sobe.
 4. Cadastre a barbearia (uma vez por cliente):
    ```bash
    curl -X POST http://SEU_SERVIDOR:8000/api/auth/register -H "Content-Type: application/json" -d '{

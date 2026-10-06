@@ -2,7 +2,10 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
-import { addDays, dayLabel, dtLabel, hm, money, phoneLabel, todayISO } from '../format';
+import {
+  addDays, addMonths, dayLabel, dtLabel, hm, money, moneyInput, monthLabel, parseMoney, PAY_METHODS, payMethodLabel,
+  phoneLabel, todayISO, weekdayMonFirst,
+} from '../format';
 import { colors, PAY, STATUS } from '../theme';
 import {
   Badge, Button, Card, Chips, confirm, Empty, Field, Loading, Muted, Screen, Section, s, Title, run, useLoad,
@@ -25,11 +28,117 @@ export function DayNav({ day, onChange }) {
   );
 }
 
+export function MonthNav({ month, onChange }) {
+  const current = todayISO().slice(0, 7);
+  return (
+    <View style={[s.row, { marginBottom: 12 }]}>
+      <Pressable onPress={() => onChange(addMonths(month, -1))} hitSlop={12} style={{ padding: 6 }}>
+        <Ionicons name="chevron-back" size={24} color={colors.primary} />
+      </Pressable>
+      <Pressable onPress={() => onChange(current)} style={{ flex: 1, alignItems: 'center' }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{monthLabel(month)}</Text>
+        {month !== current ? <Muted>toque para voltar ao mês atual</Muted> : null}
+      </Pressable>
+      <Pressable onPress={() => onChange(addMonths(month, 1))} hitSlop={12} style={{ padding: 6 }}>
+        <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+      </Pressable>
+    </View>
+  );
+}
+
+const WEEK_HEAD = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+
+// Cor da ocupação do dia
+function occColor(o) {
+  if (o >= 0.85) return colors.bad;
+  if (o >= 0.5) return colors.warn;
+  return colors.good;
+}
+
+// Calendário do mês: atendimentos e ocupação por dia. Tocar em um dia abre a visão Dia.
+function MonthView({ month, barber, onPick, onMonth }) {
+  const [y, m] = month.split('-').map(Number);
+  const r = useLoad(() => api.get('/appointments/month', { year: y, month: m, barber_id: barber }), [month, barber]);
+  const days = r.data?.days || [];
+  const today = todayISO();
+  const lead = days.length ? weekdayMonFirst(days[0].date) : 0;
+  const cells = [...Array(lead).fill(null), ...days];
+  while (cells.length % 7) cells.push(null);
+  const total = days.reduce((t, d) => t + d.total, 0);
+  const revenue = days.reduce((t, d) => t + Number(d.revenue_expected), 0);
+
+  return (
+    <View>
+      <MonthNav month={month} onChange={onMonth} />
+      {!r.data ? <Loading error={r.error} onRetry={r.reload} /> : (
+        <>
+          <Muted style={{ marginBottom: 10 }}>{total} atendimento(s) · previsto {money(revenue)}</Muted>
+          <View style={[s.card, { padding: 6 }]}>
+            <View style={s.row}>
+              {WEEK_HEAD.map((w, i) => (
+                <Text key={i} style={{ width: `${100 / 7}%`, textAlign: 'center', fontSize: 12, fontWeight: '700', color: colors.muted, paddingVertical: 6 }}>{w}</Text>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {cells.map((d, i) => (
+                <View key={d ? d.date : `x${i}`} style={{ width: `${100 / 7}%`, padding: 2 }}>
+                  {d ? (
+                    <Pressable onPress={() => onPick(d.date)}
+                               style={({ pressed }) => [{
+                                 borderRadius: 8, paddingVertical: 6, alignItems: 'center', minHeight: 62,
+                                 backgroundColor: d.date === today ? colors.infoBg : 'transparent',
+                                 borderWidth: d.date === today ? 1.5 : 0, borderColor: colors.primary,
+                                 opacity: d.working || d.total ? 1 : 0.35,
+                               }, pressed && { backgroundColor: '#F0EDE7' }]}>
+                      <View style={[s.row, { gap: 2 }]}>
+                        <Text style={{ fontSize: 15, fontWeight: d.date === today ? '800' : '600', color: colors.ink }}>
+                          {Number(d.date.slice(8, 10))}
+                        </Text>
+                        {d.has_block ? <Ionicons name="lock-closed" size={10} color={colors.accent} /> : null}
+                      </View>
+                      <Text style={{ fontSize: 11, color: d.total ? colors.ink : colors.muted, marginTop: 2 }}>
+                        {d.total ? `${d.total} at.` : d.working ? '-' : ''}
+                      </Text>
+                      {d.working ? (
+                        <View style={{ height: 4, width: '80%', backgroundColor: colors.bg, borderRadius: 2, marginTop: 5 }}>
+                          <View style={{ height: 4, width: `${Math.round(d.occupancy * 100)}%`, backgroundColor: occColor(d.occupancy), borderRadius: 2 }} />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </View>
+          <View style={[s.row, { gap: 12, flexWrap: 'wrap', marginTop: 4 }]}>
+            {[[colors.good, 'até 50%'], [colors.warn, '50 a 85%'], [colors.bad, 'acima de 85%']].map(([c, l]) => (
+              <View key={l} style={[s.row, { gap: 4 }]}>
+                <View style={{ width: 12, height: 4, borderRadius: 2, backgroundColor: c }} />
+                <Muted style={{ fontSize: 12 }}>{l}</Muted>
+              </View>
+            ))}
+            <View style={[s.row, { gap: 4 }]}>
+              <Ionicons name="lock-closed" size={10} color={colors.accent} />
+              <Muted style={{ fontSize: 12 }}>bloqueio</Muted>
+            </View>
+          </View>
+          <Muted style={{ marginTop: 6, fontSize: 12 }}>
+            Ocupação = atendimentos ÷ quantos cabem no expediente do dia (pela duração média dos serviços).
+          </Muted>
+        </>
+      )}
+    </View>
+  );
+}
+
 export function AgendaScreen({ navigation }) {
+  const [mode, setMode] = useState('day');
   const [day, setDay] = useState(todayISO());
+  const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [barber, setBarber] = useState(null);
   const barbers = useLoad(() => api.get('/barbers'), []);
-  const appts = useLoad(() => api.get('/appointments', { date_from: day, barber_id: barber, include_cancelled: true }), [day, barber]);
+  const appts = useLoad(async () => (mode === 'day'
+    ? api.get('/appointments', { date_from: day, barber_id: barber, include_cancelled: true }) : null), [day, barber, mode]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -45,13 +154,37 @@ export function AgendaScreen({ navigation }) {
   const active = list.filter((a) => a.status !== 'cancelled');
   const total = active.filter((a) => a.status !== 'no_show').reduce((t, a) => t + Number(a.price), 0);
 
+  const barberChips = barbers.data && barbers.data.length > 1 ? (
+    <Chips value={barber} onChange={setBarber}
+           options={[{ value: null, label: 'Todos' }, ...barbers.data.filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }))]} />
+  ) : null;
+  const modeSwitch = (
+    <View style={[s.row, { backgroundColor: colors.line, borderRadius: 10, padding: 3, marginBottom: 12 }]}>
+      {[['day', 'Dia'], ['month', 'Mês']].map(([v, l]) => (
+        <Pressable key={v} onPress={() => { setMode(v); if (v === 'month') setMonth(day.slice(0, 7)); }}
+                   style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: mode === v ? colors.card : 'transparent' }}>
+          <Text style={{ fontWeight: '700', color: mode === v ? colors.primary : colors.muted }}>{l}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  if (mode === 'month') {
+    return (
+      <Screen>
+        {modeSwitch}
+        {barberChips}
+        <MonthView month={month} barber={barber} onMonth={setMonth}
+                   onPick={(d) => { setDay(d); setMode('day'); }} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen onRefresh={appts.reload} refreshing={appts.loading && !!appts.data}>
+      {modeSwitch}
       <DayNav day={day} onChange={setDay} />
-      {barbers.data && barbers.data.length > 1 ? (
-        <Chips value={barber} onChange={setBarber}
-               options={[{ value: null, label: 'Todos' }, ...barbers.data.filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }))]} />
-      ) : null}
+      {barberChips}
       <Muted style={{ marginBottom: 10 }}>{active.length} atendimento(s) · previsto {money(total)}</Muted>
       {!appts.data ? <Loading error={appts.error} onRetry={appts.reload} /> : null}
       {appts.data && !list.length ? <Empty text="Nenhum agendamento neste dia." /> : null}
@@ -66,7 +199,8 @@ export function AgendaScreen({ navigation }) {
               <View style={[s.row, { gap: 6, marginTop: 6 }]}>
                 <Badge info={STATUS[a.status]} />
                 <Badge info={PAY[a.payment_status]} />
-                {a.created_via === 'bot' ? <Muted>via WhatsApp</Muted> : null}
+                {a.status === 'completed' && a.payment_method ? <Muted>{payMethodLabel(a.payment_method)}</Muted> : null}
+                {a.created_via === 'bot' && a.status !== 'completed' ? <Muted>via WhatsApp</Muted> : null}
               </View>
             </View>
           </View>
@@ -152,8 +286,42 @@ export function AppointmentScreen({ navigation, route }) {
   }, [id]);
   const [moving, setMoving] = useState(false);
   const [slot, setSlot] = useState(null);
+  const [completing, setCompleting] = useState(false);
+  const [method, setMethod] = useState(null);
+  const [finalPrice, setFinalPrice] = useState('');
   const a = appt.data;
   if (!a) return <Loading error={appt.error} onRetry={appt.reload} />;
+
+  const openComplete = () => {
+    setMethod(a.payment_method || (a.payment_status === 'paid' ? 'pix' : null));
+    setFinalPrice(moneyInput(a.price));
+    setMoving(false);
+    setCompleting(true);
+  };
+  const complete = () => run(async () => {
+    const price = parseMoney(finalPrice);
+    if (price === null || price < 0) throw new Error('Valor inválido.');
+    await api.patch(`/appointments/${a.id}`, { status: 'completed', payment_method: method, price: price.toFixed(2) });
+    setCompleting(false);
+    appt.reload();
+  }, 'Atendimento concluído.');
+  const diff = (parseMoney(finalPrice) ?? Number(a.price)) - Number(a.price);
+  const completePanel = completing ? (
+    <Section title={a.status === 'completed' ? 'Pagamento' : 'Concluir atendimento'}>
+      <Card>
+        <Muted style={{ marginBottom: 8 }}>Forma de pagamento</Muted>
+        <Chips value={method} onChange={setMethod} options={PAY_METHODS} />
+        {a.payment_status === 'paid' ? <Muted style={{ marginTop: -6, marginBottom: 12 }}>Já pago via Pix pelo WhatsApp.</Muted> : null}
+        <Field label="Valor cobrado (R$)" value={finalPrice} onChangeText={setFinalPrice} keyboardType="decimal-pad"
+               hint={Math.abs(diff) >= 0.005
+                 ? `${diff < 0 ? 'Desconto' : 'Acréscimo'} de ${money(Math.abs(diff))} sobre ${money(a.price)}`
+                 : 'Altere para dar desconto ou cobrar a mais.'} />
+        <Button title={a.status === 'completed' ? 'Salvar pagamento' : 'Confirmar atendimento'} icon="checkmark-done"
+                onPress={complete} disabled={!method} style={{ marginBottom: 6 }} />
+        <Button title="Voltar" kind="ghost" onPress={() => setCompleting(false)} style={{ marginBottom: 0 }} />
+      </Card>
+    </Section>
+  ) : null;
 
   const setStatus = (status, msg) => run(async () => {
     await api.patch(`/appointments/${a.id}`, { status });
@@ -172,7 +340,8 @@ export function AppointmentScreen({ navigation, route }) {
       <Card>
         <Text style={s.body}>✂️ {a.service_name} com {a.barber_name}</Text>
         <Text style={[s.body, { marginTop: 6 }]}>📅 {dtLabel(a.start)} até {hm(a.end)}</Text>
-        <Text style={[s.body, { marginTop: 6 }]}>💰 {money(a.price)}</Text>
+        <Text style={[s.body, { marginTop: 6 }]}>💰 {money(a.price)}
+          {a.payment_method ? ` · ${payMethodLabel(a.payment_method)}` : ''}</Text>
         <Text style={[s.body, { marginTop: 6 }]}>📱 {phoneLabel(a.customer_phone)}</Text>
         {a.notes ? <Muted style={{ marginTop: 8 }}>{a.notes}</Muted> : null}
       </Card>
@@ -186,7 +355,8 @@ export function AppointmentScreen({ navigation, route }) {
         <>
           <Section title="Ações">
             {a.status === 'scheduled' ? <Button title="Confirmar presença" icon="checkmark" onPress={() => setStatus('confirmed')} /> : null}
-            <Button title="Marcar como atendido" icon="checkmark-done" onPress={() => setStatus('completed')} />
+            {!completing ? <Button title="Marcar como atendido" icon="checkmark-done" onPress={openComplete} /> : null}
+            {completePanel}
             <Button title="Cliente faltou" kind="ghost" icon="close-circle-outline" onPress={() => setStatus('no_show')} />
             {a.payment_status !== 'paid' ? (
               <Button title="Enviar Pix pelo WhatsApp" kind="accent" icon="qr-code-outline"
@@ -208,7 +378,12 @@ export function AppointmentScreen({ navigation, route }) {
                   onPress={() => confirm('Cancelar?', 'O cliente será avisado pelo WhatsApp.', () => setStatus('cancelled', 'Cancelado.'), 'Cancelar', true)} />
         </>
       ) : (
-        a.status !== 'cancelled' ? <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} /> : null
+        <>
+          {a.status === 'completed' ? (completePanel || (
+            <Button title="Alterar pagamento ou valor" kind="ghost" icon="card-outline" onPress={openComplete} />
+          )) : null}
+          {a.status !== 'cancelled' ? <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} /> : null}
+        </>
       )}
     </Screen>
   );

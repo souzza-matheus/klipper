@@ -1,11 +1,18 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../api';
-import { addDays, dmy, money, monthRange, parseBRDate, pct, todayISO } from '../format';
+import * as Sharing from 'expo-sharing';
+import { api, download } from '../api';
+import { BarChart } from '../chart';
+import { MonthNav } from './Agenda';
+import {
+  addDays, change, dmy, EXPENSE_CATEGORIES, money, moneyInput, monthBounds, monthRange,
+  parseBRDate, parseMoney, PAY_METHODS, payMethodLabel, pct, todayISO,
+} from '../format';
 import { colors } from '../theme';
 import {
-  Badge, Button, Card, Chips, confirm, Empty, Field, Loading, Muted, Screen, Section, Stat, Toggle, run, s, useLoad,
+  Badge, Button, Card, Chips, confirm, Empty, Field, ListRow, Loading, Muted, Screen, Section, Stat, Toggle, run, s,
+  useLoad,
 } from '../ui';
 
 const PERIODS = {
@@ -16,6 +23,349 @@ const PERIODS = {
 
 const brDate = (iso) => (iso ? dmy(iso + 'T') : '');
 const isOpen = (v) => Number(v) > 0.004;
+
+// ---------------------------------------------------------------- resumo financeiro (aba Financeiro)
+
+const SUMMARY_PERIODS = {
+  month: () => monthRange(0),
+  last: () => monthRange(-1),
+  d7: () => [addDays(todayISO(), -6), todayISO()],
+};
+
+// Card com valor e variação contra o período anterior. upIsGood=false: subir é ruim (gastos).
+function Kpi({ label, value, delta, upIsGood = true }) {
+  const txt = change(delta);
+  const n = Number(delta);
+  const color = !txt || n === 0 ? colors.muted : (n > 0) === upIsGood ? colors.good : colors.bad;
+  return (
+    <View style={[s.stat, { minWidth: '45%' }]}>
+      <Muted>{label}</Muted>
+      <Text style={s.statValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={{ fontSize: 12, color, marginTop: 2 }}>{txt ? `${txt} vs. anterior` : 'sem base anterior'}</Text>
+    </View>
+  );
+}
+
+// Linha com valor e barra proporcional ao maior do grupo
+function ShareRow({ title, subtitle, value, max, color = colors.primary }) {
+  const w = max > 0 ? Math.max(2, (Number(value) / max) * 100) : 0;
+  return (
+    <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+      <View style={s.row}>
+        <Text style={[s.body, { flex: 1 }]} numberOfLines={1}>{title}</Text>
+        <Text style={[s.body, { fontWeight: '700' }]}>{money(value)}</Text>
+      </View>
+      {subtitle ? <Muted>{subtitle}</Muted> : null}
+      <View style={{ height: 4, backgroundColor: colors.bg, borderRadius: 2, marginTop: 6 }}>
+        <View style={{ height: 4, width: `${w}%`, backgroundColor: color, borderRadius: 2 }} />
+      </View>
+    </View>
+  );
+}
+
+function Breakdown({ title, rows, color }) {
+  const max = Math.max(0, ...rows.map((g) => Number(g.revenue)));
+  return (
+    <Section title={title}>
+      <Card>
+        {!rows.length ? <Muted>Sem atendimentos concluídos no período.</Muted> : null}
+        {rows.map((g) => (
+          <ShareRow key={g.method || g.id || g.name} title={g.label || g.name} value={g.revenue} max={max} color={color}
+                    subtitle={`${g.appointments} atendimento(s)`} />
+        ))}
+      </Card>
+    </Section>
+  );
+}
+
+export function FinanceHomeScreen({ navigation }) {
+  const [period, setPeriod] = useState('month');
+  const [custom, setCustom] = useState({ from: brDate(monthRange(0)[0]), to: brDate(todayISO()) });
+  const [range, setRange] = useState(monthRange(0));
+  const [from, to] = range;
+  const [exporting, setExporting] = useState(false);
+  const r = useLoad(async () => {
+    const q = { date_from: from, date_to: to };
+    const [summary, daily] = await Promise.all([api.get('/finance/summary', q), api.get('/finance/daily', q)]);
+    return { summary, daily };
+  }, [from, to]);
+  const d = r.data?.summary;
+
+  const pick = (p) => {
+    setPeriod(p);
+    if (SUMMARY_PERIODS[p]) setRange(SUMMARY_PERIODS[p]());
+  };
+  const applyCustom = () => {
+    const a = parseBRDate(custom.from);
+    const b = parseBRDate(custom.to);
+    if (!a || !b) return run(() => { throw new Error('Datas inválidas. Use dd/mm/aaaa.'); });
+    if (b < a) return run(() => { throw new Error('A data final precisa ser depois da inicial.'); });
+    setRange([a, b]);
+    return null;
+  };
+  const exportCsv = async () => {
+    setExporting(true);
+    await run(async () => {
+      const uri = await download('/finance/export.csv', { date_from: from, date_to: to }, `financeiro_${from}_${to}.csv`);
+      if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste aparelho.');
+      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Exportar financeiro', UTI: 'public.comma-separated-values-text' });
+    });
+    setExporting(false);
+  };
+
+  const chart = (r.data?.daily || []).map((x) => ({ key: x.date, label: x.date.slice(8, 10), a: Number(x.revenue), b: Number(x.expenses) }));
+
+  return (
+    <Screen onRefresh={r.reload} refreshing={r.loading && !!r.data}>
+      <Chips value={period} onChange={pick} options={[
+        { value: 'month', label: 'Este mês' }, { value: 'last', label: 'Mês passado' },
+        { value: 'd7', label: '7 dias' }, { value: 'custom', label: 'Personalizado' },
+      ]} />
+      {period === 'custom' ? (
+        <View style={[s.row, { gap: 8, alignItems: 'flex-end' }]}>
+          <View style={{ flex: 1 }}>
+            <Field label="De" value={custom.from} onChangeText={(v) => setCustom({ ...custom, from: v })}
+                   placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field label="Até" value={custom.to} onChangeText={(v) => setCustom({ ...custom, to: v })}
+                   placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" />
+          </View>
+          <Button title="Ver" onPress={applyCustom} style={{ marginBottom: 14 }} />
+        </View>
+      ) : null}
+      {!d ? <Loading error={r.error} onRetry={r.reload} /> : (
+        <>
+          <Muted style={{ marginBottom: 10 }}>
+            {brDate(from)} a {brDate(to)} · comparado com {brDate(d.previous.date_from)} a {brDate(d.previous.date_to)}
+          </Muted>
+          <View style={[s.row, { gap: 8, flexWrap: 'wrap', marginBottom: 8 }]}>
+            <Kpi label="Faturamento" value={money(d.revenue)} delta={d.change.revenue} />
+            <Kpi label="Gastos pagos" value={money(d.expenses_paid)} delta={d.change.expenses_paid} upIsGood={false} />
+            <Kpi label="Lucro" value={money(d.profit)} delta={d.change.profit} />
+            <Kpi label="Ticket médio" value={money(d.avg_ticket)} delta={d.change.avg_ticket} />
+          </View>
+          <Muted style={{ marginBottom: 16 }}>
+            {d.appointments} atendimento(s) concluído(s)
+            {isOpen(d.expenses_open) ? ` · ${money(d.expenses_open)} em gastos a pagar no período` : ''}
+          </Muted>
+
+          <Section title="Faturamento x gastos por dia">
+            <Card>
+              <BarChart data={chart} detail={(x) => brDate(x.key)} />
+            </Card>
+          </Section>
+
+          <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
+            <ListRow icon="receipt-outline" title="Gastos" subtitle="Contas do mês, pagas e em aberto"
+                     onPress={() => navigation.navigate('Expenses')} />
+            <ListRow icon="people-outline" title="Comissões e repasses" subtitle="Bruto, repasses, líquido e acertos"
+                     onPress={() => navigation.navigate('Commissions')} />
+          </View>
+
+          <Breakdown title="Por barbeiro" rows={d.by_barber} />
+          <Breakdown title="Por serviço" rows={d.by_service} color={colors.accent} />
+          <Breakdown title="Por forma de pagamento" rows={d.by_payment_method} color={colors.good} />
+
+          {d.expenses_by_category.length ? (
+            <Section title="Gastos por categoria">
+              <Card>
+                {d.expenses_by_category.map((c) => (
+                  <ShareRow key={c.category} title={c.label} color={colors.bad}
+                            value={Number(c.paid) + Number(c.open)}
+                            max={Math.max(...d.expenses_by_category.map((x) => Number(x.paid) + Number(x.open)))}
+                            subtitle={`pago ${money(c.paid)}${isOpen(c.open) ? ` · em aberto ${money(c.open)}` : ''}`} />
+                ))}
+              </Card>
+            </Section>
+          ) : null}
+
+          <Button title={exporting ? 'Gerando arquivo...' : 'Exportar CSV (Excel)'} kind="ghost" icon="share-outline"
+                  onPress={exportCsv} disabled={exporting} />
+        </>
+      )}
+    </Screen>
+  );
+}
+
+// ---------------------------------------------------------------- gastos
+
+export function ExpensesScreen({ navigation }) {
+  const [month, setMonth] = useState(todayISO().slice(0, 7));
+  const [status, setStatus] = useState(null);
+  const list = useLoad(() => api.get('/expenses', { month }), [month]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => navigation.navigate('ExpenseEdit', { month })} hitSlop={10}>
+          <Ionicons name="add-circle" size={30} color={colors.accent} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, month]);
+
+  const all = list.data || [];
+  const items = all.filter((e) => (status === 'paid' ? e.paid_at : status === 'open' ? !e.paid_at : true));
+  const sum = (xs) => xs.reduce((t, e) => t + Number(e.amount), 0);
+  const groups = {};
+  items.forEach((e) => { (groups[e.category_label] = groups[e.category_label] || []).push(e); });
+  const sorted = Object.entries(groups).sort((a, b) => sum(b[1]) - sum(a[1]));
+
+  const pay = (e) => confirm('Marcar como pago?', `${e.description} · ${money(e.amount)}\nPago hoje.`,
+    () => run(async () => { await api.post(`/expenses/${e.id}/pay`); list.reload(); }), 'Marcar como pago');
+
+  return (
+    <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
+      <MonthNav month={month} onChange={setMonth} />
+      <View style={[s.row, { gap: 8, marginBottom: 12 }]}>
+        <Stat label="Total do mês" value={money(sum(all))} />
+        <Stat label="Pago" value={money(sum(all.filter((e) => e.paid_at)))} />
+        <Stat label="Em aberto" value={money(sum(all.filter((e) => !e.paid_at)))} />
+      </View>
+      <Chips value={status} onChange={setStatus} options={[
+        { value: null, label: 'Todos' }, { value: 'open', label: 'Em aberto' }, { value: 'paid', label: 'Pagos' },
+      ]} />
+      {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
+      {list.data && !items.length ? <Empty text="Nenhum gasto neste mês. Toque no + para cadastrar." /> : null}
+      {sorted.map(([label, rows]) => (
+        <Section key={label} title={label} right={<Text style={[s.muted, { fontWeight: '700' }]}>{money(sum(rows))}</Text>}>
+          {rows.map((e) => (
+            <Card key={e.id} onPress={() => navigation.navigate('ExpenseEdit', { item: e })}
+                  style={e.overdue && { borderColor: colors.bad, backgroundColor: colors.badBg }}>
+              <View style={s.row}>
+                <View style={{ flex: 1 }}>
+                  <View style={[s.row, { gap: 6 }]}>
+                    <Text style={[s.body, { flexShrink: 1 }]} numberOfLines={1}>{e.description}</Text>
+                    {e.recurring || e.recurring_source_id ? <Ionicons name="repeat" size={15} color={colors.muted} /> : null}
+                  </View>
+                  <Muted style={e.overdue && { color: colors.bad, fontWeight: '600' }}>
+                    {e.paid_at ? `Pago em ${brDate(e.paid_at)}${e.payment_method ? ` · ${payMethodLabel(e.payment_method)}` : ''}`
+                      : e.overdue ? `Venceu em ${brDate(e.due_date)}` : `Vence em ${brDate(e.due_date)}`}
+                    {e.barber_name ? ` · ${e.barber_name}` : ''}
+                  </Muted>
+                </View>
+                <Text style={[s.body, { fontWeight: '700', color: e.overdue ? colors.bad : colors.ink }]}>{money(e.amount)}</Text>
+              </View>
+              {!e.paid_at ? (
+                <Button title="Marcar como pago" kind="ghost" icon="checkmark-done-outline" onPress={() => pay(e)}
+                        style={{ marginTop: 10, marginBottom: 0, paddingVertical: 9 }} />
+              ) : null}
+            </Card>
+          ))}
+        </Section>
+      ))}
+    </Screen>
+  );
+}
+
+export function ExpenseEditScreen({ navigation, route }) {
+  const item = route.params?.item;
+  const month = route.params?.month || todayISO().slice(0, 7);
+  const defaultDue = todayISO().startsWith(month) ? todayISO() : monthBounds(month)[0];
+  const barbers = useLoad(() => api.get('/barbers'), []);
+  const [description, setDescription] = useState(item?.description || '');
+  const [amount, setAmount] = useState(item ? moneyInput(item.amount) : '');
+  const [category, setCategory] = useState(item?.category || 'outros');
+  const [due, setDue] = useState(brDate(item?.due_date || defaultDue));
+  const [paid, setPaid] = useState(!!item?.paid_at);
+  const [paidAt, setPaidAt] = useState(brDate(item?.paid_at || todayISO()));
+  const [method, setMethod] = useState(item?.payment_method || null);
+  const [barberId, setBarberId] = useState(item?.barber_id ?? null);
+  const [recurring, setRecurring] = useState(!!item?.recurring);
+  const [notes, setNotes] = useState(item?.notes || '');
+  const isCopy = !!item?.recurring_source_id;
+
+  const save = () => run(async () => {
+    const value = parseMoney(amount);
+    if (!value || value <= 0) throw new Error('Informe um valor maior que zero.');
+    const dueDate = parseBRDate(due);
+    if (!dueDate) throw new Error('Vencimento inválido. Use dd/mm/aaaa.');
+    const paidDate = paid ? parseBRDate(paidAt) : null;
+    if (paid && !paidDate) throw new Error('Data do pagamento inválida. Use dd/mm/aaaa.');
+    const body = {
+      description, category, amount: value.toFixed(2), due_date: dueDate, paid_at: paidDate,
+      payment_method: paid ? method : null, barber_id: barberId, recurring: isCopy ? false : recurring, notes,
+    };
+    if (item) await api.put(`/expenses/${item.id}`, body);
+    else await api.post('/expenses', body);
+    navigation.goBack();
+  });
+
+  return (
+    <Screen>
+      <Field label="Descrição" value={description} onChangeText={setDescription} placeholder="Ex.: Aluguel do salão" />
+      <Field label="Valor (R$)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
+      <Section title="Categoria">
+        <Chips value={category} onChange={setCategory} options={EXPENSE_CATEGORIES} />
+      </Section>
+      <Field label="Vencimento" value={due} onChangeText={setDue} placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" />
+      <Toggle label="Já está pago" value={paid} onValueChange={setPaid} />
+      {paid ? (
+        <>
+          <Field label="Pago em" value={paidAt} onChangeText={setPaidAt} placeholder="dd/mm/aaaa" keyboardType="numbers-and-punctuation" />
+          <Section title="Forma de pagamento">
+            <Chips value={method} onChange={setMethod} options={PAY_METHODS} />
+          </Section>
+        </>
+      ) : null}
+      <Section title="Ligado a um barbeiro (opcional)">
+        <Chips value={barberId} onChange={setBarberId}
+               options={[{ value: null, label: 'Nenhum' }, ...(barbers.data || []).map((b) => ({ value: b.id, label: b.name }))]} />
+      </Section>
+      {isCopy ? (
+        <Muted style={{ marginBottom: 14 }}>
+          Conta gerada automaticamente a partir de um gasto recorrente. Para parar de repetir, edite o gasto original
+          (o do primeiro mês) e desligue “Repetir todo mês”.
+        </Muted>
+      ) : (
+        <Toggle label="Repetir todo mês" value={recurring} onValueChange={setRecurring}
+                hint="A conta é criada automaticamente em cada mês seguinte, no mesmo dia de vencimento." />
+      )}
+      <Field label="Observações" value={notes} onChangeText={setNotes} multiline />
+      <Button title="Salvar" onPress={save} disabled={!description || !amount || !due} />
+      {item && !item.paid_at ? (
+        <Button title="Marcar como pago hoje" kind="ghost" icon="checkmark-done-outline" onPress={() => run(async () => {
+          await api.post(`/expenses/${item.id}/pay`, { payment_method: method });
+          navigation.goBack();
+        })} />
+      ) : null}
+      {item ? (
+        <Button title="Excluir" kind="danger" onPress={() => confirm('Excluir gasto?',
+          item.recurring ? 'As contas já geradas nos meses seguintes continuam. Para parar de gerar, desligue “Repetir todo mês”.' : '',
+          () => run(async () => { await api.del(`/expenses/${item.id}`); navigation.goBack(); }), 'Excluir', true)} />
+      ) : null}
+    </Screen>
+  );
+}
+
+// ---------------------------------------------------------------- regras de um barbeiro (Mais > Barbeiros)
+
+export function BarberCommissionRules({ barberId, navigation }) {
+  const list = useLoad(() => api.get('/commission-rules', { barber_id: barberId }), [barberId]);
+  const today = todayISO();
+  return (
+    <Section title="Comissões">
+      <Muted style={{ marginBottom: 8 }}>Quanto este barbeiro repassa do que fatura, para a barbearia ou para um padrinho.</Muted>
+      {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
+      {list.data && !list.data.length ? <Muted style={{ marginBottom: 8 }}>Nenhuma regra: fica com 100% do que fatura.</Muted> : null}
+      {(list.data || []).map((x) => {
+        const ended = x.valid_to && x.valid_to < today;
+        return (
+          <Card key={x.id} onPress={() => navigation.navigate('CommissionRuleEdit', { item: x })} style={ended && { opacity: 0.5 }}>
+            <View style={s.row}>
+              <Text style={[s.body, { flex: 1 }]}>Para {x.beneficiary_name}</Text>
+              <Text style={[s.body, { fontWeight: '700' }]}>{pct(x.percentage)}</Text>
+            </View>
+            <Muted>{x.service_name || 'Todos os serviços'} · desde {brDate(x.valid_from)}
+              {x.valid_to ? ` até ${brDate(x.valid_to)}` : ''}{ended ? ' · encerrada' : ''}</Muted>
+          </Card>
+        );
+      })}
+      <Button title="Nova regra de comissão" kind="ghost" icon="add" onPress={() => navigation.navigate('CommissionRuleEdit', { barberId })} />
+    </Section>
+  );
+}
 
 // ---------------------------------------------------------------- repasses do período
 
@@ -187,7 +537,7 @@ export function CommissionRuleEditScreen({ navigation, route }) {
   const item = route.params?.item;
   const barbers = useLoad(() => api.get('/barbers'), []);
   const services = useLoad(() => api.get('/services'), []);
-  const [barberId, setBarberId] = useState(item?.barber_id ?? null);
+  const [barberId, setBarberId] = useState(item?.barber_id ?? route.params?.barberId ?? null);
   // 'shop' ou id do barbeiro beneficiário
   const [beneficiary, setBeneficiary] = useState(item ? (item.beneficiary_barber_id ?? 'shop') : 'shop');
   const [percentage, setPercentage] = useState(item ? String(item.percentage).replace('.', ',') : '');

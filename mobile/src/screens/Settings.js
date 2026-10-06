@@ -14,7 +14,6 @@ export function MoreScreen({ navigation, onLogout, shopName }) {
     ['Blocks', 'lock-closed-outline', 'Bloqueios de agenda'],
     ['Reviews', 'star-outline', 'Avaliações'],
     ['Reports', 'bar-chart-outline', 'Relatórios'],
-    ['Commissions', 'wallet-outline', 'Comissões e repasses'],
     ['Settings', 'settings-outline', 'Configurações do bot e Pix'],
     ['WhatsApp', 'logo-whatsapp', 'Conexão do WhatsApp'],
   ];

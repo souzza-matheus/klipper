@@ -171,9 +171,14 @@ class AppointmentIn(BaseModel):
     notes: str = ""
 
 
+PAY_METHOD = "^(pix|dinheiro|debito|credito)$"
+
+
 class AppointmentPatch(BaseModel):
     status: str | None = Field(None, pattern="^(scheduled|confirmed|completed|cancelled|no_show)$")
     notes: str | None = None
+    payment_method: str | None = Field(None, pattern=PAY_METHOD)
+    price: Decimal | None = Field(None, ge=0, decimal_places=2)  # valor final cobrado (desconto ou acréscimo)
     notify_customer: bool = True
 
 
@@ -189,6 +194,7 @@ class AppointmentOut(ORM):
     end: datetime
     status: str
     payment_status: str
+    payment_method: str | None = None
     price: Decimal
     notes: str
     created_via: str
@@ -326,6 +332,120 @@ class SettlementOut(ORM):
     amount: Decimal
     paid_at: datetime
     notes: str
+
+
+# ---- agenda do mês
+class MonthDayOut(BaseModel):
+    date: date
+    total: int              # atendimentos não cancelados
+    cancelled: int
+    revenue_expected: Decimal
+    capacity: float         # quantos atendimentos cabem no dia (expediente livre / duração média)
+    occupancy: float        # 0 a 1
+    working: bool           # algum barbeiro tem expediente neste dia da semana
+    has_block: bool
+
+
+class MonthOut(BaseModel):
+    year: int
+    month: int
+    days: list[MonthDayOut]
+
+
+# ---- gastos
+EXPENSE_CATEGORY = "^(aluguel|energia|agua|internet|produtos|equipamentos|manutencao|marketing|salarios|impostos|outros)$"
+
+
+class ExpenseIn(BaseModel):
+    description: str = Field(min_length=1, max_length=120)
+    category: str = Field("outros", pattern=EXPENSE_CATEGORY)
+    amount: Decimal = Field(gt=0, decimal_places=2)
+    due_date: date
+    paid_at: date | None = None
+    payment_method: str | None = Field(None, pattern=PAY_METHOD)
+    barber_id: int | None = None
+    recurring: bool = False
+    notes: str = ""
+
+
+class ExpensePayIn(BaseModel):
+    paid_at: date | None = None  # padrão: hoje
+    payment_method: str | None = Field(None, pattern=PAY_METHOD)
+
+
+class ExpenseOut(BaseModel):
+    id: int
+    description: str
+    category: str
+    category_label: str
+    amount: Decimal
+    due_date: date
+    paid_at: date | None
+    payment_method: str | None
+    barber_id: int | None
+    barber_name: str | None
+    recurring: bool
+    recurring_source_id: int | None
+    notes: str
+    overdue: bool
+
+
+# ---- relatórios financeiros
+class FinanceGroupOut(BaseModel):
+    id: int | None = None
+    name: str
+    appointments: int
+    revenue: Decimal
+
+
+class PaymentMethodGroupOut(BaseModel):
+    method: str
+    label: str
+    appointments: int
+    revenue: Decimal
+
+
+class ExpenseCategoryGroupOut(BaseModel):
+    category: str
+    label: str
+    paid: Decimal
+    open: Decimal
+
+
+class FinanceTotalsOut(BaseModel):
+    date_from: date
+    date_to: date
+    revenue: Decimal
+    expenses_paid: Decimal
+    profit: Decimal
+    avg_ticket: Decimal
+    appointments: int
+
+
+class FinanceChangeOut(BaseModel):
+    """Variação em % contra o período anterior de mesmo tamanho (nulo quando o anterior é zero)."""
+    revenue: Decimal | None
+    expenses_paid: Decimal | None
+    profit: Decimal | None
+    avg_ticket: Decimal | None
+    appointments: Decimal | None
+
+
+class FinanceSummaryOut(FinanceTotalsOut):
+    expenses_open: Decimal
+    by_barber: list[FinanceGroupOut]
+    by_service: list[FinanceGroupOut]
+    by_payment_method: list[PaymentMethodGroupOut]
+    expenses_by_category: list[ExpenseCategoryGroupOut]
+    previous: FinanceTotalsOut
+    change: FinanceChangeOut
+
+
+class FinanceDayOut(BaseModel):
+    date: date
+    revenue: Decimal
+    expenses: Decimal
+    appointments: int
 
 
 CustomerDetail.model_rebuild()

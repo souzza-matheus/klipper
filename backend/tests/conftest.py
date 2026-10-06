@@ -15,7 +15,7 @@ def db():
     from app.db import Base, SessionLocal, engine
     from app.seed import seed
     Base.metadata.drop_all(engine)
-    seed()
+    seed(demo_finance=False)
     s = SessionLocal()
     yield s
     s.close()

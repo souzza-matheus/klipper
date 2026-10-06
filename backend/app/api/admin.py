@@ -230,7 +230,8 @@ def delete_block(bid: int, shop: Shop = Depends(shop_of), db: Session = Depends(
 
 def appt_out(a: Appointment) -> S.AppointmentOut:
     return S.AppointmentOut(
-        id=a.id, start=a.start, end=a.end, status=a.status, payment_status=a.payment_status, price=a.price,
+        id=a.id, start=a.start, end=a.end, status=a.status, payment_status=a.payment_status,
+        payment_method=a.payment_method, price=a.price,
         notes=a.notes, created_via=a.created_via, customer_id=a.customer_id, customer_name=a.customer.name,
         customer_phone=a.customer.phone, barber_id=a.barber_id, barber_name=a.barber.name,
         service_id=a.service_id, service_name=a.service.name, rating=a.review.rating if a.review else None,
@@ -248,6 +249,15 @@ def list_appointments(date_from: date, date_to: date | None = None, barber_id: i
     if not include_cancelled:
         q = q.where(Appointment.status != ApptStatus.CANCELLED)
     return [appt_out(a) for a in db.scalars(q.order_by(Appointment.start))]
+
+
+@router.get("/appointments/month", response_model=S.MonthOut, tags=["appointments"])
+def appointments_month(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12),
+                       barber_id: int | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+    """Visão do mês para o calendário: por dia, total, cancelados, faturamento previsto, ocupação e bloqueio."""
+    if barber_id:
+        _own(db, Barber, barber_id, shop)
+    return S.MonthOut(year=year, month=month, days=sch.month_overview(db, shop, year, month, barber_id))
 
 
 @router.get("/availability", tags=["appointments"])
@@ -284,7 +294,13 @@ def patch_appt(aid: int, body: S.AppointmentPatch, shop: Shop = Depends(shop_of)
     a = _own(db, Appointment, aid, shop)
     if body.notes is not None:
         a.notes = body.notes
-    if body.status and body.status != a.status:
+    if body.price is not None:
+        a.price = body.price
+    if body.payment_method is not None:
+        a.payment_method = body.payment_method
+    if body.status == ApptStatus.COMPLETED:
+        sch.complete_appointment(a, body.payment_method)
+    elif body.status and body.status != a.status:
         if body.status == ApptStatus.CANCELLED:
             sch.cancel_appointment(db, a)
             if body.notify_customer:

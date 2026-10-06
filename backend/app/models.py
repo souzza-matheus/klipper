@@ -20,6 +20,16 @@ class ApptStatus:
     ACTIVE = (SCHEDULED, CONFIRMED)
 
 
+class PayMethod:
+    """Forma de pagamento do atendimento (preenchida ao concluir)."""
+    PIX = "pix"
+    CASH = "dinheiro"
+    DEBIT = "debito"
+    CREDIT = "credito"
+    ALL = (PIX, CASH, DEBIT, CREDIT)
+    LABELS = {PIX: "Pix", CASH: "Dinheiro", DEBIT: "Débito", CREDIT: "Crédito"}
+
+
 class PayStatus:
     NONE = "none"        # vai pagar na barbearia
     PENDING = "pending"  # Pix gerado, aguardando confirmação do dono
@@ -171,6 +181,7 @@ class Appointment(Base):
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     status: Mapped[str] = mapped_column(String(20), default=ApptStatus.SCHEDULED, index=True)
     payment_status: Mapped[str] = mapped_column(String(20), default=PayStatus.NONE)
+    payment_method: Mapped[str | None] = mapped_column(String(10), nullable=True)  # PayMethod; nulo = não informado
     created_via: Mapped[str] = mapped_column(String(10), default="bot")  # bot | app
     notes: Mapped[str] = mapped_column(Text, default="")
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -287,3 +298,35 @@ class CommissionSettlement(Base):
 
     payer: Mapped[Barber] = relationship(foreign_keys=[payer_barber_id])
     beneficiary_barber: Mapped[Barber | None] = relationship(foreign_keys=[beneficiary_barber_id])
+
+
+class ExpenseCategory:
+    LABELS = {
+        "aluguel": "Aluguel", "energia": "Energia", "agua": "Água", "internet": "Internet",
+        "produtos": "Produtos", "equipamentos": "Equipamentos", "manutencao": "Manutenção",
+        "marketing": "Marketing", "salarios": "Salários", "impostos": "Impostos", "outros": "Outros",
+    }
+    ALL = tuple(LABELS)
+
+
+class Expense(Base):
+    """Gasto da barbearia. paid_at nulo = em aberto. Um gasto com recurring=True é o original de uma conta mensal:
+    as cópias dos meses seguintes apontam para ele em recurring_source_id."""
+    __tablename__ = "expenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    description: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(String(20), default="outros", index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    due_date: Mapped[date] = mapped_column(Date, index=True)
+    paid_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    payment_method: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id", ondelete="SET NULL"), nullable=True)
+    recurring: Mapped[bool] = mapped_column(Boolean, default=False)
+    recurring_source_id: Mapped[int | None] = mapped_column(
+        ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True, index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    barber: Mapped[Barber | None] = relationship()
