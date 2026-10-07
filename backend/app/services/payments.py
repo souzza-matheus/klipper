@@ -12,13 +12,31 @@ from .pix import build_brcode, new_txid
 
 log = logging.getLogger("payments")
 
-# Comprovante: só imagem ou PDF, até 5 MB
+# Comprovante: só JPEG, PNG, WebP, GIF ou PDF, até 5 MB. O tipo vem dos bytes do arquivo, não do que foi
+# declarado (um SVG ou HTML com o tipo "image/png" é recusado).
 MAX_RECEIPT_BYTES = 5 * 1024 * 1024
-RECEIPT_TYPES = ("image/", "application/pdf")
+
+
+def sniff_receipt(data: bytes) -> str | None:
+    """Tipo real do arquivo pelos primeiros bytes, ou None se não for um formato aceito."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if data.startswith(b"%PDF-"):
+        return "application/pdf"
+    return None
 
 
 def pix_ready(shop: Shop) -> bool:
-    return bool(shop.pix_enabled and shop.pix_key and shop.pix_receiver_name and shop.pix_city)
+    """Pix ligado e com chave válida (uma chave inválida nunca vira código Pix quebrado para o cliente)."""
+    from .pix import valid_pix_key
+    return bool(shop.pix_enabled and shop.pix_key and shop.pix_receiver_name and shop.pix_city
+                and valid_pix_key(shop.pix_key, shop.pix_key_type))
 
 
 def get_or_create_pix(db: Session, shop: Shop, appt: Appointment) -> Payment:
@@ -87,12 +105,14 @@ def save_receipt(db: Session, shop: Shop, phone: str, media: dict) -> int:
     except EvolutionError:
         log.exception("Não foi possível baixar o comprovante de %s", phone)
         return 0
-    if not mime.startswith(RECEIPT_TYPES):
-        log.info("Anexo de %s ignorado: tipo %s não é comprovante", phone, mime)
-        return 0
     if len(data) > MAX_RECEIPT_BYTES:
-        log.warning("Comprovante de %s ignorado: %d bytes (limite %d)", phone, len(data), MAX_RECEIPT_BYTES)
+        log.warning("Comprovante de ...%s ignorado: %d bytes (limite %d)", phone[-4:], len(data), MAX_RECEIPT_BYTES)
         return 0
+    real = sniff_receipt(data)
+    if real is None or not mime.startswith(("image/", "application/pdf")):
+        log.info("Anexo de ...%s ignorado: não é imagem nem PDF (declarado: %s)", phone[-4:], mime[:40])
+        return 0
+    mime = real
     now = now_local()
     for pay in pays:
         pay.receipt_mime, pay.receipt_data, pay.receipt_at = mime[:60], data, now

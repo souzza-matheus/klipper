@@ -11,6 +11,7 @@ from ..config import settings
 from ..db import SessionLocal, get_db
 from ..jobs import run_all
 from ..models import Shop
+from ..security import same_secret
 from ..services.payments import save_receipt
 from ..services.whatsapp import EvolutionError, media_base64, normalize_phone, parse_webhook, send_text
 
@@ -22,10 +23,15 @@ log = logging.getLogger("webhook")
 @router.post("/webhook/evolution/{event}", tags=["webhook"])
 async def evolution_webhook(request: Request, background: BackgroundTasks, secret: str = "", event: str = "",
                             db: Session = Depends(get_db)):
-    if secret != settings.webhook_secret:
+    # Secret no cabeçalho X-Webhook-Secret (preferido) ou na query ?secret= (instâncias antigas), em tempo constante
+    if not same_secret(request.headers.get("x-webhook-secret") or secret, settings.webhook_secret):
         raise HTTPException(403, "secret inválido")
-    payload = await request.json()
-    msg = parse_webhook(payload)
+    try:
+        payload = await request.json()
+        msg = parse_webhook(payload) if isinstance(payload, dict) else None
+    except Exception:  # JSON inválido ou com tipos inesperados: ignora, nunca derruba
+        log.warning("Webhook com payload inválido ignorado")
+        return {"ignored": True}
     if not msg or not msg["phone"]:
         return {"ignored": True}
     if msg.get("audio"):

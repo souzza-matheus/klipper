@@ -197,12 +197,12 @@ def test_receipt_from_whatsapp_is_stored_and_served(env, api, monkeypatch):
     assert r.status_code == 200 and calls == ["3EB0IMG"]
     db.expire_all()
     p = db.get(Payment, pay.id)
-    assert p.receipt_mime == "image/jpeg" and p.receipt_at is not None
+    assert p.receipt_mime == "image/png" and p.receipt_at is not None  # tipo real (bytes PNG), não o declarado
     assert p.customer_reported_at is not None  # a imagem sem legenda também conta como "paguei"
     listed = api.get("/api/payments", params={"status": "pending"}).json()[0]
-    assert listed["has_receipt"] is True and listed["receipt_mime"] == "image/jpeg"
+    assert listed["has_receipt"] is True and listed["receipt_mime"] == "image/png"
     got = api.get(f"/api/payments/{pay.id}/receipt")
-    assert got.status_code == 200 and got.content == PNG and got.headers["content-type"] == "image/jpeg"
+    assert got.status_code == 200 and got.content == PNG and got.headers["content-type"] == "image/png"
     # Rota autenticada
     assert TestClient(api.app).get(f"/api/payments/{pay.id}/receipt").status_code == 401
 

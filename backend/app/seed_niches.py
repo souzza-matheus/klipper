@@ -10,7 +10,7 @@ profissionais, para nenhum alerta sair para números reais.
 """
 import argparse
 import random
-from datetime import datetime, time, timedelta
+from datetime import time
 from decimal import Decimal
 
 from sqlalchemy import func, select

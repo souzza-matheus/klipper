@@ -357,8 +357,20 @@ def _do_book(ctx: Ctx) -> None:
         ctx.reset()
 
 
+def _mine(ctx: Ctx, appt_id) -> Appointment | None:
+    """Agendamento guardado no estado da conversa, só se for deste cliente e desta barbearia."""
+    appt = ctx.db.get(Appointment, appt_id or 0)
+    if appt and appt.shop_id == ctx.shop.id and appt.customer.phone == ctx.phone:
+        return appt
+    return None
+
+
 def st_book_pay(ctx: Ctx) -> None:
-    appt = ctx.db.get(Appointment, ctx.get("appt_id"))
+    appt = _mine(ctx, ctx.get("appt_id"))
+    if appt is None:
+        ctx.reset()
+        st_menu(ctx)
+        return
     if ctx.low == "1":
         send_pix(ctx, appt)
         ctx.reset()
@@ -412,7 +424,8 @@ def st_my_pick(ctx: Ctx) -> None:
 
 def _my_appt(ctx: Ctx) -> Appointment | None:
     appt = ctx.db.get(Appointment, ctx.get("appt_id") or 0)
-    if appt and appt.customer.phone == ctx.phone and appt.status in ApptStatus.OCCUPYING:
+    if appt and appt.shop_id == ctx.shop.id and appt.customer.phone == ctx.phone \
+            and appt.status in ApptStatus.OCCUPYING:
         return appt
     return None
 
@@ -546,7 +559,12 @@ def st_pay_pick(ctx: Ctx) -> None:
     if i is None:
         ctx.say(f"Responda com um número de 1 a {len(ids)}, ou *menu* para voltar.")
         return
-    send_pix(ctx, ctx.db.get(Appointment, ids[i]))
+    appt = _mine(ctx, ids[i])
+    if appt is None:
+        ctx.reset()
+        show_menu(ctx)
+        return
+    send_pix(ctx, appt)
     ctx.reset()
 
 
@@ -606,7 +624,7 @@ def st_reminder(ctx: Ctx) -> None:
 
 
 def st_survey_rating(ctx: Ctx) -> None:
-    appt = ctx.db.get(Appointment, ctx.get("appt_id") or 0)
+    appt = _mine(ctx, ctx.get("appt_id"))
     i = pick(ctx.text, 5)
     if appt is None:
         ctx.reset()
@@ -634,6 +652,8 @@ def st_survey_rating(ctx: Ctx) -> None:
 
 def st_survey_comment(ctx: Ctx) -> None:
     review = ctx.db.get(Review, ctx.get("review_id") or 0)
+    if review and _mine(ctx, review.appointment_id) is None:
+        review = None
     if review and ctx.low not in ("pular", "nao", "n", "nada", "-"):
         review.comment = ctx.text.strip()[:1000]
     ctx.say("Obrigado pelo retorno! 💈 Até a próxima.")

@@ -61,7 +61,7 @@ def _apply_rule(db: Session, shop: Shop, r: CommissionRule, body: S.CommissionRu
 
 
 @router.get("/commission-rules", response_model=list[S.CommissionRuleOut], tags=["finance"])
-def list_rules(barber_id: int | None = None, active_on: date | None = None,
+def list_rules(barber_id: S.QId | None = None, active_on: date | None = None,
                shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     q = select(CommissionRule).where(CommissionRule.shop_id == shop.id)
     if barber_id:
@@ -125,7 +125,7 @@ def settlement_out(st: CommissionSettlement, shop: Shop) -> S.SettlementOut:
 
 
 @router.get("/finance/settlements", response_model=list[S.SettlementOut], tags=["finance"])
-def list_settlements(barber_id: int | None = None, date_from: date | None = None, date_to: date | None = None,
+def list_settlements(barber_id: S.QId | None = None, date_from: date | None = None, date_to: date | None = None,
                      shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     q = select(CommissionSettlement).where(CommissionSettlement.shop_id == shop.id)
     if barber_id:
@@ -195,7 +195,7 @@ def _parse_month(month: str) -> tuple[int, int]:
 @router.get("/expenses", response_model=list[S.ExpenseOut], tags=["expenses"])
 def list_expenses(month: str | None = Query(None, description="AAAA-MM; gera as contas recorrentes do mês"),
                   category: str | None = None, status: str | None = Query(None, pattern="^(paid|open|overdue)$"),
-                  barber_id: int | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                  barber_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     today = now_local().date()
     q = select(Expense).where(Expense.shop_id == shop.id)
     if month:

@@ -94,7 +94,7 @@ def conflict_out(shop: Shop, c: CustomerConflict, customer_id: int | None = None
 
 
 @router.get("/customer-conflicts", response_model=list[S.ConflictOut], tags=["conflicts"])
-def list_conflicts(customer_id: int | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_conflicts(customer_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     q = select(CustomerConflict).where(CustomerConflict.shop_id == shop.id)
     if customer_id:
         _own(db, Customer, customer_id, shop)
@@ -103,7 +103,7 @@ def list_conflicts(customer_id: int | None = None, shop: Shop = Depends(shop_of)
 
 
 @router.get("/customer-conflicts/day", response_model=list[S.ConflictHitOut], tags=["conflicts"])
-def conflicts_on_day(day: date, customer_id: int | None = None, customer_phone: str = "",
+def conflicts_on_day(day: date, customer_id: S.QId | None = None, customer_phone: str = "",
                      shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     """Clientes em conflito com este cliente que têm horário no dia (aviso na tela de agendamento)."""
     if customer_id:

@@ -10,6 +10,9 @@ from decimal import Decimal
 
 
 def _field(tag: str, value: str) -> str:
+    """Campo EMV: tag + tamanho em 2 dígitos + valor. O valor precisa ser ASCII e ter até 99 caracteres."""
+    if len(value) > 99 or not value.isascii():
+        raise ValueError(f"Campo {tag} do Pix inválido")
     return f"{tag}{len(value):02d}{value}"
 
 
@@ -41,6 +44,25 @@ def normalize_key(key: str, key_type: str) -> str:
     if key_type == "email":
         return key.lower()
     return key  # chave aleatória (EVP)
+
+
+# Formatos de chave aceitos pelo DICT (Banco Central)
+_KEY_RULES = {
+    "cpf": re.compile(r"\d{11}"),
+    "cnpj": re.compile(r"\d{14}"),
+    "phone": re.compile(r"\+55\d{10,11}"),
+    "email": re.compile(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,63}\.[A-Za-z]{2,24}"),
+    "random": re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
+}
+
+
+def valid_pix_key(key: str, key_type: str) -> bool:
+    """A chave normalizada tem o formato do tipo e cabe no BR Code (e-mail até 77 caracteres)."""
+    rule = _KEY_RULES.get(key_type)
+    if not rule or not key:
+        return False
+    k = normalize_key(key, key_type)
+    return bool(rule.fullmatch(k)) and len(k) <= 77
 
 
 def new_txid() -> str:

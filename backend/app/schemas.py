@@ -1,7 +1,23 @@
 from datetime import date, datetime, time
 from decimal import Decimal
 
+from typing import Annotated
+
+from fastapi import Query
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+# Limites de entrada: nenhum valor pode passar do que o banco aceita (sem isso o Postgres devolve erro)
+Id = Annotated[int, Field(gt=0, lt=2**31)]
+# Ids em query string (?barber_id=): mesma faixa, e um valor fora dela é 422 (não erro do banco)
+QId = Annotated[int, Query(gt=0, lt=2**31)]
+Money = Annotated[Decimal, Field(ge=0, le=Decimal("99999999.99"), decimal_places=2)]
+PositiveMoney = Annotated[Decimal, Field(gt=0, le=Decimal("99999999.99"), decimal_places=2)]
+Phone = Annotated[str, Field(max_length=30)]
+Note = Annotated[str, Field(max_length=2000)]
+
+
+def Text(n: int):  # noqa: N802 - tipo: texto com tamanho máximo
+    return Annotated[str, Field(max_length=n)]
 
 
 class ORM(BaseModel):
@@ -11,16 +27,16 @@ class ORM(BaseModel):
 # ---- auth
 class LoginIn(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=128)
 
 
 class RegisterIn(BaseModel):
-    setup_token: str
-    shop_name: str
-    owner_name: str
+    setup_token: str = Field(max_length=200)
+    shop_name: str = Field(min_length=1, max_length=120)
+    owner_name: str = Field(min_length=1, max_length=120)
     email: EmailStr
-    password: str = Field(min_length=6)
-    owner_phone: str = ""
+    password: str = Field(min_length=8, max_length=128)
+    owner_phone: Phone = ""
 
 
 NICHE = "^(barbershop|beauty|petshop|clinic|fitness)$"
@@ -38,13 +54,15 @@ class TokenOut(BaseModel):
 
 # ---- shop
 class ShopIn(BaseModel):
-    name: str | None = None
-    address: str | None = None
-    phone: str | None = None
-    owner_phone: str | None = None
-    instagram: str | None = None
+    """Só o que o dono pode mudar. evolution_instance, id e os controles internos da IA não estão aqui (e campos
+    desconhecidos são ignorados)."""
+    name: Text(120) | None = Field(None, min_length=1)
+    address: Text(255) | None = None
+    phone: Text(20) | None = None
+    owner_phone: Phone | None = None
+    instagram: Text(80) | None = None
     pix_enabled: bool | None = None
-    pix_key: str | None = None
+    pix_key: Text(100) | None = None
     pix_key_type: str | None = Field(None, pattern="^(cpf|cnpj|email|phone|random)$")
     pix_receiver_name: str | None = Field(None, max_length=25)
     pix_city: str | None = Field(None, max_length=15)
@@ -57,7 +75,7 @@ class ShopIn(BaseModel):
     survey_enabled: bool | None = None
     survey_delay_minutes: int | None = Field(None, ge=0, le=1440)
     daily_summary_hour: int | None = Field(None, ge=0, le=23)
-    welcome_text: str | None = None
+    welcome_text: Note | None = None
     human_pause_hours: int | None = Field(None, ge=1, le=48)
     approval_expire_hours: int | None = Field(None, ge=1, le=72)
     conflict_default_gap_minutes: int | None = Field(None, ge=0, le=1440)
@@ -97,11 +115,11 @@ class ShopOut(ORM):
 
 # ---- services
 class ServiceIn(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=80)
     duration_minutes: int = Field(ge=5, le=480)
-    price: Decimal = Field(ge=0)
+    price: Money
     active: bool = True
-    sort_order: int = 0
+    sort_order: int = Field(0, ge=-1000, le=1000)
 
 
 class ServiceOut(ORM):
@@ -121,12 +139,12 @@ class WorkingHourIO(ORM):
 
 
 class BarberIn(BaseModel):
-    name: str
-    phone: str = ""
-    bio: str = ""
+    name: str = Field(min_length=1, max_length=80)
+    phone: Phone = ""
+    bio: Text(200) = ""
     active: bool = True
-    service_ids: list[int] = []
-    working_hours: list[WorkingHourIO] = []
+    service_ids: list[Id] = Field([], max_length=200)
+    working_hours: list[WorkingHourIO] = Field([], max_length=50)
 
 
 class BarberOut(ORM):
@@ -141,10 +159,10 @@ class BarberOut(ORM):
 
 # ---- blocks
 class BlockIn(BaseModel):
-    barber_id: int | None = None
+    barber_id: Id | None = None
     start: datetime
     end: datetime
-    reason: str = ""
+    reason: Text(120) = ""
 
 
 class BlockOut(ORM):
@@ -157,8 +175,8 @@ class BlockOut(ORM):
 
 # ---- customers
 class CustomerIn(BaseModel):
-    name: str | None = None
-    notes: str | None = None
+    name: Text(120) | None = None
+    notes: Note | None = None
 
 
 ACCESS_STATUS = "^(normal|approval|blocked)$"
@@ -197,8 +215,8 @@ class CustomerAccessOut(BaseModel):
 
 # ---- clientes que não podem se encontrar
 class ConflictIn(BaseModel):
-    customer_id: int
-    other_customer_id: int
+    customer_id: Id
+    other_customer_id: Id
     min_gap_minutes: int | None = Field(None, ge=0, le=1440)  # nulo = padrão da barbearia
     same_day_block: bool = False
     conflict_action: str = Field("block", pattern=CONFLICT_ACTION)
@@ -246,12 +264,12 @@ class ConflictHitOut(BaseModel):
 
 # ---- appointments
 class AppointmentIn(BaseModel):
-    customer_phone: str
-    customer_name: str = ""
-    barber_id: int
-    service_id: int
+    customer_phone: Phone
+    customer_name: Text(120) = ""
+    barber_id: Id
+    service_id: Id
     start: datetime
-    notes: str = ""
+    notes: Note = ""
     force: bool = False  # agenda mesmo com conflito entre clientes
 
 
@@ -260,15 +278,15 @@ PAY_METHOD = "^(pix|dinheiro|debito|credito)$"
 
 class AppointmentPatch(BaseModel):
     status: str | None = Field(None, pattern="^(scheduled|confirmed|completed|cancelled|no_show)$")
-    notes: str | None = None
+    notes: Note | None = None
     payment_method: str | None = Field(None, pattern=PAY_METHOD)
-    price: Decimal | None = Field(None, ge=0, decimal_places=2)  # valor final cobrado (desconto ou acréscimo)
+    price: Money | None = None  # valor final cobrado (desconto ou acréscimo)
     notify_customer: bool = True
 
 
 class RescheduleIn(BaseModel):
     start: datetime
-    barber_id: int | None = None
+    barber_id: Id | None = None
     notify_customer: bool = True
     force: bool = False
 
@@ -345,14 +363,14 @@ class ReportOut(BaseModel):
 
 # ---- comissões e repasses
 class CommissionRuleIn(BaseModel):
-    barber_id: int
+    barber_id: Id
     beneficiary_type: str = Field(pattern="^(shop|barber)$")
-    beneficiary_barber_id: int | None = None
+    beneficiary_barber_id: Id | None = None
     percentage: Decimal = Field(gt=0, le=100, decimal_places=2)
-    service_id: int | None = None
+    service_id: Id | None = None
     valid_from: date
     valid_to: date | None = None
-    notes: str = ""
+    notes: Note = ""
 
 
 class CommissionRuleOut(ORM):
@@ -404,14 +422,14 @@ class CommissionReportOut(BaseModel):
 
 
 class SettlementIn(BaseModel):
-    payer_barber_id: int
+    payer_barber_id: Id
     beneficiary_type: str = Field(pattern="^(shop|barber)$")
-    beneficiary_barber_id: int | None = None
+    beneficiary_barber_id: Id | None = None
     period_start: date
     period_end: date
-    amount: Decimal = Field(gt=0, decimal_places=2)
+    amount: PositiveMoney
     paid_at: datetime | None = None
-    notes: str = ""
+    notes: Note = ""
     notify: bool = True
 
 
@@ -454,13 +472,13 @@ EXPENSE_CATEGORY = "^(aluguel|energia|agua|internet|produtos|equipamentos|manute
 class ExpenseIn(BaseModel):
     description: str = Field(min_length=1, max_length=120)
     category: str = Field("outros", pattern=EXPENSE_CATEGORY)
-    amount: Decimal = Field(gt=0, decimal_places=2)
+    amount: PositiveMoney
     due_date: date
     paid_at: date | None = None
     payment_method: str | None = Field(None, pattern=PAY_METHOD)
-    barber_id: int | None = None
+    barber_id: Id | None = None
     recurring: bool = False
-    notes: str = ""
+    notes: Note = ""
 
 
 class ExpensePayIn(BaseModel):
@@ -548,7 +566,7 @@ CustomerDetail.model_rebuild()
 
 # ---- whatsapp
 class PairingCodeIn(BaseModel):
-    number: str
+    number: Phone
 
 
 # ---- agenda do dia

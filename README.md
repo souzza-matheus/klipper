@@ -55,6 +55,7 @@ O motivo é interno (só o dono vê, no app e na busca de cliente do bot). Nenhu
 ```bash
 cd backend
 pip install -r requirements.txt
+echo "DEV_MODE=true" >> .env             # desenvolvimento (sem isso a API roda como produção)
 alembic upgrade head                     # cria/atualiza as tabelas
 python -m app.seed                       # cria a "Barbearia Demo"
 uvicorn app.main:app --reload

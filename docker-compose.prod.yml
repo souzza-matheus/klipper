@@ -1,0 +1,22 @@
+# Produção: use junto com o docker-compose.yml
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait
+#
+# Diferenças: nada publicado fora do host além do backend, e o backend só em 127.0.0.1 (o Caddy, na própria VPS,
+# faz o HTTPS na frente). Postgres e Evolution ficam sem porta publicada (só na rede interna do Docker); o Redis
+# já não publica. DEV_MODE=false liga as travas de produção (a API não sobe com segredos de exemplo).
+services:
+  db:
+    ports: !reset []
+
+  evolution:
+    # Para usar o manager da Evolution: túnel SSH para a rede do Docker ou suba temporariamente com a porta em
+    # 127.0.0.1 (ver README).
+    ports: !reset []
+
+  backend:
+    ports: !override
+      - "127.0.0.1:${BACKEND_PORT:-8002}:8000"
+    environment:
+      DEV_MODE: "false"
+      # O Caddy fala com o backend pela ponte do Docker: confie no X-Forwarded-For só vindo dela
+      FORWARDED_ALLOW_IPS: "${FORWARDED_ALLOW_IPS:-172.16.0.0/12}"

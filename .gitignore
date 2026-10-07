@@ -1,2 +1,5 @@
 .env
 qrcode.png
+CLAUDE-SECURITY-*/
+backend/.venv/
+*.log

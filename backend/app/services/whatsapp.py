@@ -140,7 +140,9 @@ def create_instance(shop: Shop, number: str | None = None) -> dict:
         "qrcode": True,
         "webhook": {
             "enabled": True,
-            "url": f"{settings.public_url}/webhook/evolution?secret={settings.webhook_secret}",
+            # Secret no cabeçalho, não na URL: a URL aparece em logs (da Evolution, de proxies)
+            "url": f"{settings.public_url}/webhook/evolution",
+            "headers": {"x-webhook-secret": settings.webhook_secret},
             "byEvents": False,
             "base64": False,
             "events": ["MESSAGES_UPSERT"],

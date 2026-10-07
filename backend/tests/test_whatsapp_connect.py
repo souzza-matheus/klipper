@@ -76,7 +76,10 @@ def test_instancia_inexistente_e_criada_com_webhook(evo):
     assert r == {"state": "connecting", "qrcode": QR, "pairing_code": None, "message": None}
     body = fake.called("POST /instance/create")[0][3]
     assert body["instanceName"] == "barbearia-demo" and body["qrcode"] is True
-    assert body["webhook"]["enabled"] and body["webhook"]["url"].endswith(f"/webhook/evolution?secret={settings.webhook_secret}")
+    assert body["webhook"]["enabled"] and body["webhook"]["url"].endswith("/webhook/evolution")
+    # O secret vai no cabeçalho, nunca na URL (que aparece em logs)
+    assert body["webhook"]["headers"] == {"x-webhook-secret": settings.webhook_secret}
+    assert settings.webhook_secret not in body["webhook"]["url"]
 
 
 def test_criada_sem_qr_espera_o_connect(evo):

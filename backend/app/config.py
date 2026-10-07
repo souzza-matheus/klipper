@@ -22,8 +22,14 @@ class Settings(BaseSettings):
     setup_token: str = "troque-este-token-de-setup"
 
     timezone: str = "America/Sao_Paulo"
-    dev_mode: bool = True
+    # Seguro por padrão: sem DEV_MODE=true, a API roda como produção (sem /dev/*, sem /docs e sem subir com
+    # segredos de exemplo)
+    dev_mode: bool = False
     run_scheduler: bool = True
+    # Origens liberadas no CORS, separadas por vírgula (o app nativo não precisa de CORS). Vazio: "*" só com
+    # DEV_MODE=true; em produção, nenhuma origem. "*" com DEV_MODE=false impede a API de subir.
+    cors_origins: str = ""
+    max_body_bytes: int = 2_000_000  # requisições maiores recebem 413
 
     # Agente de IA na conversa do cliente (backend/app/ai). Sem chave, a IA fica desligada e vale só o menu.
     ai_provider: str = "gemini"

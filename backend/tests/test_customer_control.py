@@ -353,7 +353,7 @@ def test_conflicts_crud(env, api):
     # Outra barbearia não enxerga nem usa clientes desta
     other = TestClient(api.app).post("/api/auth/register", json={
         "setup_token": "troque-este-token-de-setup", "shop_name": "Outra", "owner_name": "Zé",
-        "email": "ze@outra.com", "password": "123456"}).json()["token"]
+        "email": "ze@outra.com", "password": "senha-forte-123"}).json()["token"]
     h = {"Authorization": f"Bearer {other}"}
     assert api.get("/api/customer-conflicts", params={"customer_id": client.id}, headers=h).status_code == 404
     assert api.post("/api/customer-conflicts", json=body, headers=h).status_code == 404

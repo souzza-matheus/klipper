@@ -3,12 +3,13 @@ import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, undefer
 
 from .. import schemas as S
-from ..auth import check_password, current_user, hash_password, make_token
+from ..auth import check_password_or_dummy, current_user, hash_password, make_token
+from ..security import login_limiter, same_secret
 from ..config import now_local, settings
 from ..db import get_db
 from ..models import (
@@ -20,6 +21,7 @@ from ..services import whatsapp as wa
 from ..services.approvals import approval_deadline
 from ..services.fmt import appt_summary, dt_label, money
 from ..services.payments import confirm_payment, reject_payment
+from ..services.pix import valid_pix_key
 
 router = APIRouter()
 
@@ -28,8 +30,19 @@ def shop_of(user: User = Depends(current_user)) -> Shop:
     return user.shop
 
 
+def _phone_or_422(raw: str, label: str = "Telefone") -> str:
+    """Telefone normalizado (só dígitos). Vazio é aceito; mais de 15 dígitos (limite internacional) não."""
+    phone = wa.normalize_phone(raw)
+    if len(phone) > 15:
+        raise HTTPException(422, f"{label} inválido.")
+    return phone
+
+
+MAX_ID = 2**31 - 1  # ids fora do inteiro do banco: "não encontrado" (e não erro do banco)
+
+
 def _own(db: Session, model, obj_id: int, shop: Shop):
-    obj = db.get(model, obj_id)
+    obj = db.get(model, obj_id) if 0 < obj_id <= MAX_ID else None
     if obj is None or obj.shop_id != shop.id:
         raise HTTPException(404, "Não encontrado")
     return obj
@@ -37,11 +50,26 @@ def _own(db: Session, model, obj_id: int, shop: Shop):
 
 # ---------------------------------------------------------------- auth
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "?"
+
+
+def _throttle(email: str, ip: str) -> None:
+    wait = login_limiter.retry_after(email, ip)
+    if wait:
+        raise HTTPException(429, f"Muitas tentativas. Tente de novo em {max(1, wait // 60)} min.",
+                            headers={"Retry-After": str(wait)})
+
+
 @router.post("/auth/login", response_model=S.TokenOut, tags=["auth"])
-def login(body: S.LoginIn, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.email == body.email.lower()))
-    if user is None or not check_password(body.password, user.password_hash):
-        raise HTTPException(401, "E-mail ou senha incorretos")
+def login(body: S.LoginIn, request: Request, db: Session = Depends(get_db)):
+    email, ip = body.email.lower(), _client_ip(request)
+    _throttle(email, ip)
+    user = db.scalar(select(User).where(User.email == email))
+    if not check_password_or_dummy(body.password, user.password_hash if user else None):
+        login_limiter.failed(email, ip)
+        raise HTTPException(401, "E-mail ou senha incorretos")  # mesma mensagem para e-mail ou senha errados
+    login_limiter.succeeded(email, ip)
     return _token_out(user)
 
 
@@ -52,9 +80,12 @@ def _token_out(user: User) -> S.TokenOut:
 
 
 @router.post("/auth/register", response_model=S.TokenOut, tags=["auth"])
-def register(body: S.RegisterIn, db: Session = Depends(get_db)):
+def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)):
     """Cadastra uma nova barbearia (feito por você na implantação, protegido pelo SETUP_TOKEN)."""
-    if body.setup_token != settings.setup_token:
+    ip = _client_ip(request)
+    _throttle("setup", ip)
+    if not same_secret(body.setup_token, settings.setup_token):
+        login_limiter.failed("setup", ip)
         raise HTTPException(403, "Token de setup inválido")
     if db.scalar(select(User).where(User.email == body.email.lower())):
         raise HTTPException(409, "E-mail já cadastrado")
@@ -90,7 +121,11 @@ def get_shop(shop: Shop = Depends(shop_of)):
 def update_shop(body: S.ShopIn, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     data = body.model_dump(exclude_unset=True)
     if "owner_phone" in data:
-        data["owner_phone"] = wa.normalize_phone(data["owner_phone"] or "")
+        data["owner_phone"] = _phone_or_422(data["owner_phone"] or "", "WhatsApp do dono")
+    if "pix_key" in data or "pix_key_type" in data:
+        key, ktype = data.get("pix_key", shop.pix_key), data.get("pix_key_type", shop.pix_key_type)
+        if key and not valid_pix_key(key, ktype):
+            raise HTTPException(422, "Chave Pix inválida para o tipo escolhido.")
     for k, v in data.items():
         setattr(shop, k, v)
     db.merge(shop)
@@ -180,7 +215,7 @@ def _barber_out(b: Barber) -> S.BarberOut:
 
 def _apply_barber(db: Session, shop: Shop, b: Barber, body: S.BarberIn) -> None:
     b.name, b.bio, b.active = body.name, body.bio, body.active
-    b.phone = wa.normalize_phone(body.phone)
+    b.phone = _phone_or_422(body.phone, "WhatsApp do profissional")
     b.services = [s for s in (db.get(Service, i) for i in body.service_ids) if s and s.shop_id == shop.id]
     for w in body.working_hours:
         if w.end <= w.start:
@@ -292,7 +327,7 @@ def _gap_label(minutes: int) -> str:
 
 
 @router.get("/appointments", response_model=list[S.AppointmentOut], tags=["appointments"])
-def list_appointments(date_from: date, date_to: date | None = None, barber_id: int | None = None,
+def list_appointments(date_from: date, date_to: date | None = None, barber_id: S.QId | None = None,
                       include_cancelled: bool = False, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     start = datetime.combine(date_from, datetime.min.time())
     end = datetime.combine(date_to or date_from, datetime.min.time()) + timedelta(days=1)
@@ -323,7 +358,7 @@ def agenda_day(day: date, shop: Shop = Depends(shop_of), db: Session = Depends(g
 
 @router.get("/appointments/month", response_model=S.MonthOut, tags=["appointments"])
 def appointments_month(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12),
-                       barber_id: int | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                       barber_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     """Visão do mês para o calendário: por dia, total, cancelados, faturamento previsto, ocupação e bloqueio."""
     if barber_id:
         _own(db, Barber, barber_id, shop)
@@ -331,7 +366,7 @@ def appointments_month(year: int = Query(ge=2000, le=2100), month: int = Query(g
 
 
 @router.get("/availability", tags=["appointments"])
-def availability(service_id: int, day: date, barber_id: int | None = None, customer_id: int | None = None,
+def availability(service_id: S.QId, day: date, barber_id: S.QId | None = None, customer_id: S.QId | None = None,
                  shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     """Com customer_id, esconde os horários que ficam perto demais de clientes em conflito com ele."""
     svc = _own(db, Service, service_id, shop)
@@ -349,7 +384,7 @@ def create_appt(body: S.AppointmentIn, shop: Shop = Depends(shop_of), db: Sessio
     barber = _own(db, Barber, body.barber_id, shop)
     svc = _own(db, Service, body.service_id, shop)
     phone = wa.normalize_phone(body.customer_phone)
-    if len(phone) < 12:
+    if not 12 <= len(phone) <= 15:
         raise HTTPException(422, "Telefone inválido. Use DDD + número.")
     customer = sch.get_or_create_customer(db, shop, phone, body.customer_name.strip().title())
     try:
@@ -425,8 +460,8 @@ def send_pix(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_
 # ---------------------------------------------------------------- clientes
 
 @router.get("/customers", response_model=list[S.CustomerOut], tags=["customers"])
-def list_customers(q: str = "", access_status: str | None = Query(None, pattern=S.ACCESS_STATUS),
-                   limit: int = Query(50, le=200), offset: int = 0,
+def list_customers(q: str = Query("", max_length=100), access_status: str | None = Query(None, pattern=S.ACCESS_STATUS),
+                   limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=100_000),
                    shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     query = select(Customer).where(Customer.shop_id == shop.id)
     if access_status:
@@ -520,17 +555,24 @@ def reject(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db
 @router.get("/payments/{pid}/receipt", tags=["payments"])
 def payment_receipt(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     """Comprovante que o cliente mandou no WhatsApp (imagem ou PDF)."""
-    p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid))
+    p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid)) \
+        if 0 < pid <= MAX_ID else None
     if p is None or p.shop_id != shop.id or not p.receipt_data:
         raise HTTPException(404, "Comprovante não encontrado")
-    return Response(p.receipt_data, media_type=p.receipt_mime or "application/octet-stream",
-                    headers={"Cache-Control": "private, max-age=3600"})
+    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+           "application/pdf": "pdf"}.get(p.receipt_mime, "bin")
+    return Response(p.receipt_data, media_type=p.receipt_mime or "application/octet-stream", headers={
+        "Cache-Control": "private, max-age=3600",
+        "Content-Disposition": f'inline; filename="comprovante-{p.id}.{ext}"',
+        # nada dentro do arquivo roda no navegador (PDF com script, etc.)
+        "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+    })
 
 
 # ---------------------------------------------------------------- avaliações e relatórios
 
 @router.get("/reviews", response_model=list[S.ReviewOut], tags=["reviews"])
-def list_reviews(barber_id: int | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_reviews(barber_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     q = select(Review).join(Appointment).where(Review.shop_id == shop.id)
     if barber_id:
         q = q.where(Appointment.barber_id == barber_id)

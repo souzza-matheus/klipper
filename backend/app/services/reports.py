@@ -147,6 +147,25 @@ def _d(v: date | datetime | None) -> str:
     return f"{v:%d/%m/%Y %H:%M}" if isinstance(v, datetime) else f"{v:%d/%m/%Y}"
 
 
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(value):
+    """Evita injeção de fórmula no Excel/Sheets: texto que começa com = + - @ (ex.: nome de cliente vindo do
+    WhatsApp) ganha um apóstrofo na frente e é mostrado como texto."""
+    if isinstance(value, str) and len(value) > 1 and value.startswith(_FORMULA_START):
+        return "'" + value
+    return value
+
+
+class _SafeWriter:
+    def __init__(self, writer):
+        self._w = writer
+
+    def writerow(self, row):
+        self._w.writerow([csv_safe(v) for v in row])
+
+
 def export_csv(db: Session, shop: Shop, date_from: date, date_to: date) -> bytes:
     """Atendimentos concluídos e gastos do período. Separador ;, vírgula decimal e BOM: abre direto no Excel."""
     ensure_recurring_range(db, shop, date_from, date_to)
@@ -167,7 +186,7 @@ def export_csv(db: Session, shop: Shop, date_from: date, date_to: date) -> bytes
     ).order_by(Expense.due_date, Expense.description)).all()
 
     buf = io.StringIO()
-    w = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    w = _SafeWriter(csv.writer(buf, delimiter=";", lineterminator="\r\n"))
     w.writerow([f"{shop.name} - financeiro de {_d(date_from)} a {_d(date_to)}"])
     w.writerow([])
     w.writerow(["ATENDIMENTOS"])
