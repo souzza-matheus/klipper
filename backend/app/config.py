@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     ai_history_messages: int = 12
     ai_hourly_limit_per_customer: int = 20
     ai_audio_max_seconds: int = 120
+    # Economia de tokens e conversas fora do tema
+    ai_max_output_tokens: int = 300
+    # Raciocínio (thinking), cobrado como saída: nível "minimal" | "low" | "medium" | "high" (modelos 3.x; o
+    # gemini-3.8-flash aceita a partir de "low") ou um número de tokens (modelos 2.5). Vazio = padrão do modelo.
+    ai_thinking_budget: str = "low"
+    ai_offtopic_cooldown_minutes: int = 60
+    ai_max_input_chars: int = 500      # acima disso o texto é cortado antes de ir para o modelo
+    ai_reject_input_chars: int = 1500  # acima disso nem chama o modelo: pede uma mensagem mais curta
+    ai_flood_messages: int = 5         # mais que isso em ai_flood_seconds = flood
+    ai_flood_seconds: int = 30
+    ai_repeat_limit: int = 3           # a mesma mensagem 3 vezes seguidas
 
 
 settings = Settings()

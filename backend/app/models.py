@@ -350,6 +350,12 @@ class AIUsage(Base):
     model: Mapped[str] = mapped_column(String(60))
     input_tokens: Mapped[int] = mapped_column(Integer, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    thinking_tokens: Mapped[int] = mapped_column(Integer, default=0)  # raciocínio, cobrado como saída
+    cached_tokens: Mapped[int] = mapped_column(Integer, default=0)    # entrada servida pelo cache implícito
+    # call: chamada ao modelo (conta no limite mensal); blocked: mensagem barrada sem chamar o modelo
+    kind: Mapped[str] = mapped_column(String(10), default="call")
+    # Motivo do bloqueio ou categoria fora do tema: offtopic:<categoria>, offtopic_pause, flood, repeat, too_long
+    category: Mapped[str] = mapped_column(String(40), default="")
     ok: Mapped[bool] = mapped_column(Boolean, default=True)
     error: Mapped[str] = mapped_column(String(200), default="")
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)

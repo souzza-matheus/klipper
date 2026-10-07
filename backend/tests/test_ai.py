@@ -67,8 +67,10 @@ def test_number_goes_to_menu_and_free_text_goes_to_ai(env, fake):
     assert len(fake.calls) == 2 and "get_business_info" in fake.calls[0]["tools"]
     info = last_tool_result(fake.calls[1]["messages"], "get_business_info")
     assert info["name"] == "Barbearia Demo" and any("Sábado" in h for h in info["opening_hours"])
-    # Data e dia da semana atuais vão nas instruções
-    assert now_local().strftime("%d/%m/%Y") in fake.calls[0]["system"]
+    # Instruções fixas (cacheáveis); data, dia da semana e cliente vão junto da mensagem
+    assert now_local().strftime("%d/%m/%Y") not in fake.calls[0]["system"]
+    turn = fake.calls[0]["messages"][-1].text
+    assert now_local().strftime("%d/%m/%Y") in turn and "Carlos Silva" in turn and turn.endswith("vcs abrem sábado?")
 
 
 def test_reminder_and_survey_answers_never_call_ai(env, fake):
@@ -364,7 +366,7 @@ def test_history_is_saved_used_and_cleaned(env, fake):
     fake.script = ["Claro, me diga o dia."]
     say(db, "quero agendar")
     sent = [m.text for m in fake.calls[0]["messages"] if m.role in ("user", "model")]
-    assert sent[0] == "1" and sent[-1] == "quero agendar"
+    assert sent[0] == "1" and sent[-1].endswith("MENSAGEM DO CLIENTE:\nquero agendar")
     rows = db.scalars(select(ConversationMessage).where(ConversationMessage.phone == PHONE)).all()
     assert {(r.role, r.channel) for r in rows} >= {("user", "ai"), ("assistant", "ai"), ("user", "menu")}
     for r in rows:
@@ -402,7 +404,7 @@ def test_audio_is_transcribed_and_answered(env, fake, monkeypatch):
     out = [m.text for m in db.scalars(select(OutboxMessage).where(OutboxMessage.phone == PHONE))]
     assert "O corte custa R$ 40,00." in out
     assert fake.calls[0]["mime"] == "audio/ogg"
-    assert fake.calls[1]["messages"][-1].text == "quanto custa o corte?"
+    assert fake.calls[1]["messages"][-1].text.endswith("quanto custa o corte?")
 
 
 def test_long_audio_asks_to_write(env, fake, monkeypatch):
@@ -481,17 +483,18 @@ def test_gemini_adapter_builds_requests_and_parses_responses(monkeypatch):
     monkeypatch.setattr(p._client.models, "generate_content", fake_generate)
 
     msgs = [Message(role="user", text="quanto custa?")]
-    r1 = p.generate("instruções", msgs, tools.SPECS, "gemini-teste", 15)
+    r1 = p.generate("instruções", msgs, tools.SPECS, "gemini-teste", 15, 300)
     assert r1.tool_calls[0].name == "list_services" and r1.input_tokens == 120
     model, contents, config = sent[0]
     assert config.system_instruction == "instruções" and config.automatic_function_calling.disable is True
-    assert config.http_options.timeout == 15000
+    assert config.http_options.timeout == 15000 and config.max_output_tokens == 300
+    assert config.thinking_config.thinking_level.value == settings.ai_thinking_budget.upper()
     names = [f.name for f in config.tools[0].function_declarations]
     assert names == [s.name for s in tools.SPECS]
 
     msgs += [Message(role="model", tool_calls=r1.tool_calls, raw=r1.raw),
              Message(role="tool", tool_results=[(r1.tool_calls[0], {"services": []})])]
-    r2 = p.generate("instruções", msgs, tools.SPECS, "gemini-teste", 15)
+    r2 = p.generate("instruções", msgs, tools.SPECS, "gemini-teste", 15, 300)
     assert r2.text == "Corte: R$ 40,00" and not r2.tool_calls
     _, contents, _ = sent[1]
     assert [c.role for c in contents] == ["user", "model", "tool"]
@@ -502,5 +505,5 @@ def test_gemini_adapter_builds_requests_and_parses_responses(monkeypatch):
         raise errors.ClientError(429, {"error": {"code": 429, "message": "Resource exhausted", "status": "RESOURCE_EXHAUSTED"}})
     monkeypatch.setattr(p._client.models, "generate_content", quota)
     with pytest.raises(LLMError) as e:
-        p.generate("x", [Message(role="user", text="oi")], [], "gemini-teste", 15)
+        p.generate("x", [Message(role="user", text="oi")], [], "gemini-teste", 15, 300)
     assert e.value.kind == "quota"

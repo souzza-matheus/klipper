@@ -4,6 +4,8 @@ import logging
 
 import httpx
 
+from ..config import settings
+
 from .provider import LLMError, LLMResult, Message, ToolCall, ToolSpec
 
 log = logging.getLogger("ai.gemini")
@@ -60,23 +62,36 @@ class GeminiProvider:
             raise LLMError("other", f"rede: {e!r}"[:200]) from e
 
     @staticmethod
-    def _usage(resp) -> tuple[int, int]:
+    def _usage(resp) -> dict:
+        """Tokens da chamada: entrada, saída visível, raciocínio (cobrado como saída) e entrada vinda do cache."""
         u = getattr(resp, "usage_metadata", None)
         if not u:
-            return 0, 0
-        out = (u.candidates_token_count or 0) + (getattr(u, "thoughts_token_count", 0) or 0)
-        return u.prompt_token_count or 0, out
+            return {}
+        return {"input_tokens": u.prompt_token_count or 0, "output_tokens": u.candidates_token_count or 0,
+                "thinking_tokens": getattr(u, "thoughts_token_count", 0) or 0,
+                "cached_tokens": getattr(u, "cached_content_token_count", 0) or 0}
+
+    def _thinking(self):
+        """AI_THINKING_BUDGET: nível (minimal/low/medium/high, modelos 3.x) ou número de tokens (modelos 2.5)."""
+        v = (settings.ai_thinking_budget or "").strip().lower()
+        if not v:
+            return None
+        if v.lstrip("-").isdigit():
+            return self._types.ThinkingConfig(thinking_budget=int(v))
+        return self._types.ThinkingConfig(thinking_level=v.upper())
 
     # ---------------------------------------------------------------- interface
 
     def generate(self, system: str, messages: list[Message], tools: list[ToolSpec], model: str,
-                 timeout: float) -> LLMResult:
+                 timeout: float, max_output_tokens: int) -> LLMResult:
         t = self._types
         config = t.GenerateContentConfig(
-            system_instruction=system,
+            system_instruction=system,  # fixo por negócio e no início: aproveita o cache implícito
             tools=self._tools(tools),
             automatic_function_calling=t.AutomaticFunctionCallingConfig(disable=True),
             http_options=t.HttpOptions(timeout=int(timeout * 1000)),
+            max_output_tokens=max_output_tokens,
+            thinking_config=self._thinking(),
             temperature=0.3,
         )
         resp = self._call(model, self._contents(messages), config)
@@ -88,17 +103,16 @@ class GeminiProvider:
         if not calls and not text.strip():
             reason = getattr(candidate, "finish_reason", None)
             raise LLMError("invalid", f"resposta vazia (finish_reason={reason})")
-        tin, tout = self._usage(resp)
-        return LLMResult(text=text.strip(), tool_calls=calls, raw=content, model=model, input_tokens=tin, output_tokens=tout)
+        return LLMResult(text=text.strip(), tool_calls=calls, raw=content, model=model, **self._usage(resp))
 
     def transcribe(self, audio: bytes, mime_type: str, model: str, timeout: float) -> LLMResult:
         t = self._types
-        config = t.GenerateContentConfig(http_options=t.HttpOptions(timeout=int(timeout * 1000)), temperature=0)
+        config = t.GenerateContentConfig(http_options=t.HttpOptions(timeout=int(timeout * 1000)), temperature=0,
+                                         max_output_tokens=1024, thinking_config=self._thinking())
         contents = [t.Content(role="user", parts=[t.Part.from_bytes(data=audio, mime_type=mime_type),
                                                   t.Part.from_text(text=TRANSCRIBE_PROMPT)])]
         resp = self._call(model, contents, config)
         text = (resp.text or "").strip()
         if not text:
             raise LLMError("invalid", "transcrição vazia")
-        tin, tout = self._usage(resp)
-        return LLMResult(text=text, model=model, input_tokens=tin, output_tokens=tout)
+        return LLMResult(text=text, model=model, **self._usage(resp))

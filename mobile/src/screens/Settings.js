@@ -11,7 +11,7 @@ import { buildTheme, NICHE_INFO, NICHES, SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
   Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl,
-  Toggle, run, toast, useLoad,
+  Stat, Toggle, run, toast, useLoad,
 } from '../ui';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
@@ -135,7 +135,9 @@ function AppearanceSection({ onSaved }) {
 function AISection() {
   const { c, s, font, v } = useTheme();
   const st = useLoad(() => api.get('/ai/settings'), []);
+  const us = useLoad(() => api.get('/ai/usage'), []);
   const d = st.data;
+  const u = us.data;
   if (!d) return st.error ? null : <Loading rows={1} />;
   const put = (body) => run(async () => { st.setData(await api.put('/ai/settings', body)); },
     body.ai_enabled === false ? 'IA desligada. O bot responde com o menu.' : 'Atendimento com IA atualizado.');
@@ -168,6 +170,19 @@ function AISection() {
         <Text style={[s.caption, { marginTop: SPACE(2) }]}>
           Ao chegar no limite, o bot volta sozinho para o menu até o mês que vem e você recebe um aviso.
         </Text>
+        {u ? (
+          <View style={[s.row, { gap: SPACE(2), marginTop: SPACE(4) }]}>
+            <Stat icon="hand-left-outline" label="Fora do tema barradas" value={u.offtopic_messages.toLocaleString('pt-BR')} />
+            <Stat icon="leaf-outline" label="Tokens economizados (estimativa)"
+                  value={u.tokens_saved_estimate.toLocaleString('pt-BR')} />
+          </View>
+        ) : null}
+        {u ? (
+          <Text style={[s.caption, { marginTop: SPACE(2) }]}>
+            Conversa fora do atendimento recebe uma recusa curta; na terceira seguida, a IA pausa por uma hora para
+            aquele número (o menu continua funcionando). Mensagens repetidas, em rajada ou muito longas nem chegam à IA.
+          </Text>
+        ) : null}
         {d.ai_enabled && !d.available && d.reason ? (
           <Text style={[s.caption, { marginTop: SPACE(2), color: c.statusText.warning }]}>{d.reason}</Text>
         ) : null}

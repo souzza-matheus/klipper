@@ -4,6 +4,7 @@ Cada item do roteiro é usado em uma chamada ao modelo, na ordem:
 - str: resposta em texto;
 - ToolCall ou lista de ToolCall: pedidos de ferramenta;
 - LLMError: falha (ex.: LLMError("quota") para simular o 429);
+- tupla (texto, ToolCall ou lista): texto e pedidos de ferramenta na mesma resposta;
 - função (system, messages, tools, model) -> qualquer um dos itens acima, para decidir com base no que chegou.
 """
 from .provider import LLMError, LLMResult, Message, ToolCall, ToolSpec
@@ -16,9 +17,9 @@ class FakeProvider:
         self.transcript = transcript
 
     def generate(self, system: str, messages: list[Message], tools: list[ToolSpec], model: str,
-                 timeout: float) -> LLMResult:
+                 timeout: float, max_output_tokens: int) -> LLMResult:
         self.calls.append({"system": system, "messages": list(messages), "tools": [t.name for t in tools],
-                           "model": model})
+                           "model": model, "max_output_tokens": max_output_tokens})
         if not self.script:
             raise LLMError("invalid", "roteiro do FakeProvider acabou")
         item = self.script.pop(0)
@@ -27,7 +28,11 @@ class FakeProvider:
         if isinstance(item, LLMError):
             raise item
         if isinstance(item, str):
-            return LLMResult(text=item, model=model, input_tokens=100, output_tokens=20)
+            return LLMResult(text=item, model=model, input_tokens=100, output_tokens=20, thinking_tokens=5)
+        if isinstance(item, tuple):
+            text, calls = item
+            calls = calls if isinstance(calls, list) else [calls]
+            return LLMResult(text=text, tool_calls=calls, model=model, input_tokens=100, output_tokens=15)
         calls = item if isinstance(item, list) else [item]
         return LLMResult(tool_calls=calls, model=model, input_tokens=100, output_tokens=10)
 

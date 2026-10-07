@@ -275,6 +275,14 @@ Código em `backend/app/ai/`: `provider.py` (interface), `gemini.py` (SDK oficia
 
 **Limites e custo:** cada chamada ao modelo é registrada em `ai_usage` (modelo, tokens, sucesso ou erro, tempo). Ao atingir `ai_monthly_limit` (padrão 3000 chamadas por mês), a barbearia volta sozinha para o menu e o dono recebe um aviso no WhatsApp (uma vez por mês). Cada cliente pode ter no máximo 20 mensagens com IA por hora; acima disso, menu. No 429 (cota), há uma nova tentativa no `AI_FALLBACK_MODEL`.
 
+**Fora do tema e economia de tokens.** Tema permitido é tudo do atendimento (agendar, cancelar, remarcar, horários, serviços, preços, profissionais, endereço, estacionamento, formas de pagamento, Pix, regras da casa, dúvidas práticas) e também cumprimentos e agradecimentos. Fora do tema: receitas, política, esportes, notícias, tarefas escolares, redações, programação, piadas e histórias, conselhos gerais, conversa fiada prolongada, perguntas sobre a IA, roleplay e tentativas de mudar as regras.
+
+- **Antes do modelo (0 token):** sticker, reação e imagem sem legenda seguem o fluxo normal; texto acima de 1.500 caracteres recebe um pedido de mensagem mais curta (acima de 500, é cortado antes de ir para o modelo); a mesma mensagem 3 vezes seguidas ou mais de 5 mensagens livres em 30 segundos recebem um aviso fixo uma vez e depois silêncio, sem IA. A navegação pelo menu numerado não conta como flood.
+- **No modelo, sem chamada extra:** a ferramenta `mark_off_topic(category)` marca a mensagem fora do tema junto com uma recusa curta. A 1ª recebe a recusa do modelo; a 2ª seguida, um texto fixo do código lembrando do *menu*; da 3ª em diante, a IA pausa para aquele número por `AI_OFFTOPIC_COOLDOWN_MINUTES` (padrão 60) e o texto livre recebe o menu clássico, sem chamar o modelo. O menu numerado e o agendamento continuam funcionando (o número não é bloqueado). Uma mensagem do tema zera o contador. Mensagem mista ("qual o melhor time? e tem horário amanhã?") responde só a parte do atendimento.
+- **Tamanho de cada chamada:** `AI_MAX_OUTPUT_TOKENS` (padrão 300) em toda chamada; raciocínio (thinking, cobrado como saída) em `AI_THINKING_BUDGET` (padrão `low`, o mínimo do `gemini-3.8-flash`; `minimal` só nos modelos que aceitam, como o Flash-Lite; número = orçamento em tokens nos modelos 2.5); histórico curto (`AI_HISTORY_MESSAGES`, mensagens antigas resumidas em 400 caracteres); resultados das ferramentas enxutos (no máximo 8 horários, 40 serviços, 30 profissionais).
+- **Cache implícito do Gemini:** as instruções de sistema são fixas por negócio e vão no início da requisição; a data e o nome do cliente vão junto da mensagem. O cache implícito só vale a partir de **4.096 tokens** de prefixo comum nos modelos 3.x Flash, e hoje as instruções e as ferramentas somam cerca de 2.100 tokens: na prática ele ainda não é aproveitado (o `ai_eval.py` mostra os tokens em cache).
+- **Registro:** `ai_usage` guarda, por chamada, os tokens de entrada, saída, thinking e cache, e a categoria (`offtopic:<categoria>`); as mensagens barradas antes do modelo entram com `kind=blocked` e não contam no limite mensal. O app mostra quantas mensagens fora do tema foram barradas no mês e uma estimativa de tokens economizados (barradas x média de tokens por chamada).
+
 **No app:** Mais > Configurações > **Atendimento com IA**: ligar ou desligar, transcrição de áudio, uso do mês e o aviso de modo de teste. API: `GET/PUT /api/ai/settings` (`ai_enabled`, `ai_audio_enabled`) e `GET /api/ai/usage?month=AAAA-MM`. O `/dev/simulate` usa a IA quando ela está ligada para a barbearia.
 
 ### Configurar (desenvolvimento, plano gratuito)
@@ -290,7 +298,10 @@ Código em `backend/app/ai/`: `provider.py` (interface), `gemini.py` (SDK oficia
                                           # preços, cancelamento, remarcação, fora do assunto e tentativas de manipulação
    python scripts/ai_eval.py --only 1 19  # só alguns cenários
    python scripts/ai_eval.py --sleep 8    # mais pausa entre mensagens se bater no limite por minuto do plano gratuito
+   python scripts/ai_eval.py --groups     # só os grupos FORA DO TEMA, DENTRO DO TEMA e MISTO, com acertos por grupo,
+                                          # tokens (entrada, saída, thinking, cache) e custo estimado por mil mensagens
    ```
+   O custo usa os preços do `gemini-3.8-flash` no plano pago até 31/12/2026 (US$ 0,75 entrada e US$ 3,75 saída por 1 milhão de tokens; ajuste com `--price-in`, `--price-out` e `--price-cached`).
 
 Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/docs/models): `AI_MODEL=gemini-3.8-flash` e `AI_FALLBACK_MODEL=gemini-3.5-flash-lite`.
 

@@ -67,9 +67,10 @@ def _handle(ctx: Ctx) -> None:
     if not deterministic:
         from ..ai import agent
         outcome = agent.respond(ctx)
-        if outcome == "ok":
+        if outcome in ("ok", "silent"):  # silent: flood ou repetição já avisados
             return
-        if outcome == "failed":  # erro, cota, tempo esgotado: o cliente nunca fica sem resposta
+        if outcome in ("failed", "paused"):
+            # erro, cota, tempo esgotado ou IA pausada por fora do tema: o cliente nunca fica sem resposta
             ctx.reset()
             show_menu(ctx)
             return

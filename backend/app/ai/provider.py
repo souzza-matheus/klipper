@@ -37,7 +37,9 @@ class LLMResult:
     raw: Any = None
     model: str = ""
     input_tokens: int = 0
-    output_tokens: int = 0
+    output_tokens: int = 0     # resposta visível
+    thinking_tokens: int = 0   # raciocínio (cobrado como saída)
+    cached_tokens: int = 0     # parte da entrada servida pelo cache implícito
 
 
 class LLMError(Exception):
@@ -51,8 +53,9 @@ class LLMError(Exception):
 
 class LLMProvider(Protocol):
     def generate(self, system: str, messages: list[Message], tools: list[ToolSpec], model: str,
-                 timeout: float) -> LLMResult:
-        """Uma chamada ao modelo. Devolve texto e/ou pedidos de ferramenta; levanta LLMError em falha."""
+                 timeout: float, max_output_tokens: int) -> LLMResult:
+        """Uma chamada ao modelo, com teto de tokens de saída. Devolve texto e/ou pedidos de ferramenta;
+        levanta LLMError em falha. system é fixo por negócio (fica no início, para o cache implícito)."""
         ...
 
     def transcribe(self, audio: bytes, mime_type: str, model: str, timeout: float) -> LLMResult:

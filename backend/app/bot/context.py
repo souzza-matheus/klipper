@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 from ..models import Conversation, Shop
 from ..services.whatsapp import send_text
 
+# Dados da conversa que sobrevivem à volta ao menu: modo cliente do dono e o controle da IA (fora do tema, pausa,
+# flood e repetição)
+KEEP_ON_RESET = ("as_customer", "ai_offtopic", "ai_pause_until", "ai_flood_warned_until", "ai_repeat_warned")
+
 RESET_WORDS = {"0", "menu", "inicio", "voltar", "sair", "cancelar fluxo"}
 
 # Estados em que a pessoa está no meio de um fluxo: avisos automáticos não mudam o estado da conversa
@@ -62,7 +66,13 @@ class Ctx:
         new.update(data)
         self.conv.data = new  # reatribui para o SQLAlchemy detectar a mudança no JSON
 
-    def reset(self, keep: tuple[str, ...] = ("as_customer",)) -> None:
+    def put(self, **data) -> None:
+        """Grava dados na conversa sem mudar o estado do menu."""
+        new = dict(self.conv.data or {})
+        new.update(data)
+        self.conv.data = new
+
+    def reset(self, keep: tuple[str, ...] = KEEP_ON_RESET) -> None:
         self.conv.state = "menu"
         self.conv.data = {k: v for k, v in (self.conv.data or {}).items() if k in keep}
 
