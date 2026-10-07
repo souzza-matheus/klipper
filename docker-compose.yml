@@ -6,6 +6,10 @@ services:
       POSTGRES_USER: barberbot
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: barberbot
+    # Só no localhost, para o backend local (uvicorn na porta 8000) usar o mesmo banco do Docker.
+    # POSTGRES_HOST_PORT no .env (a 5432 costuma estar ocupada por outro Postgres)
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Só roda na primeira vez (volume vazio): cria o banco "evolution"

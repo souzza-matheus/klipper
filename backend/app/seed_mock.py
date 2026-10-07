@@ -78,8 +78,9 @@ COMMENTS_BAD = [
 
 
 def _phone(used: set[str]) -> str:
+    """Celular fictício com DDD 00 (não existe): lembretes e pesquisas nunca chegam a uma pessoa real."""
     while True:
-        p = f"55319{random.randint(0, 9999_9999):08d}"
+        p = f"55009{random.randint(0, 9999_9999):08d}"
         if p not in used:
             used.add(p)
             return p
@@ -107,7 +108,7 @@ def reset_mock(db: Session, shop: Shop) -> None:
     db.execute(delete(Expense).where(Expense.shop_id == shop.id))
     db.execute(delete(CommissionSettlement).where(CommissionSettlement.shop_id == shop.id))
     db.commit()
-    print("Dados mock da Barbearia Demo apagados.")
+    print(f"Dados mock de {shop.name} apagados.")
 
 
 def _future_weekdays(today: date) -> list[date]:
@@ -173,24 +174,29 @@ def _candidate_starts(barber: Barber, day: date, duration: int, step: int) -> li
     return starts
 
 
+BARBERSHOP_WEIGHTS = {"Corte": 50, "Barba": 15, "Corte + Barba": 35}
+
+
 def _book(db: Session, shop: Shop, customer: Customer, barbers: list[Barber], services: dict[str, Service],
-          day: date) -> Appointment | None:
-    """Tenta marcar o cliente em um horário livre do dia, com qualquer barbeiro."""
-    service = services[_pick_weighted({"Corte": 50, "Barba": 15, "Corte + Barba": 35})]
+          day: date, weights: dict[str, int] | None = None, appt_notes: list[str] = APPT_NOTES) -> Appointment | None:
+    """Tenta marcar o cliente em um horário livre do dia, com qualquer profissional.
+    weights: peso de cada serviço pelo nome (padrão: os da barbearia)."""
+    service = services[_pick_weighted(weights or BARBERSHOP_WEIGHTS)]
     for barber in random.sample(barbers, len(barbers)):
         starts = _candidate_starts(barber, day, service.duration_minutes, shop.slot_step_minutes)
         random.shuffle(starts)
         for start in starts:
             end = start + timedelta(minutes=service.duration_minutes)
             if is_free(db, shop, barber, start, end):
-                notes = random.choice(APPT_NOTES) if random.random() < 0.08 else ""
+                notes = random.choice(appt_notes) if appt_notes and random.random() < 0.08 else ""
                 via = "bot" if random.random() < 0.7 else "app"
                 return create_appointment(db, shop, customer, barber, service, start, created_via=via, notes=notes)
     return None
 
 
 def create_appointments(db: Session, shop: Shop, customers: list[Customer], barbers: list[Barber],
-                        services: dict[str, Service], today: date) -> list[Appointment]:
+                        services: dict[str, Service], today: date, service_weights: dict[str, int] | None = None,
+                        appt_notes: list[str] = APPT_NOTES) -> list[Appointment]:
     first_day = today - timedelta(days=DAYS_BACK)
     last_day = today + timedelta(days=DAYS_AHEAD)
     booked: dict[date, set[int]] = {}
@@ -199,7 +205,7 @@ def create_appointments(db: Session, shop: Shop, customers: list[Customer], barb
     def book(customer: Customer, day: date) -> None:
         if customer.id in booked.setdefault(day, set()):
             return
-        appt = _book(db, shop, customer, barbers, services, day)
+        appt = _book(db, shop, customer, barbers, services, day, service_weights, appt_notes)
         if appt:
             booked[day].add(customer.id)
             appts.append(appt)
@@ -295,14 +301,16 @@ def set_payment_methods(appts: list[Appointment]) -> None:
                                                PayMethod.CREDIT: 15})
 
 
-def create_reviews(db: Session, shop: Shop, appts: list[Appointment], now: datetime) -> None:
+def create_reviews(db: Session, shop: Shop, appts: list[Appointment], now: datetime,
+                   comments: tuple[list[str], list[str], list[str]] = (COMMENTS_GOOD, COMMENTS_OK, COMMENTS_BAD)) -> None:
+    good, ok, bad = comments
     for a in appts:
         if not a.survey_sent or random.random() >= 0.6:
             continue
         rating = _pick_weighted({5: 50, 4: 30, 3: 12, 2: 5, 1: 3})
         comment = ""
         if random.random() < 0.5:
-            pool = COMMENTS_GOOD if rating >= 4 else COMMENTS_OK if rating == 3 else COMMENTS_BAD
+            pool = good if rating >= 4 else ok if rating == 3 else bad
             comment = random.choice(pool)
         sent = a.end + timedelta(minutes=shop.survey_delay_minutes)
         created = min(sent + timedelta(minutes=random.randint(2, 180)), now)
@@ -310,13 +318,14 @@ def create_reviews(db: Session, shop: Shop, appts: list[Appointment], now: datet
     db.flush()
 
 
-def create_customers(db: Session, shop: Shop, now: datetime) -> list[Customer]:
+def create_customers(db: Session, shop: Shop, now: datetime, first_names: list[str] = FIRST_NAMES,
+                     notes: list[str] = CUSTOMER_NOTES) -> list[Customer]:
     reserved = {shop.owner_phone, shop.phone} | {b.phone for b in shop.barbers} | DEMO_PHONES
     used = set(reserved)
     names = set()
     customers = []
     while len(customers) < N_CUSTOMERS:
-        name = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+        name = f"{random.choice(first_names)} {random.choice(LAST_NAMES)}"
         if name in names:
             continue
         names.add(name)
@@ -324,7 +333,7 @@ def create_customers(db: Session, shop: Shop, now: datetime) -> list[Customer]:
             shop_id=shop.id, phone=_phone(used), name=name,
             created_at=now - timedelta(days=random.randint(DAYS_BACK + 5, 365)),
         ))
-    for c, note in zip(random.sample(customers, len(CUSTOMER_NOTES)), CUSTOMER_NOTES):
+    for c, note in zip(random.sample(customers, len(notes)), notes):
         c.notes = note
     db.add_all(customers)
     db.flush()
@@ -346,7 +355,7 @@ def summary(db: Session, shop: Shop) -> None:
     access = count_by(Customer.access_status, Customer)
     n_conflicts = db.scalar(select(func.count()).select_from(CustomerConflict).where(CustomerConflict.shop_id == shop.id))
 
-    print("\nResumo da Barbearia Demo")
+    print(f"\nResumo de {shop.name}")
     print(f"  Clientes: {n_customers} (bloqueados: {access.get('blocked', 0)}, "
           f"precisam de aprovação: {access.get('approval', 0)}, pares em conflito: {n_conflicts})")
     print(f"  Agendamentos: {sum(appts.values())}")

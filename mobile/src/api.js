@@ -18,17 +18,18 @@ export async function loadSession() {
 export async function saveSession(url, t, name, shop) {
   baseUrl = url;
   token = t;
-  await SecureStore.setItemAsync('baseUrl', url);
-  await SecureStore.setItemAsync('token', t);
-  await SecureStore.setItemAsync('userName', name || '');
-  await SecureStore.setItemAsync('shopName', shop || '');
+  // O SecureStore só aceita texto
+  await SecureStore.setItemAsync('baseUrl', String(url || ''));
+  await SecureStore.setItemAsync('token', String(t || ''));
+  await SecureStore.setItemAsync('userName', String(name || ''));
+  await SecureStore.setItemAsync('shopName', String(shop || ''));
 }
 
 // Segmento e modo do tema do negócio (aplicados já na abertura do app, antes de carregar a API)
 export async function saveAppearance(niche, themeMode, shopName) {
-  await SecureStore.setItemAsync('niche', niche || 'barbershop');
-  await SecureStore.setItemAsync('themeMode', themeMode || 'auto');
-  if (shopName) await SecureStore.setItemAsync('shopName', shopName);
+  await SecureStore.setItemAsync('niche', String(niche || 'barbershop'));
+  await SecureStore.setItemAsync('themeMode', String(themeMode || 'auto'));
+  if (shopName) await SecureStore.setItemAsync('shopName', String(shopName));
 }
 
 // Endereço e cabeçalho autenticado para imagens servidas pela API (ex.: comprovante do Pix)
@@ -113,6 +114,11 @@ export async function login(url, email, password) {
   baseUrl = url.trim().replace(/\/$/, '');
   token = '';
   const r = await request('POST', '/auth/login', { email: email.trim(), password });
+  // Outro serviço no endereço (ex.: a porta do Expo responde 200 a qualquer rota) não devolve token
+  if (!r || typeof r.token !== 'string' || !r.token) {
+    throw new ApiError('Esse endereço não é do servidor SyncServ. Confira o IP e a porta do backend '
+      + '(ex.: http://192.168.1.10:8002), não a do Expo.');
+  }
   await saveSession(baseUrl, r.token, r.user_name, r.shop_name);
   await saveAppearance(r.niche, r.theme_mode);
   await SecureStore.setItemAsync('lastEmail', email.trim());

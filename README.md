@@ -80,11 +80,31 @@ python -m app.seed_mock            # cria a demo (se preciso) e gera os dados
 python -m app.seed_mock --reset    # apaga os dados mock e gera de novo
 ```
 
-Gera 40 clientes (mais os 4 de exemplo do controle de clientes, abaixo), agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas, e forma de pagamento nos concluídos), Pix, avaliações, 3 bloqueios futuros e os gastos de exemplo. Também marca horários futuros para os clientes de exemplo: o bloqueado (para ver o aviso na ficha), um pedido aguardando aprovação e um horário para um dos clientes em conflito. O `--reset` apaga só clientes, conflitos entre clientes, agendamentos, pagamentos, avaliações, bloqueios, conversas, gastos e acertos da Barbearia Demo e gera tudo de novo; serviços, barbeiros, regras de comissão e o login admin continuam. As datas são relativas ao dia em que o script roda.
+Gera 40 clientes com celulares fictícios de DDD 00, que não existe, para nenhuma mensagem chegar a uma pessoa real (mais os 4 de exemplo do controle de clientes, abaixo), agendamentos de 30 dias atrás até 7 dias à frente (com concluídos, cancelados e faltas, e forma de pagamento nos concluídos), Pix, avaliações, 3 bloqueios futuros e os gastos de exemplo. Também marca horários futuros para os clientes de exemplo: o bloqueado (para ver o aviso na ficha), um pedido aguardando aprovação e um horário para um dos clientes em conflito. O `--reset` apaga só clientes, conflitos entre clientes, agendamentos, pagamentos, avaliações, bloqueios, conversas, gastos e acertos da Barbearia Demo e gera tudo de novo; serviços, barbeiros, regras de comissão e o login admin continuam. As datas são relativas ao dia em que o script roda.
 
-O `app.seed` já cria exemplos do controle de clientes: **Marcos Teixeira** (`5531955550001`, bloqueado), **Paulo Duarte** (`5531955550002`, precisa de aprovação) e o par **Renato Vasconcelos** (`5531955550003`) e **Alexandre Pinto** (`5531955550004`), que não podem se encontrar (distância padrão da barbearia). Para testar, mande mensagens com esses números no `/dev/simulate`.
+O `app.seed` já cria exemplos do controle de clientes: **Marcos Teixeira** (`5500955550001`, bloqueado), **Paulo Duarte** (`5500955550002`, precisa de aprovação) e o par **Renato Vasconcelos** (`5500955550003`) e **Alexandre Pinto** (`5500955550004`), que não podem se encontrar (distância padrão da barbearia). Para testar, mande mensagens com esses números no `/dev/simulate`.
 
 O `app.seed` também cria exemplos do financeiro: Pedro (barbeiro novo) repassa 40% para a barbearia e 10% para o João (padrinho), João repassa 30% para a barbearia; contas fixas recorrentes (aluguel, internet, luz, água, contador) e alguns gastos avulsos do mês, um deles vencido e outro vencendo hoje.
+
+### Uma empresa de demonstração por segmento
+
+```bash
+cd backend
+python -m app.seed_niches            # cria as que faltam e gera os dados de cada uma
+python -m app.seed_niches --reset    # apaga os dados mock delas e gera de novo
+```
+
+Cria quatro empresas, além da Barbearia Demo, cada uma com serviços, profissionais e expediente do segmento e o mesmo tipo de dados do `seed_mock` (40 clientes, agenda de 30 dias para trás e 7 para frente, Pix, avaliações, bloqueios, gastos, um cliente bloqueado, um em aprovação com pedido pendente e um par incompatível). Senha de todas: `demo123`.
+
+| Segmento | Empresa | Login |
+| --- | --- | --- |
+| barbershop | Barbearia Demo | `admin@demo.com` |
+| beauty | Studio Bella Beleza & Estética | `salao@demo.com` |
+| petshop | Pet Feliz Banho e Tosa | `pet@demo.com` |
+| clinic | Clínica Vida Plena | `clinica@demo.com` |
+| fitness | Estúdio Movimento Pilates & Funcional | `estudio@demo.com` |
+
+Essas quatro não têm WhatsApp do dono nem dos profissionais, e a instância delas (`salao-demo`, `petshop-demo`, `clinica-demo`, `estudio-demo`) não existe na Evolution: nenhuma mensagem sai delas.
 
 Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês, cliente bloqueado e em aprovação, conflitos entre clientes e migrações).
 
@@ -104,7 +124,17 @@ alembic revision --autogenerate -m "o que mudou"      # depois de alterar app/mo
 - No Docker, o container do backend roda `alembic upgrade head` antes de subir a API.
 - A URL vem da mesma `DATABASE_URL` da API (ou `alembic -x url=sqlite:///outro.db upgrade head`).
 
-Para recriar o banco de desenvolvimento do zero (SQLite):
+**Banco de desenvolvimento: Postgres.** O Postgres do Docker fica exposto só no localhost, na porta `POSTGRES_HOST_PORT` do `.env` (padrão 5434, porque a 5432 costuma estar ocupada). O backend local (`uvicorn` na 8000) usa esse mesmo banco pelo `backend/.env`, então a porta 8000 e a 8002 (backend do Docker) enxergam os mesmos dados:
+
+```bash
+# backend/.env
+DATABASE_URL=postgresql+psycopg://barberbot:SENHA_DO_POSTGRES@localhost:5434/barberbot
+RUN_SCHEDULER=false   # as rotinas automáticas já rodam no backend do Docker; aqui seriam duplicadas
+```
+
+Os testes continuam em SQLite (o `tests/conftest.py` define o próprio `DATABASE_URL`). Sem `DATABASE_URL`, a API usa `sqlite:///./barberbot.db`, útil para testar sem Docker.
+
+Para recriar um banco SQLite de desenvolvimento do zero:
 
 ```bash
 cd backend

@@ -16,7 +16,7 @@ from .services.expenses import ensure_recurring, same_day_in
 
 # (descrição, categoria, valor, dia do vencimento) - contas fixas, cadastradas como recorrentes no mês passado
 RECURRING_EXPENSES = [
-    ("Aluguel do salão", "aluguel", "1800.00", 5),
+    ("Aluguel do ponto", "aluguel", "1800.00", 5),
     ("Internet", "internet", "119.90", 10),
     ("Conta de luz", "energia", "320.00", 15),
     ("Conta de água", "agua", "95.00", 15),
@@ -30,13 +30,14 @@ ONE_OFF_EXPENSES = [
 ]
 
 
-# (telefone, nome, acesso, motivo interno) - exemplos do controle de clientes
+# (telefone, nome, acesso, motivo interno) - exemplos do controle de clientes.
+# DDD 00 não existe: nenhuma mensagem chega a uma pessoa real se o WhatsApp estiver conectado.
 DEMO_CUSTOMERS = [
-    ("5531955550001", "Marcos Teixeira", AccessStatus.BLOCKED,
+    ("5500955550001", "Marcos Teixeira", AccessStatus.BLOCKED,
      "Faltou 3 vezes sem avisar e saiu sem pagar o último corte."),
-    ("5531955550002", "Paulo Duarte", AccessStatus.APPROVAL, "Cancela em cima da hora com frequência."),
-    ("5531955550003", "Renato Vasconcelos", AccessStatus.NORMAL, ""),
-    ("5531955550004", "Alexandre Pinto", AccessStatus.NORMAL, ""),
+    ("5500955550002", "Paulo Duarte", AccessStatus.APPROVAL, "Cancela em cima da hora com frequência."),
+    ("5500955550003", "Renato Vasconcelos", AccessStatus.NORMAL, ""),
+    ("5500955550004", "Alexandre Pinto", AccessStatus.NORMAL, ""),
 ]
 DEMO_PHONES = {p for p, *_ in DEMO_CUSTOMERS}
 
@@ -63,8 +64,13 @@ def seed_customers(db: Session, shop: Shop) -> dict[str, Customer]:
     return out
 
 
-def seed_finance(db: Session, shop: Shop, today: date | None = None) -> None:
-    """Regras de comissão e gastos de exemplo. Só cria o que ainda não existe na barbearia."""
+def seed_finance(db: Session, shop: Shop, today: date | None = None,
+                 one_off: list[tuple[str, str, str, int]] = ONE_OFF_EXPENSES,
+                 extras: tuple[tuple[str, str, str], tuple[str, str, str]] = (
+                     ("Conserto do ar-condicionado", "manutencao", "280.00"),
+                     ("Toalhas e capas", "equipamentos", "135.00"))) -> None:
+    """Regras de comissão (só a barbearia demo, com João e Pedro) e gastos de exemplo. Só cria o que ainda não existe.
+    one_off: gastos avulsos do mês; extras: (vencido há 2 dias, vence hoje)."""
     today = today or now_local().date()
     barbers = {b.name: b for b in shop.barbers}
     has_rules = db.scalar(select(func.count()).select_from(CommissionRule).where(CommissionRule.shop_id == shop.id))
@@ -92,7 +98,7 @@ def seed_finance(db: Session, shop: Shop, today: date | None = None) -> None:
                        paid_at=due, payment_method=PayMethod.PIX, recurring=True))
     db.flush()
     ensure_recurring(db, shop, today.year, today.month)
-    for desc, cat, amount, day in ONE_OFF_EXPENSES:
+    for desc, cat, amount, day in one_off:
         db.add(Expense(shop_id=shop.id, description=desc, category=cat, amount=Decimal(amount),
                        due_date=same_day_in(today.year, today.month, day)))
     db.flush()
@@ -102,11 +108,12 @@ def seed_finance(db: Session, shop: Shop, today: date | None = None) -> None:
         if e.due_date < today:
             e.paid_at, e.payment_method = e.due_date, PayMethod.PIX if e.recurring_source_id else PayMethod.DEBIT
     # Uma conta vencida e uma que vence hoje, para aparecerem em vermelho no app e no resumo do WhatsApp
+    (late_desc, late_cat, late_amount), (today_desc, today_cat, today_amount) = extras
     db.add_all([
-        Expense(shop_id=shop.id, description="Conserto do ar-condicionado", category="manutencao",
-                amount=Decimal("280.00"), due_date=today - timedelta(days=2)),
-        Expense(shop_id=shop.id, description="Toalhas e capas", category="equipamentos",
-                amount=Decimal("135.00"), due_date=today),
+        Expense(shop_id=shop.id, description=late_desc, category=late_cat, amount=Decimal(late_amount),
+                due_date=today - timedelta(days=2)),
+        Expense(shop_id=shop.id, description=today_desc, category=today_cat, amount=Decimal(today_amount),
+                due_date=today),
     ])
     db.commit()
 
