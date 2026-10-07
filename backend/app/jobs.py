@@ -90,6 +90,13 @@ def send_daily_summary(db, shop: Shop) -> bool:
 def run_all() -> None:
     db = SessionLocal()
     try:
+        try:
+            from .ai.usage import cleanup
+            if cleanup(db):  # histórico da conversa usado pela IA: só os últimos 30 dias
+                db.commit()
+        except Exception:
+            db.rollback()
+            log.exception("Erro ao limpar o histórico das conversas")
         for shop in db.scalars(select(Shop)).all():
             try:
                 send_reminders(db, shop)

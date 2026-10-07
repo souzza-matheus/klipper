@@ -253,6 +253,55 @@ Se a mensagem não chegar:
 - `403 secret inválido` nos logs do backend: o `WEBHOOK_SECRET` mudou depois de a instância ser criada. Rode `reset-instance` e `qr` de novo.
 - Contatos com privacidade de número (LID): a Evolution entrega o número real em `remoteJidAlt`. Se vier só o `@lid`, o backend ignora a mensagem e registra um aviso no log.
 
+## Atendimento com IA (Google Gemini)
+
+Com a IA ligada, o cliente escreve do jeito dele ("quero cortar cabelo e barba amanhã depois das 17h com o João", "vcs abrem sábado?", "preciso desmarcar") e o bot entende, consulta o sistema e responde. **A IA só interpreta e conversa:** horários livres, preços e regras (expediente, bloqueios, antecedência, prazo de cancelamento, cliente bloqueado ou em aprovação, conflitos entre clientes) vêm do código que já existe, e nada é gravado sem o cliente confirmar.
+
+Código em `backend/app/ai/`: `provider.py` (interface), `gemini.py` (SDK oficial `google-genai`, function calling manual), `fake.py` (provedor roteirizado dos testes), `tools.py` (ferramentas), `agent.py` (loop), `prompts.py` (instruções) e `usage.py` (limites e uso). Trocar de provedor = novo adaptador + `AI_PROVIDER` no `.env`.
+
+**Modo híbrido.** O menu numerado continua igual:
+
+- `menu`, `0`, `voltar` → menu clássico; `atendente` → chama a equipe e pausa o bot.
+- Números, respostas de confirmação (`1`, `sim`, `2`, `3`, `não`), lembrete, pesquisa de satisfação e o nome no fim do agendamento → fluxo atual, sem gastar IA. Atendimento humano pausado → bot em silêncio.
+- Qualquer outro texto, com a IA ligada para a barbearia → agente de IA.
+- Se a IA falhar (erro, cota 429 nos dois modelos, tempo esgotado, resposta inválida) → menu clássico, e o erro vai para o log. O cliente nunca fica sem resposta.
+- O bot do dono e dos barbeiros continua só com menu.
+
+**Ferramentas do agente:** `get_business_info`, `list_services`, `list_professionals`, `find_free_slots` (no máximo 8 horários, com filtro de dia e período), `get_my_appointments`, `propose_booking`, `propose_cancel`, `propose_reschedule`, `set_customer_name`, `send_pix` e `talk_to_human`. As `propose_*` não gravam: o sistema envia o resumo padrão ("1 - Confirmar / 2 - Escolher outro / 3 - Desistir") e o `1` passa pelo mesmo caminho do menu (`_do_book`), com os mesmos avisos. Todas agem só sobre o cliente do número da conversa; cliente bloqueado recebe a mesma resposta neutra de hoje; horários proibidos por conflito não aparecem.
+
+**Histórico:** `conversation_messages` guarda as mensagens (da IA e do menu) que entram como contexto (`AI_HISTORY_MESSAGES`, padrão 12) e é apagada depois de 30 dias pela rotina de minuto. Respostas longas são quebradas em mensagens de até 600 caracteres.
+
+**Áudio (opcional):** com "Entender mensagens de áudio" ligado, o backend baixa o áudio pela Evolution (`POST /chat/getBase64FromMediaMessage/{instância}`), transcreve com o Gemini e segue o fluxo normal. Áudio com mais de 2 minutos: o bot pede para escrever ou mandar um mais curto. Desligado, áudios continuam ignorados.
+
+**Limites e custo:** cada chamada ao modelo é registrada em `ai_usage` (modelo, tokens, sucesso ou erro, tempo). Ao atingir `ai_monthly_limit` (padrão 3000 chamadas por mês), a barbearia volta sozinha para o menu e o dono recebe um aviso no WhatsApp (uma vez por mês). Cada cliente pode ter no máximo 20 mensagens com IA por hora; acima disso, menu. No 429 (cota), há uma nova tentativa no `AI_FALLBACK_MODEL`.
+
+**No app:** Mais > Configurações > **Atendimento com IA**: ligar ou desligar, transcrição de áudio, uso do mês e o aviso de modo de teste. API: `GET/PUT /api/ai/settings` (`ai_enabled`, `ai_audio_enabled`) e `GET /api/ai/usage?month=AAAA-MM`. O `/dev/simulate` usa a IA quando ela está ligada para a barbearia.
+
+### Configurar (desenvolvimento, plano gratuito)
+
+1. Gere a chave em [Google AI Studio](https://aistudio.google.com/apikey) (botão "Create API key").
+2. Coloque em `GEMINI_API_KEY=` no `.env` da raiz (backend do Docker) e no `backend/.env` (backend local e scripts). Os dois estão no `.gitignore`; nunca coloque a chave em código, log ou arquivo versionado.
+3. `AI_TIER=free`: a IA só funciona para barbearias com `ai_allow_free_tier=true`, ligado pelo `python -m app.seed` apenas na Barbearia Demo. **No plano gratuito o Google pode usar o conteúdo das conversas para melhorar os produtos dele:** use só dados fictícios. O backend registra um aviso no log ao iniciar nesse modo.
+4. Ligue a IA no app (Mais > Configurações > Atendimento com IA) e converse pelo `/dev/simulate` ou pelo WhatsApp de teste.
+5. Avaliação com o Gemini de verdade (não envia nada pelo WhatsApp e desfaz tudo no banco):
+   ```bash
+   cd backend
+   python scripts/ai_eval.py              # ~30 mensagens: pedidos completos e incompletos, gírias, datas relativas,
+                                          # preços, cancelamento, remarcação, fora do assunto e tentativas de manipulação
+   python scripts/ai_eval.py --only 1 19  # só alguns cenários
+   python scripts/ai_eval.py --sleep 8    # mais pausa entre mensagens se bater no limite por minuto do plano gratuito
+   ```
+
+Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/docs/models): `AI_MODEL=gemini-3.8-flash` e `AI_FALLBACK_MODEL=gemini-3.5-flash-lite`.
+
+### Produção (plano pago)
+
+1. No [Google AI Studio](https://aistudio.google.com) ou no Google Cloud Console, **ative o faturamento** no projeto da chave (no plano pago o Google não usa o conteúdo para treinar os modelos).
+2. Defina um **limite de gasto** (orçamento e alertas no Cloud Billing) para o projeto.
+3. No `.env` do servidor: `AI_TIER=paid` e a chave do projeto com faturamento. Reinicie o backend (`docker compose up -d --build backend`).
+4. Ligue a IA por barbearia no app. Ajuste o limite mensal de cada uma direto no banco (`shops.ai_monthly_limit`) se precisar.
+5. Atualize a política de privacidade (provedor de IA e uso dos dados; ver `landing/privacidade.html`).
+
 ## Colocar no ar (VPS)
 
 1. VPS com Docker (2 vCPU e 4 GB bastam para várias barbearias) e um domínio apontando para ela (ex.: `api.suabarbearia.com.br`).

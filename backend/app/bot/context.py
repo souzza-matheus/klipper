@@ -12,7 +12,7 @@ RESET_WORDS = {"0", "menu", "inicio", "voltar", "sair", "cancelar fluxo"}
 
 # Estados em que a pessoa está no meio de um fluxo: avisos automáticos não mudam o estado da conversa
 BUSY_STATES = {"book_service", "book_barber", "book_day", "book_time", "book_name", "book_confirm",
-               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment"}
+               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment", "ai_confirm"}
 
 
 def conversation_for(db: Session, shop: Shop, phone: str) -> Conversation:
@@ -47,6 +47,7 @@ class Ctx:
     text: str
     push_name: str = ""
     replies: list[str] = field(default_factory=list)
+    via_ai: bool = False  # a mensagem foi respondida pelo agente de IA (ele mesmo grava o histórico)
 
     @property
     def low(self) -> str:

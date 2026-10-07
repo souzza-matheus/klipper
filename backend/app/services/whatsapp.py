@@ -315,6 +315,9 @@ def parse_webhook(payload: dict) -> dict | None:
         (message.get("documentWithCaptionMessage") or {}).get("message") or {}).get("documentMessage")
     if not text and media_msg:
         text = media_msg.get("caption") or "[anexo]"
+    audio_msg = message.get("audioMessage")
+    if not text and audio_msg:
+        text = "[áudio]"
     if not text:
         return None
     phone_jid = _phone_jid(data)
@@ -330,4 +333,7 @@ def parse_webhook(payload: dict) -> dict | None:
     }
     if media_msg:  # imagem ou documento: pode ser o comprovante do Pix
         out["media"] = {"key": key, "message": message, "mimetype": media_msg.get("mimetype", "")}
+    if audio_msg and text == "[áudio]":  # transcrito pela IA, se estiver ligada (app.api.webhook)
+        out["audio"] = {"key": key, "message": message, "mimetype": audio_msg.get("mimetype", "audio/ogg"),
+                        "seconds": int(audio_msg.get("seconds") or 0)}
     return out

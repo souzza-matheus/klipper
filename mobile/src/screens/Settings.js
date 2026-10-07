@@ -10,8 +10,8 @@ import { phoneLabel } from '../format';
 import { buildTheme, NICHE_INFO, NICHES, SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Badge, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl, Toggle,
-  run, toast, useLoad,
+  Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl,
+  Toggle, run, toast, useLoad,
 } from '../ui';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
@@ -131,6 +131,51 @@ function AppearanceSection({ onSaved }) {
   );
 }
 
+// Atendimento com IA no WhatsApp: ligar/desligar, transcrição de áudio e uso do mês
+function AISection() {
+  const { c, s, font, v } = useTheme();
+  const st = useLoad(() => api.get('/ai/settings'), []);
+  const d = st.data;
+  if (!d) return st.error ? null : <Loading rows={1} />;
+  const put = (body) => run(async () => { st.setData(await api.put('/ai/settings', body)); },
+    body.ai_enabled === false ? 'IA desligada. O bot responde com o menu.' : 'Atendimento com IA atualizado.');
+  const used = d.calls_this_month;
+  const pct = Math.min(1, used / Math.max(1, d.monthly_limit));
+  return (
+    <Section title="Atendimento com IA">
+      {d.test_mode_warning ? <Banner tone="warning" icon="flask-outline" title={d.test_mode_warning} /> : null}
+      <Text style={[s.muted, { marginBottom: SPACE(3) }]}>
+        O {v.customer} escreve do jeito dele ("quero cortar amanhã depois das 17h") e o robô entende, consulta a agenda e
+        responde. O menu numerado continua funcionando, e o agendamento só é gravado quando o {v.customer} confirma.
+      </Text>
+      <Card>
+        <Toggle label="Atender com IA" value={d.ai_enabled} onValueChange={(on) => put({ ai_enabled: on })}
+                disabled={!d.configured || !d.free_tier_allowed}
+                hint={!d.configured ? 'A IA ainda não foi configurada no servidor.'
+                  : !d.free_tier_allowed ? 'Indisponível para este negócio enquanto o servidor estiver em modo de teste.' : undefined} />
+        <Toggle label="Entender mensagens de áudio" value={d.ai_audio_enabled}
+                onValueChange={(on) => put({ ai_audio_enabled: on })} disabled={!d.ai_enabled}
+                hint="Transcreve áudios de até 2 minutos e responde como se fosse texto." />
+        <Text style={s.label}>Uso neste mês</Text>
+        <Text style={{ fontFamily: font.bold, fontSize: 17, color: c.text }}>
+          {used.toLocaleString('pt-BR')} de {d.monthly_limit.toLocaleString('pt-BR')} respostas da IA
+        </Text>
+        <View style={{ height: 8, borderRadius: 4, backgroundColor: c.neutralBg, marginTop: SPACE(2) }}
+              accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: d.monthly_limit, now: used }}>
+          <View style={{ height: 8, borderRadius: 4, width: `${Math.round(pct * 100)}%`,
+                         backgroundColor: pct >= 0.9 ? c.status.danger : c.accent }} />
+        </View>
+        <Text style={[s.caption, { marginTop: SPACE(2) }]}>
+          Ao chegar no limite, o bot volta sozinho para o menu até o mês que vem e você recebe um aviso.
+        </Text>
+        {d.ai_enabled && !d.available && d.reason ? (
+          <Text style={[s.caption, { marginTop: SPACE(2), color: c.statusText.warning }]}>{d.reason}</Text>
+        ) : null}
+      </Card>
+    </Section>
+  );
+}
+
 export function SettingsScreen() {
   const { s, v } = useTheme();
   const shop = useLoad(() => api.get('/shop'), []);
@@ -154,6 +199,7 @@ export function SettingsScreen() {
 
   return (
     <Screen footer={<Button title="Salvar configurações" icon="checkmark" onPress={save} loading={busy} style={{ marginBottom: 0 }} />}>
+      <AISection />
       <AppearanceSection onSaved={(r) => setF((x) => ({ ...x, niche: r.niche, theme_mode: r.theme_mode }))} />
 
       <Section title={`Dados do ${v.business === 'clínica' ? 'consultório' : 'negócio'}`}>

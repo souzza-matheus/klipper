@@ -19,7 +19,26 @@ MSG_BLOCKED = "No momento não conseguimos agendar por aqui. Por favor, fale com
 
 # ---------------------------------------------------------------- entrada
 
+# Estados em que a resposta é sempre do fluxo atual (não passa pela IA)
+DETERMINISTIC_STATES = {"reminder", "survey_rating", "survey_comment", "book_name"}
+HUMAN_WORDS = {"atendente", "humano", "falar com atendente", "falar com alguem", "pessoa"}
+CONFIRM_WORDS = {"1", "sim", "s", "confirmar", "confirmo", "confirma", "pode", "ok", "isso", "fechado", "beleza"}
+OTHER_WORDS = {"2", "outro", "outra", "outro horario", "escolher outro"}
+GIVE_UP_WORDS = {"3", "nao", "n", "desistir", "desisto", "deixa", "deixa pra la"}
+
+
+def _numeric(text: str) -> bool:
+    return pick(text, 999) is not None
+
+
 def handle(ctx: Ctx) -> None:
+    _handle(ctx)
+    if ctx.shop.ai_enabled and not ctx.via_ai:
+        from ..ai import agent  # import tardio: app.ai importa este módulo
+        agent.record_menu_turn(ctx)
+
+
+def _handle(ctx: Ctx) -> None:
     conv = ctx.conv
     if conv.paused_until and conv.paused_until > now_local():
         if ctx.low in RESET_WORDS or ctx.low == "bot":
@@ -33,10 +52,27 @@ def handle(ctx: Ctx) -> None:
         show_menu(ctx)
         return
 
+    if ctx.low in HUMAN_WORDS:
+        talk_to_human(ctx)
+        return
+
     if conv.state not in ("survey_rating", "survey_comment") and _looks_like_paid(ctx) and _report_paid(ctx):
         return
 
+    # Modo híbrido: números, respostas de confirmação, lembrete e pesquisa seguem o fluxo atual (sem gastar IA);
+    # texto livre vai para o agente de IA quando ele está disponível para a barbearia.
     handler = STATES.get(conv.state, st_menu)
+    deterministic = (conv.state in DETERMINISTIC_STATES or _numeric(ctx.text)
+                     or (conv.state == "ai_confirm" and ctx.low in CONFIRM_WORDS | OTHER_WORDS | GIVE_UP_WORDS))
+    if not deterministic:
+        from ..ai import agent
+        outcome = agent.respond(ctx)
+        if outcome == "ok":
+            return
+        if outcome == "failed":  # erro, cota, tempo esgotado: o cliente nunca fica sem resposta
+            ctx.reset()
+            show_menu(ctx)
+            return
     handler(ctx)
 
 
@@ -606,7 +642,86 @@ def st_survey_comment(ctx: Ctx) -> None:
     ctx.reset()
 
 
+# ---------------------------------------------------------------- propostas da IA (confirmadas pelo fluxo atual)
+
+def _proposal_text(ctx: Ctx, p: dict) -> str:
+    if p["kind"] == "cancel":
+        appt = ctx.db.get(Appointment, p["appointment_id"])
+        return (f"Cancelar este horário?\n\n{appt_summary(appt)}\n\n"
+                "*1* - Confirmar\n*2* - Escolher outro agendamento\n*3* - Desistir")
+    service = ctx.db.get(Service, p["service_id"])
+    barber = ctx.db.get(Barber, p["barber_id"])
+    start = datetime.fromisoformat(p["start"])
+    if p["kind"] == "reschedule":
+        old = ctx.db.get(Appointment, p["appointment_id"])
+        head = f"Confirma a remarcação?\n\nDe: {dt_label(old.start)}\nPara:"
+    else:
+        head = "Confirma o agendamento?"
+    return (f"{head}\n\n✂️ *{service.name}* com {barber.name}\n📅 {dt_label(start)}\n💰 {money(service.price)}\n\n"
+            "*1* - Confirmar\n*2* - Escolher outro horário\n*3* - Desistir")
+
+
+def propose(ctx: Ctx, kind: str, **data) -> None:
+    """Guarda a proposta da IA e envia o resumo padrão. Nada é gravado até o cliente responder 1."""
+    p = {"kind": kind, **data}
+    ctx.reset()
+    ctx.go("ai_confirm", ai_proposal=p)
+    ctx.say(_proposal_text(ctx, p))
+
+
+def _own_active(ctx: Ctx, appt_id: int | None) -> Appointment | None:
+    appt = ctx.db.get(Appointment, appt_id or 0)
+    if appt and appt.shop_id == ctx.shop.id and appt.customer.phone == ctx.phone \
+            and appt.status in ApptStatus.OCCUPYING:
+        return appt
+    return None
+
+
+def st_ai_confirm(ctx: Ctx) -> None:
+    p = ctx.get("ai_proposal")
+    if not p:
+        ctx.reset()
+        st_menu(ctx)
+        return
+    t = ctx.low
+    if t in CONFIRM_WORDS:
+        if p["kind"] == "cancel":
+            appt = _own_active(ctx, p["appointment_id"])
+            ctx.reset()
+            if appt is None:
+                ctx.say("Não encontrei mais esse agendamento." + FOOTER)
+            elif not sch.can_customer_cancel(ctx.shop, appt):
+                ctx.say(f"O cancelamento pelo WhatsApp é só até {ctx.shop.cancel_min_hours}h antes do horário. "
+                        "Responda *7* para falar com a barbearia.")
+            else:
+                _cancel(ctx, appt)
+            return
+        if p["kind"] == "reschedule":
+            appt = _own_active(ctx, p["appointment_id"])
+            if appt is None or not sch.can_customer_cancel(ctx.shop, appt):
+                ctx.reset()
+                ctx.say("Não dá mais para remarcar esse horário por aqui. Responda *7* para falar com a barbearia.")
+                return
+        # Mesmo caminho da confirmação do menu: regras, aprovação, conflitos, avisos e oferta de Pix
+        ctx.reset()
+        ctx.go("book_confirm", service_id=p["service_id"], barber_id=p["barber_id"], slot_barber_id=p["barber_id"],
+               start=p["start"], day=p["start"][:10], reschedule_of=p.get("appointment_id"))
+        _do_book(ctx)
+    elif t in OTHER_WORDS:
+        ctx.reset()
+        if p["kind"] == "cancel":
+            my_appointments(ctx)
+        else:
+            ctx.say("Sem problema! Me diga outro dia ou horário que eu procuro. (ou *menu* para ver as opções)")
+    elif t in GIVE_UP_WORDS:
+        ctx.reset()
+        ctx.say("Tudo bem, não mudei nada. Quando quiser é só chamar! 👋")
+    else:
+        ctx.say("Responda *1* para confirmar, *2* para escolher outro ou *3* para desistir.")
+
+
 STATES = {
+    "ai_confirm": st_ai_confirm,
     "menu": st_menu,
     "book_service": st_book_service,
     "book_barber": st_book_barber,

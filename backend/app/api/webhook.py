@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,7 +12,7 @@ from ..db import SessionLocal, get_db
 from ..jobs import run_all
 from ..models import Shop
 from ..services.payments import save_receipt
-from ..services.whatsapp import normalize_phone, parse_webhook
+from ..services.whatsapp import EvolutionError, media_base64, normalize_phone, parse_webhook, send_text
 
 router = APIRouter()
 log = logging.getLogger("webhook")
@@ -27,8 +28,13 @@ async def evolution_webhook(request: Request, background: BackgroundTasks, secre
     msg = parse_webhook(payload)
     if not msg or not msg["phone"]:
         return {"ignored": True}
+    if msg.get("audio"):
+        # Áudio: só com a transcrição por IA ligada; baixar e transcrever leva alguns segundos
+        background.add_task(process_audio, msg["instance"], msg["phone"], msg["name"], msg["audio"])
+        return {"ok": True, "audio": True}
     try:
-        handle_incoming(db, msg["instance"], msg["phone"], msg["text"], msg["name"])
+        # Em uma thread: a resposta da IA pode levar alguns segundos e não pode travar a API
+        await run_in_threadpool(handle_incoming, db, msg["instance"], msg["phone"], msg["text"], msg["name"])
     except Exception:
         db.rollback()
         log.exception("Erro ao processar mensagem de %s", msg["phone"])
@@ -36,6 +42,45 @@ async def evolution_webhook(request: Request, background: BackgroundTasks, secre
         # Baixar a mídia leva alguns segundos: fica para depois da resposta do bot
         background.add_task(store_receipt, msg["instance"], msg["phone"], msg["media"])
     return {"ok": True}
+
+
+MSG_AUDIO_LONG = "Seu áudio é um pouco longo para eu ouvir. 🙏 Consegue escrever ou mandar um áudio de até 2 minutos?"
+MSG_AUDIO_FAIL = "Não consegui ouvir o seu áudio. Pode escrever, por favor? (ou mande *menu* para ver as opções)"
+
+
+def process_audio(instance: str, phone: str, name: str, audio: dict) -> None:
+    """Áudio do cliente: com a IA e a transcrição ligadas, transcreve e segue o fluxo normal com o texto.
+    Sem elas, o áudio é ignorado (como antes)."""
+    from ..ai import agent, usage
+    db = SessionLocal()
+    try:
+        shop = db.scalar(select(Shop).where(Shop.evolution_instance == instance))
+        if shop is None or not shop.ai_audio_enabled or not usage.available(db, shop, phone):
+            db.commit()  # guarda o aviso de limite, se houve
+            return
+        if audio.get("seconds", 0) > settings.ai_audio_max_seconds:
+            send_text(db, shop, phone, MSG_AUDIO_LONG)
+            db.commit()
+            return
+        try:
+            mime, data = media_base64(shop, audio)
+            text = agent.transcribe(db, shop, phone, data, mime or audio.get("mimetype") or "audio/ogg")
+        except (EvolutionError, agent.LLMError):
+            log.exception("Falha ao transcrever o áudio de %s", phone[-4:])
+            send_text(db, shop, phone, MSG_AUDIO_FAIL)
+            db.commit()
+            return
+        db.commit()
+        if text.strip() == "[inaudível]":
+            send_text(db, shop, phone, MSG_AUDIO_FAIL)
+            db.commit()
+            return
+        handle_incoming(db, instance, phone, text, name)
+    except Exception:
+        db.rollback()
+        log.exception("Erro ao processar o áudio de %s", phone[-4:])
+    finally:
+        db.close()
 
 
 def store_receipt(instance: str, phone: str, media: dict) -> None:

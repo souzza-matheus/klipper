@@ -124,6 +124,9 @@ def seed(owner_phone: str = "5531999990000", demo_finance: bool = True, demo_cus
     try:
         shop = db.scalar(select(Shop).where(Shop.evolution_instance == "barbearia-demo"))
         if shop:
+            if not shop.ai_allow_free_tier:  # a demo (dados fictícios) pode usar a IA no plano gratuito
+                shop.ai_allow_free_tier = True
+                db.commit()
             if demo_finance:
                 seed_finance(db, shop)
             if demo_customers:
@@ -132,7 +135,8 @@ def seed(owner_phone: str = "5531999990000", demo_finance: bool = True, demo_cus
         shop = Shop(
             name="Barbearia Demo", address="Rua Exemplo, 123 - Centro, Conselheiro Lafaiete/MG",
             phone="(31) 3333-0000", owner_phone=owner_phone, instagram="@barbeariademo",
-            evolution_instance="barbearia-demo", niche="barbershop", theme_mode="auto", pix_enabled=True, pix_key="contato@barbeariademo.com.br",
+            evolution_instance="barbearia-demo", niche="barbershop", theme_mode="auto", ai_allow_free_tier=True,
+            pix_enabled=True, pix_key="contato@barbeariademo.com.br",
             pix_key_type="email", pix_receiver_name="Barbearia Demo", pix_city="Cons Lafaiete",
         )
         db.add(shop)
