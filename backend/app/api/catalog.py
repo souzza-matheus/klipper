@@ -29,7 +29,7 @@ router = APIRouter()
 def product_out(p: Product, qty: Decimal, owner: bool) -> S.ProductOut:
     return S.ProductOut(id=p.id, uuid=p.uuid, name=p.name, kind=p.kind, unit=p.unit, cost=p.cost if owner else None,
                         price=p.price, min_stock=p.min_stock, commission_pct=p.commission_pct, active=p.active,
-                        stock=qty, low_stock=bool(p.min_stock) and qty <= p.min_stock)
+                        stock=qty, low_stock=stock.is_low(p, qty))
 
 
 @router.get("/products", response_model=list[S.ProductOut], tags=["stock"])

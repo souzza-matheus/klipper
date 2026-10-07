@@ -3,7 +3,7 @@
 Plano das funcionalidades de CRM e gestão do SyncServ em 3 fases. Sistemas de mercado foram usados só como
 **referência de funcionalidades**; marca, textos, telas e identidade visual são do SyncServ.
 
-Legenda: ✅ pronto · 🟡 pronto no backend, telas na Etapa 2 · 🔜 planejado.
+Legenda: ✅ pronto (backend e telas) · 🟡 pronto no backend · 🔜 planejado.
 
 ---
 
@@ -24,9 +24,9 @@ Legenda: ✅ pronto · 🟡 pronto no backend, telas na Etapa 2 · 🔜 planejad
 
 ---
 
-## Fase 1 (Etapa 1: backend pronto; Etapa 2: telas; Etapa 3: offline)
+## Fase 1 (Etapa 1: backend; Etapa 2: telas no app e na web; Etapa 3: offline)
 
-### 1. Usuários e permissões 🟡
+### 1. Usuários e permissões ✅
 
 - **Objetivo:** equipe com login próprio, cada um vendo só o que precisa.
 - **Regras:**
@@ -36,11 +36,11 @@ Legenda: ✅ pronto · 🟡 pronto no backend, telas na Etapa 2 · 🔜 planejad
   - Toda rota declara o papel (`owner_shop`, `staff_shop`, `team_user` em `app/permissions.py`); o padrão é só o dono.
 - **Banco:** `users.role`, `barber_id`, `active`, `must_change_password`, `created_at` (migração 0008; quem já existia vira dono).
 - **Rotas:** `GET/POST /api/users`, `PUT /api/users/{id}`, `POST /api/users/{id}/reset-password`, `POST /api/auth/change-password`; `/me` e o login devolvem `role`, `barber_id` e `first_login`.
-- **Telas (Etapa 2):** Usuários e permissões; menus por papel; troca de senha no primeiro acesso.
+- **Telas:** Equipe e permissões (convite com senha provisória para copiar), menus por papel, troca de senha no primeiro acesso e em Mais.
 - **Bot:** sem mudança (o bot do estabelecimento continua pelo número do dono e dos profissionais).
 - **Testes:** `tests/security/test_roles.py` (todas as rotas para recepção e profissional, convite, troca de senha, desativação, último dono, filtro do profissional).
 
-### 2. Comanda 🟡
+### 2. Comanda ✅
 
 - **Objetivo:** fechar a conta do atendimento com serviços, produtos, desconto, gorjeta e pagamento dividido.
 - **Regras:**
@@ -53,59 +53,59 @@ Legenda: ✅ pronto · 🟡 pronto no backend, telas na Etapa 2 · 🔜 planejad
 - **Banco:** `comandas`, `comanda_items`, `comanda_payments`.
 - **Rotas:** `GET/POST /api/comandas`, `GET /api/comandas/{id}`, `POST .../items`, `POST .../items/{id}/reverse`, `POST .../payments`, `POST .../payments/{id}/reverse`, `POST .../close`, `POST .../cancel`.
 - **Financeiro:** `app/services/revenue.py` junta atendimentos sem comanda (como antes), comandas fechadas (desconto rateado entre os itens, valor repartido entre as formas de pagamento), cobranças pagas e sinais retidos. O relatório de comissões ganhou `tips` e `product_commission`.
-- **Telas (Etapa 2):** Comanda rápida (teclado numérico, botões grandes), painel lateral no web.
+- **Telas:** aba Caixa (comandas abertas, atendimentos do dia sem comanda, fechadas do dia) e comanda com botões grandes, teclado numérico e painel de pagamento ao lado no computador; "Abrir comanda" no agendamento, no toque longo da agenda e na ficha.
 - **Testes:** `tests/test_crm.py` (pagamento dividido, desconto, gorjeta, finanças, comissões, estorno, estorno após fechar).
 
-### 3. Produtos e estoque 🟡
+### 3. Produtos e estoque ✅
 
 - **Objetivo:** controlar venda e uso interno, com alerta de estoque baixo.
-- **Regras:** produto de venda, uso interno ou ambos; custo, preço, estoque mínimo, comissão opcional para quem vende. O saldo é a **soma das movimentações** (entrada, venda, consumo do serviço, uso interno, ajuste, estorno), nunca sobrescrito. Venda na comanda baixa o estoque; serviço lançado baixa o que ele consome (cadastro por serviço). Estoque baixo aparece no app e no resumo diário do dono no WhatsApp. Entrada e ajuste: dono; uso interno: dono e recepção.
+- **Regras:** produto de venda, uso interno ou ambos; custo, preço, estoque mínimo, comissão opcional para quem vende. O saldo é a **soma das movimentações** (entrada, venda, consumo do serviço, uso interno, ajuste, estorno), nunca sobrescrito. Venda na comanda baixa o estoque; serviço lançado baixa o que ele consome (cadastro por serviço). Vender mais do que há em estoque pede confirmação no app ("Vender mesmo assim"; a API recusa sem `allow_negative_stock`); a venda que chega pela sincronização offline sempre entra, porque já aconteceu. Estoque negativo ou abaixo do mínimo aparece como estoque baixo no app e no resumo diário do dono no WhatsApp. Entrada e ajuste: dono; uso interno: dono e recepção.
 - **Banco:** `products`, `stock_movements`, `service_products`.
 - **Rotas:** `GET/POST /api/products`, `PUT/DELETE /api/products/{id}`, `GET /api/products/low-stock`, `GET/POST /api/products/{id}/movements`, `GET/PUT /api/services/{id}/consumption`.
-- **Telas (Etapa 2):** Produtos e estoque.
+- **Telas:** Produtos e estoque (tabela no computador), produto com movimentação e histórico; consumo por serviço na edição do serviço.
 - **Testes:** baixa na venda e no serviço, uso interno, histórico sem sobrescrita, alerta no resumo diário.
 
-### 4. Pacotes 🟡
+### 4. Pacotes ✅
 
 - **Objetivo:** vender N sessões de um serviço com desconto e validade (ex.: 4 cortes por R$ 140).
 - **Regras:** saldo = sessões − usos; usado ao agendar (app, bot e IA usam sozinhos quando cobre o serviço) ou na comanda. Cancelamento devolve a sessão; falta não devolve. Vencido não é usado. A comissão da sessão usa o **valor proporcional** (preço ÷ sessões). O pacote entra no faturamento quando é pago (na comanda ou pelo Pix do WhatsApp).
 - **Banco:** `package_plans`, `customer_packages`, `package_uses`; `appointments.customer_package_id`.
 - **Rotas:** `GET/POST /api/package-plans`, `PUT/DELETE /api/package-plans/{id}`, `GET /api/customers/{id}/balance`, `POST /api/customer-packages/{id}/cancel`; venda pela comanda (`kind: package`).
 - **Bot:** opção **8 - Pacotes e assinatura** mostra o saldo e os pacotes à venda; a compra tem resumo com "1 - Confirmar e receber o Pix"; o pacote só vale depois que o Pix é confirmado no app.
-- **Telas (Etapa 2):** Pacotes; saldo na ficha do cliente.
+- **Telas:** Pacotes; saldo na ficha do cliente; uso do saldo no agendamento manual.
 - **Testes:** consumo no agendamento, devolução no cancelamento, comanda sem consumo duplo, comissão proporcional, pacote vencido.
 
-### 5. Clube de assinatura 🟡
+### 5. Clube de assinatura ✅
 
 - **Objetivo:** receita recorrente com planos mensais.
 - **Regras:** plano com serviços incluídos, com ou sem limite por período (o ciclo começa no dia do mês em que a assinatura começou). Status **ativa / atrasada / cancelada**. No vencimento, a rotina gera a cobrança e manda o Pix pelo WhatsApp; a confirmação é manual (interface de gateway pronta em `app/services/billing.py` para um Pix automático no futuro). Atrasada há mais de X dias (por plano), os benefícios ficam bloqueados até o pagamento. Relatório de assinantes e MRR (soma das assinaturas não canceladas). Comissão do serviço coberto: preço do serviço.
 - **Banco:** `subscription_plans`, `subscription_plan_items`, `subscriptions`, `subscription_uses`, `charges`; `appointments.subscription_id`.
 - **Rotas:** `GET/POST /api/subscription-plans`, `PUT/DELETE .../{id}`, `GET/POST /api/subscriptions`, `POST /api/subscriptions/{id}/cancel`, `GET /api/subscriptions/report`, `GET /api/charges`, `POST /api/charges/{id}/confirm|cancel|resend`.
 - **Bot:** saldo e status na opção 8; "paguei" marca a cobrança como informada.
-- **Telas (Etapa 2):** Assinaturas (planos, assinantes, cobranças, MRR).
+- **Telas:** Clube de assinatura (MRR, assinantes, cobranças com "Recebi"/reenviar/copiar Pix, planos), nova assinatura.
 - **Testes:** limite por período, estorno devolvendo o uso, atraso bloqueando benefícios, recuperação de vencimentos perdidos, MRR.
 
-### 6. Sinal contra faltas 🟡
+### 6. Sinal contra faltas ✅
 
 - **Objetivo:** reduzir falta exigindo um Pix antecipado.
 - **Regras:** por estabelecimento e por serviço (desligado, valor fixo ou %). Agendamento do WhatsApp fica **aguardando sinal** (ocupa o horário) e só é confirmado quando o Pix do sinal é confirmado. Sem confirmação em X minutos o horário é liberado (e oferecido à lista de espera). Cancelou com antecedência mínima configurável: sinal **a devolver**; depois disso ou falta: **retido** (entra no faturamento). O sinal pago entra sozinho na comanda. Pago com pacote ou assinatura não pede sinal. No app, o agendamento manual pede sinal só se marcado.
 - **Banco:** `shops.deposit_*`, `services.deposit_mode/value`, `appointments.deposit_amount/deposit_status`, `payments.kind`.
 - **Rotas:** `PUT /api/shop` (configuração), `POST /api/appointments` (`require_deposit`), `POST /api/payments/{id}/confirm`, `POST /api/appointments/{id}/deposit-refunded`.
 - **Bot e IA:** mensagem do sinal com prazo; a IA explica a regra (get_business_info).
-- **Telas (Etapa 2):** configuração do sinal; selo "aguardando sinal" na agenda.
+- **Telas:** configuração do sinal (negócio e serviço), opção "Cobrar sinal" no agendamento manual, selos do sinal, confirmar Pix do sinal e marcar devolução.
 - **Testes:** liberação do horário, confirmação, devolução e retenção.
 
-### 7. Lista de espera 🟡
+### 7. Lista de espera ✅
 
 - **Objetivo:** aproveitar horários que abrem.
 - **Regras:** quando o dia não tem horário, o bot oferece entrar na lista. Quando um horário abre (cancelamento, sinal vencido, remarcação, bloqueio removido), a primeira pessoa da fila que cabe nele é avisada e a vaga fica **reservada por 10 minutos** (configurável). Sem resposta, passa a vez; recusou, sai da lista.
 - **Banco:** `waitlist_entries`; agendamento `held` para a reserva.
 - **Rotas:** `GET/POST /api/waitlist`, `DELETE /api/waitlist/{id}`.
 - **Bot e IA:** opção no fim da lista de dias; resposta 1/2 à oferta; ferramenta `join_waitlist`.
-- **Telas (Etapa 2):** Lista de espera.
+- **Telas:** Lista de espera por dia (posição, vaga reservada, adicionar e tirar).
 - **Testes:** ordem da fila, reserva, expiração, aceite pelo WhatsApp, oferta no bot.
 
-### IA (fase 1) 🟡
+### IA (fase 1) ✅
 
 Ferramentas novas: `get_my_balance`, `list_packages`, `propose_package_purchase` (resumo com confirmação determinística; nada é cobrado antes do "1") e `join_waitlist`. Regras 10 e 11 no prompt.
 
@@ -116,6 +116,15 @@ Ferramentas novas: `get_my_balance`, `list_packages`, `propose_package_purchase`
 - **`POST /api/sync/push`:** operações em ordem com `operation_id` único (reenvio devolve o mesmo resultado); cada uma em savepoint; resultado `aplicado`, `rejeitado` (motivo) ou `conflito` (com a versão do servidor).
 - **Conflitos:** agendamento criado ou remarcado offline é validado como novo (horário ocupado = conflito); lançamentos de comanda, pagamentos e estoque só acrescentam e nunca conflitam; edição de cadastro com versão antiga faz merge campo a campo e só conflita no mesmo campo; WhatsApp só sai depois que a operação foi gravada.
 - **Testes:** `tests/security/test_sync.py` (idempotência, conflito de horário, tombstones, filtro por papel, isolamento entre lojas, paginação, merge, operações em ordem com falha isolada, limites de entrada).
+
+### Versão web e layout responsivo ✅
+
+Mesmo código do app (react-native-web). Celular: abas embaixo. Computador (900 px ou mais): menu lateral com o logo,
+conteúdo mais largo, agenda por profissional, tabelas com busca e ordenação, painel lateral na comanda e atalhos
+(N, C, B). Web: título "SyncServ", PWA, token só em memória e refresh token no sessionStorage, CSP e cabeçalhos no
+Caddy (`deploy/Caddyfile.app`), só online (aviso e escrita bloqueada sem internet). Testes: `mobile/tests/*.test.mjs`
+(papéis, teclado, tabela), `mobile/tests/web_e2e.py` (Playwright) e testes de segurança do backend para o token web e o
+CSP.
 
 ### Seeds
 

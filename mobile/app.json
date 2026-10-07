@@ -18,7 +18,14 @@
       "package": "br.com.barberbot.admin"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./public/favicon.ico",
+      "name": "SyncServ",
+      "shortName": "SyncServ",
+      "lang": "pt-BR",
+      "themeColor": "#0F172A",
+      "backgroundColor": "#0F172A",
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
       "expo-secure-store",
@@ -36,7 +43,8 @@
             "backgroundColor": "#0F172A"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

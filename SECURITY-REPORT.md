@@ -121,12 +121,33 @@ suíte com as mesmas garantias das antigas:
 - **WhatsApp no push:** mensagens geradas por uma operação do sync ficam numa fila e só saem depois do commit; operação
   rejeitada ou em conflito não manda nada.
 
+## Atualização: versão web (Etapa 2)
+
+- Login web (`client: "web"`) recebe token de acesso de 15 min e refresh token de 12 h (`typ=refresh`, não abre a
+  API); `/auth/refresh` e a troca de senha mantêm o token web curto; "sair de todos os aparelhos" invalida o refresh.
+- No navegador o token fica só em memória e o refresh token no `sessionStorage` da aba; o teste
+  `test_mobile_keeps_token_in_secure_store_and_has_no_api_keys` falha se o código usar `localStorage` ou cookies.
+- `deploy/Caddyfile.app`: CSP `default-src 'self'` sem `unsafe-eval` nem script inline, `frame-ancestors 'none'`,
+  HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, sem cabeçalho `Server`
+  (`test_web_app_is_served_with_csp_and_security_headers`).
+- **CSP sem `'unsafe-inline'`:** `style-src 'self'` mais um único hash, o da string vazia. O react-native-web cria
+  um `<style>` vazio e o preenche pelo CSSOM (`insertRule`), que o CSP não bloqueia. As fontes (`src/webFonts.web.js`)
+  entram do mesmo jeito, em vez do texto que o expo-font injetaria. O estilo base saiu do `index.html` para
+  `public/web.css`. O teste de segurança exige que a política não tenha `unsafe-inline`, tenha só esse hash e que o
+  `index.html` não tenha `<style>`, script inline nem atributo `style`.
+- `npm run test:web` (`mobile/tests/run_web_e2e.sh`) sobe um backend descartável com dados fictícios e roda
+  `mobile/tests/web_e2e.py` com esse CSP. O teste falha em qualquer violação de CSP ou erro de console, e confere que
+  as fontes e os ícones carregaram. Contraprova: sem o hash, o app nem desenha a tela de login e o teste falha.
+- `npm audit` (15 altos, M-10) conferido de novo: `braces` 3.0.3 e `node-forge` 1.4.0 continuam sendo as últimas
+  versões publicadas. Nenhum dos dois entra no bundle web nem no Android (só o Expo CLI e o Metro, no build, os
+  usam), e a dependência nova (`expo-asset`) não acrescentou aviso.
+
 ## Como rodar a suíte
 
 ```bash
 cd backend
-pytest tests/security -v      # só segurança (360 testes)
-pytest                        # tudo (504 testes)
+pytest tests/security -v      # só segurança (363 testes)
+pytest                        # tudo (508 testes)
 ```
 
 Os testes usam SQLite de teste e dados fictícios, sem rede (a Evolution e o Gemini são simulados). Para rodar a verificação de dependências:

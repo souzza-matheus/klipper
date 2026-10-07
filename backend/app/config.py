@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     # Validade do token: o app renova a cada abertura (POST /api/auth/refresh), então quem usa sempre não precisa
     # logar de novo; um token vazado vale no máximo isso (e "sair de todos os aparelhos" corta na hora)
     jwt_expire_hours: int = 24 * 7
+    # Versão web: token de acesso curto (fica só em memória e no sessionStorage) renovado pelo refresh token
+    web_access_minutes: int = 15
+    web_refresh_hours: int = 12
 
     # Evolution API. Se evolution_url ficar vazio, as mensagens só são registradas no log (modo simulação).
     evolution_url: str = ""

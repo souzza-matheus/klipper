@@ -8,7 +8,9 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, undefer
 
 from .. import schemas as S
-from ..auth import check_password_or_dummy, current_user, hash_password, make_token
+from ..auth import (
+    check_password_or_dummy, current_user, hash_password, make_refresh_token, make_token, user_from_refresh,
+)
 from ..security import login_limiter, same_secret
 from ..config import now_local, settings
 from ..db import get_db
@@ -74,14 +76,31 @@ def login(body: S.LoginIn, request: Request, db: Session = Depends(get_db)):
         login_limiter.failed(email, ip)
         raise HTTPException(401, "E-mail ou senha incorretos")  # mesma mensagem para e-mail ou senha errados
     login_limiter.succeeded(email, ip)
-    return _token_out(user)
+    return _token_out(user, body.client)
 
 
-def _token_out(user: User) -> S.TokenOut:
+def _token_out(user: User, client: str = "app") -> S.TokenOut:
     shop = user.shop
-    return S.TokenOut(token=make_token(user), user_name=user.name, shop_name=shop.name, niche=shop.niche,
+    web = client == "web"
+    return S.TokenOut(token=make_token(user, client), user_name=user.name, shop_name=shop.name, niche=shop.niche,
                       theme_mode=shop.theme_mode, role=user.role, barber_id=user.barber_id,
-                      first_login=user.must_change_password)
+                      first_login=user.must_change_password,
+                      refresh_token=make_refresh_token(user) if web else None,
+                      expires_in=settings.web_access_minutes * 60 if web else None)
+
+
+@router.post("/auth/token", response_model=S.TokenOut, tags=["auth"])
+def web_token(body: S.RefreshIn, request: Request, db: Session = Depends(get_db)):
+    """Versão web: troca o refresh token por um token de acesso novo (e um refresh novo). Sair de todos os
+    aparelhos, desativar a pessoa ou trocar a senha invalidam o refresh token."""
+    ip = _client_ip(request)
+    _throttle("refresh", ip)
+    try:
+        user = user_from_refresh(body.refresh_token, db)
+    except HTTPException:
+        login_limiter.failed("refresh", ip)
+        raise
+    return _token_out(user, "web")
 
 
 @router.post("/auth/register", response_model=S.TokenOut, tags=["auth"])
@@ -112,8 +131,9 @@ def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)
 
 @router.post("/auth/refresh", response_model=S.TokenOut, tags=["auth"])
 def refresh(user: User = Depends(current_user)):
-    """Token novo (validade renovada) para quem ainda tem um token válido. O app chama ao abrir."""
-    return _token_out(user)
+    """Token novo (validade renovada) para quem ainda tem um token válido. O app chama ao abrir. Token da versão
+    web continua curto (não vira um token de 7 dias)."""
+    return _token_out(user, getattr(user, "token_client", "app"))
 
 
 @router.post("/auth/logout-all", tags=["auth"])
@@ -139,7 +159,7 @@ def change_password(body: S.ChangePasswordIn, request: Request, user: User = Dep
     user.must_change_password = False
     user.token_version = (user.token_version or 0) + 1
     db.commit()
-    return _token_out(user)
+    return _token_out(user, getattr(user, "token_client", "app"))
 
 
 @router.get("/me", tags=["auth"])

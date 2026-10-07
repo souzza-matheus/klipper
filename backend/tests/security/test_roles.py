@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from .test_isolation import ROUTE_CASES, all_routes
 
-PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register")}
+PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token")}
 
 # Qualquer papel (a rota filtra o que o profissional enxerga)
 TEAM = {

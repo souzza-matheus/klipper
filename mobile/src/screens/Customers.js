@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
 import { Stars } from './Agenda';
@@ -8,14 +8,22 @@ import { dmy, dtLabel, gapLabel, money, phoneLabel } from '../format';
 import { ACCESS, PAY, STATUS } from '../status';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
+import { useSession } from '../session';
+import { DataTable } from '../components/Layout';
+import { BalanceSection } from './Plans';
 import {
   Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, Group, ListRow, Loading, Screen, Section,
   SegmentedControl, Stat, Title, Toggle, run, toast, useLoad,
+  ask,
 } from '../ui';
 
-export function CustomersScreen({ navigation }) {
-  const { c, v } = useTheme();
+export function CustomersScreen({ navigation, route }) {
+  const { c, s, v } = useTheme();
+  const { can, wide } = useSession();
   const [q, setQ] = useState('');
+  const search = React.useRef(null);
+  // Atalho "B" (buscar cliente) no computador
+  useEffect(() => { if (route?.params?.focus) search.current?.focus(); }, [route?.params?.focus]);
   const [access, setAccess] = useState('');
   const query = useDebounced(q);
   const list = useLoad(() => api.get('/customers', { q: query, access_status: access || null, limit: 100 }), [query, access]);
@@ -23,14 +31,25 @@ export function CustomersScreen({ navigation }) {
 
   return (
     <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
-      <Field value={q} onChangeText={setQ} placeholder="Buscar por nome ou telefone" returnKeyType="search"
+      <Field value={q} onChangeText={setQ} placeholder="Buscar por nome ou telefone" returnKeyType="search" ref={search}
              prefix={<Ionicons name="search" size={18} color={c.textMuted} style={{ marginRight: 6 }} />} />
-      <SegmentedControl value={access} onChange={setAccess} options={[
-        { value: '', label: 'Todos' }, { value: 'approval', label: 'Aprovação' }, { value: 'blocked', label: 'Bloqueados' },
-      ]} />
+      {can('customerAccess') ? (
+        <SegmentedControl value={access} onChange={setAccess} options={[
+          { value: '', label: 'Todos' }, { value: 'approval', label: 'Aprovação' }, { value: 'blocked', label: 'Bloqueados' },
+        ]} />
+      ) : null}
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
       {list.data && !items.length ? <Empty icon="people-outline" text={`Nenhum ${v.customer} encontrado.`} /> : null}
-      {items.length ? (
+      {items.length && wide ? (
+        <DataTable rows={items} searchKeys={['name', 'phone']} placeholder="Filtrar resultados"
+                   onRowPress={(x) => navigation.navigate('Customer', { id: x.id })} initialSort={{ key: 'name', dir: 'asc' }}
+                   columns={[
+                     { key: 'name', label: 'Nome', flex: 2, render: (x) => <Text style={s.bodyBold}>{x.name || 'Sem nome'}</Text> },
+                     { key: 'phone', label: 'WhatsApp', render: (x) => <Text style={s.body}>{phoneLabel(x.phone)}</Text> },
+                     { key: 'created_at', label: `${v.Customer} desde`, render: (x) => <Text style={s.body}>{dmy(x.created_at)}</Text> },
+                     { key: 'access_status', label: 'Acesso', render: (x) => <Badge info={ACCESS[x.access_status] || { label: 'Normal', tone: 'neutral' }} /> },
+                   ]} />
+      ) : items.length ? (
         <Group>
           {items.map((x, i) => (
             <ListRow key={x.id} icon="person-circle-outline" title={x.name || 'Sem nome'} subtitle={phoneLabel(x.phone)}
@@ -63,7 +82,7 @@ function AccessSection({ d, onSaved }) {
 
   const onSave = () => {
     if (status === 'blocked' && d.access_status !== 'blocked' && d.future_appointments > 0) {
-      Alert.alert(
+      ask(
         'Cancelar os agendamentos futuros?',
         `${d.name || `Este ${v.customer}`} tem ${d.future_appointments} agendamento(s) futuro(s).`,
         [
@@ -241,6 +260,7 @@ function ConflictsSection({ d, navigation }) {
 
 export function CustomerScreen({ route, navigation }) {
   const { s, v } = useTheme();
+  const { can } = useSession();
   const cust = useLoad(() => api.get(`/customers/${route.params.id}`), [route.params.id]);
   const [name, setName] = useState(null);
   const [notes, setNotes] = useState(null);
@@ -265,13 +285,28 @@ export function CustomerScreen({ route, navigation }) {
         <Stat label="Faltas" value={d.no_shows} tone={d.no_shows ? 'danger' : undefined} icon={d.no_shows ? 'alert-circle-outline' : undefined} />
         <Stat label="Total gasto" value={money(d.total_spent)} />
       </View>
-      <Button title="Abrir no WhatsApp" kind="ghost" icon="logo-whatsapp" onPress={() => Linking.openURL(`https://wa.me/${d.phone}`)} />
-      <Section title="Dados">
-        <Field label="Nome" value={name ?? d.name} onChangeText={setName} autoCapitalize="words" />
-        <Field label="Observações" value={notes ?? d.notes} onChangeText={setNotes} multiline placeholder="Preferências, cuidados, histórico" />
-      </Section>
-      <AccessSection d={d} onSaved={cust.reload} />
-      <ConflictsSection d={d} navigation={navigation} />
+      <View style={[s.row, { gap: SPACE(2), flexWrap: 'wrap' }]}>
+        <Button title="WhatsApp" kind="ghost" icon="logo-whatsapp" style={{ flex: 1 }}
+                onPress={() => Linking.openURL(`https://wa.me/${d.phone}`)} />
+        {can('comandas') ? (
+          <Button title="Nova comanda" kind="ghost" icon="receipt-outline" style={{ flex: 1 }}
+                  onPress={() => run(async () => {
+                    const r = await api.post('/comandas', { customer_id: d.id });
+                    navigation.navigate('Comanda', { id: r.id });
+                  })} />
+        ) : null}
+      </View>
+      {can('customerBalance') ? (
+        <BalanceSection balance={d.balance} customer={d} navigation={navigation} onChanged={cust.reload} />
+      ) : null}
+      {can('customerEdit') ? (
+        <Section title="Dados">
+          <Field label="Nome" value={name ?? d.name} onChangeText={setName} autoCapitalize="words" />
+          <Field label="Observações" value={notes ?? d.notes} onChangeText={setNotes} multiline placeholder="Preferências, cuidados, histórico" />
+        </Section>
+      ) : d.notes ? <Section title="Observações"><Text style={s.body}>{d.notes}</Text></Section> : null}
+      {can('customerAccess') ? <AccessSection d={d} onSaved={cust.reload} /> : null}
+      {can('customerAccess') ? <ConflictsSection d={d} navigation={navigation} /> : null}
       <Section title="Histórico">
         {!d.appointments.length ? <Empty text={`Sem ${v.services} ainda.`} /> : null}
         {d.appointments.map((a) => (

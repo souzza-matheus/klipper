@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { login } from '../api';
+import { IS_WEB } from '../storage';
 import { LogoVertical } from '../brand/Logo';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
@@ -11,7 +12,8 @@ import { Button, Field, run } from '../ui';
 export default function Login({ initialUrl, initialEmail, onLogged }) {
   const { c, s, mode } = useTheme();
   const insets = useSafeAreaInsets();
-  const [url, setUrl] = useState(initialUrl || 'http://192.168.0.10:8000');
+  // Web publicado (app.dominio): a API responde no mesmo endereço do site
+  const [url, setUrl] = useState(initialUrl || (IS_WEB ? window.location.origin : 'http://192.168.0.10:8000'));
   const [email, setEmail] = useState(initialEmail || '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);

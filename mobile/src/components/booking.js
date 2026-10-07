@@ -1,5 +1,4 @@
-import { Alert } from 'react-native';
-import { confirm, haptic, run, toast } from '../ui';
+import { ask, confirm, haptic, run, toast } from '../ui';
 
 // Salva um agendamento/remarcação. Se a API recusar por conflito entre clientes (409), mostra quem é o outro
 // cliente e oferece "Agendar mesmo assim" (repete com force=true). call(force) faz a chamada.
@@ -15,7 +14,7 @@ export async function saveWithConflictCheck(call, okMsg) {
     }
     haptic.warning();
     return new Promise((resolve) => {
-      Alert.alert('Clientes que não podem se encontrar', `${e.message}\n\nO cliente não fica sabendo disso.`, [
+      ask('Clientes que não podem se encontrar', `${e.message}\n\nO cliente não fica sabendo disso.`, [
         { text: 'Voltar', style: 'cancel', onPress: () => resolve(undefined) },
         { text: 'Agendar mesmo assim', style: 'destructive', onPress: () => resolve(run(() => call(true), okMsg)) },
       ]);

@@ -10,7 +10,7 @@ from app.config import Settings, settings
 from app.models import User
 from app.security import check_production, login_limiter, production_problems
 
-PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register")}
+PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token")}
 
 
 def _api_routes():
@@ -238,3 +238,41 @@ def test_login_limiter_works_with_redis_and_survives_redis_outage():
     down.failed("c@d.com", "1.1.1.1")
     down.failed("c@d.com", "1.1.1.1")
     assert down.retry_after("c@d.com", "1.1.1.1") > 0
+
+
+def test_web_login_gets_short_token_and_refresh_token(two):
+    r = two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123", "client": "web"})
+    body = r.json()
+    assert r.status_code == 200 and body["refresh_token"] and body["expires_in"] == settings.web_access_minutes * 60
+    access = jwt.decode(body["token"], settings.jwt_secret, algorithms=["HS256"])
+    minutes = (datetime.fromtimestamp(access["exp"], timezone.utc) - datetime.now(timezone.utc)).total_seconds() / 60
+    assert minutes <= settings.web_access_minutes
+    h = {"Authorization": f"Bearer {body['token']}"}
+    assert two.anon.get("/api/me", headers=h).status_code == 200
+    # O refresh token não abre a API
+    assert two.anon.get("/api/me", headers={"Authorization": f"Bearer {body['refresh_token']}"}).status_code == 401
+    # Renovar pelo /auth/refresh não transforma o token curto em token longo
+    again = jwt.decode(two.anon.post("/api/auth/refresh", headers=h).json()["token"], settings.jwt_secret,
+                       algorithms=["HS256"])
+    assert again["cli"] == "web"
+    assert (datetime.fromtimestamp(again["exp"], timezone.utc) - datetime.now(timezone.utc)).total_seconds() <= \
+        settings.web_access_minutes * 60 + 5
+    # Troca pelo /auth/token: token e refresh novos
+    r = two.anon.post("/api/auth/token", json={"refresh_token": body["refresh_token"]})
+    assert r.status_code == 200 and r.json()["refresh_token"]
+    assert two.anon.get("/api/me", headers={"Authorization": f"Bearer {r.json()['token']}"}).status_code == 200
+    # O app nativo não recebe refresh token
+    app = two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123"}).json()
+    assert app["refresh_token"] is None
+
+
+def test_refresh_token_rejects_access_tokens_and_dies_with_logout_all(two):
+    body = two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123",
+                                                  "client": "web"}).json()
+    access = two.ca.headers["Authorization"][7:]
+    assert two.anon.post("/api/auth/token", json={"refresh_token": access}).status_code == 401
+    assert two.anon.post("/api/auth/token", json={"refresh_token": "lixo"}).status_code == 401
+    assert two.ca.post("/api/auth/logout-all").status_code == 200
+    assert two.anon.post("/api/auth/token", json={"refresh_token": body["refresh_token"]}).status_code == 401
+    assert two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "x", "client": "desktop"}
+                         ).status_code == 422

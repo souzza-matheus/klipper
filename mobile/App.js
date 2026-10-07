@@ -1,22 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold, useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import {
+  createNavigationContainerRef, DarkTheme, DefaultTheme, NavigationContainer,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { preloadWebFonts } from './src/webFonts';
 
 import { api, clearSession, loadSession, refreshSession, saveAppearance, setUnauthorizedHandler } from './src/api';
 import { LogoVertical } from './src/brand/Logo';
+import { OfflineBanner, Sidebar } from './src/components/Layout';
+import { shortcutFor, tabsFor } from './src/roles';
+import { SessionProvider, useWide } from './src/session';
 import { BRAND_THEME } from './src/theme';
 import { ThemeProvider, useTheme } from './src/ThemeProvider';
-import { ToastHost } from './src/ui';
+import { DialogHost, ToastHost } from './src/ui';
 import Login from './src/screens/Login';
 import { HomeScreen } from './src/screens/Home';
 import { AgendaScreen, ApprovalsScreen, AppointmentScreen, NewAppointmentScreen } from './src/screens/Agenda';
@@ -29,11 +35,17 @@ import {
   FinanceHomeScreen, SettlementsScreen,
 } from './src/screens/Finance';
 import { AboutScreen, MoreScreen, SettingsScreen, WhatsAppScreen } from './src/screens/Settings';
+import { ComandaScreen, ComandasScreen } from './src/screens/Comandas';
+import { ProductEditScreen, ProductsScreen } from './src/screens/Stock';
+import { PackageEditScreen, PackagesScreen, PlanEditScreen, SubscribeScreen, SubscriptionsScreen } from './src/screens/Plans';
+import { WaitlistScreen } from './src/screens/Waitlist';
+import { ChangePasswordScreen, TeamScreen, UserEditScreen } from './src/screens/Team';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const navRef = createNavigationContainerRef();
 
 // Tema do React Navigation a partir dos tokens
 function useNavTheme() {
@@ -64,136 +76,148 @@ function useStackOpts() {
   }), [c, font]);
 }
 
-// Telas de detalhe disponíveis a partir de qualquer aba
-function shared(v) {
-  return (
-    <>
-      <Stack.Screen name="Appointment" component={AppointmentScreen} options={{ title: 'Agendamento' }} />
-      <Stack.Screen name="NewAppointment" component={NewAppointmentScreen} options={{ title: 'Novo agendamento' }} />
-      <Stack.Screen name="Customer" component={CustomerScreen} options={{ title: v.Customer }} />
-      <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Pedidos para aprovar' }} />
-      <Stack.Screen name="PixList" component={PaymentsScreen} options={{ title: 'Pagamentos Pix' }} />
-    </>
-  );
+// Telas de detalhe: disponíveis a partir de qualquer aba (a API decide o que cada papel pode ver)
+function details(v) {
+  return [
+    ['Appointment', AppointmentScreen, 'Agendamento'],
+    ['NewAppointment', NewAppointmentScreen, 'Novo agendamento'],
+    ['Customer', CustomerScreen, v.Customer],
+    ['Approvals', ApprovalsScreen, 'Pedidos para aprovar'],
+    ['PixList', PaymentsScreen, 'Pagamentos Pix'],
+    ['Comanda', ComandaScreen, 'Comanda'],
+    ['Products', ProductsScreen, 'Produtos e estoque'],
+    ['ProductEdit', ProductEditScreen, 'Produto'],
+    ['Packages', PackagesScreen, 'Pacotes'],
+    ['PackageEdit', PackageEditScreen, 'Pacote'],
+    ['Subscriptions', SubscriptionsScreen, 'Clube de assinatura'],
+    ['PlanEdit', PlanEditScreen, 'Plano'],
+    ['Subscribe', SubscribeScreen, 'Nova assinatura'],
+    ['Waitlist', WaitlistScreen, 'Lista de espera'],
+    ['Team', TeamScreen, 'Equipe e permissões'],
+    ['UserEdit', UserEditScreen, 'Pessoa da equipe'],
+    ['ChangePassword', ChangePasswordScreen, 'Trocar senha'],
+    ['Services', ServicesScreen, 'Serviços'],
+    ['ServiceEdit', ServiceEditScreen, 'Serviço'],
+    ['Barbers', BarbersScreen, v.Pros],
+    ['BarberEdit', BarberEditScreen, v.Pro],
+    ['Blocks', BlocksScreen, 'Bloqueios'],
+    ['Reviews', ReviewsScreen, 'Avaliações'],
+    ['Reports', ReportsScreen, 'Relatórios'],
+    ['Settings', SettingsScreen, 'Configurações'],
+    ['WhatsApp', WhatsAppScreen, 'Conexão do WhatsApp'],
+    ['About', AboutScreen, 'Sobre o SyncServ'],
+    ['Expenses', ExpensesScreen, 'Gastos'],
+    ['ExpenseEdit', ExpenseEditScreen, 'Gasto'],
+    ['Commissions', CommissionsScreen, 'Comissões e repasses'],
+    ['CommissionRules', CommissionRulesScreen, 'Regras de repasse'],
+    ['CommissionRuleEdit', CommissionRuleEditScreen, 'Regra de repasse'],
+    ['Settlements', SettlementsScreen, 'Acertos'],
+  ];
 }
 
-function HomeStack() {
+// Raiz de cada aba: [rota, tela, título; null = sem cabeçalho]
+const ROOTS = {
+  Hoje: ['HomeMain', HomeScreen, null],
+  Agenda: ['AgendaHome', AgendaScreen, 'Agenda'],
+  Caixa: ['CaixaHome', ComandasScreen, 'Caixa'],
+  Clientes: ['CustomersHome', CustomersScreen, 'Clientes'],
+  Financeiro: ['FinanceHome', FinanceHomeScreen, 'Financeiro'],
+  Comissoes: ['CommissionsHome', CommissionsScreen, 'Minhas comissões'],
+};
+
+function TabStack({ tab, onLogout, shopName }) {
   const opts = useStackOpts();
   const { v } = useTheme();
+  const root = ROOTS[tab];
   return (
     <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
-      {shared(v)}
+      {tab === 'Mais' ? (
+        <Stack.Screen name="MoreHome" options={{ title: 'Mais' }}>
+          {(props) => <MoreScreen {...props} onLogout={onLogout} shopName={shopName} />}
+        </Stack.Screen>
+      ) : (
+        <Stack.Screen name={root[0]} component={root[1]}
+                      options={root[2] ? { title: tab === 'Clientes' ? v.Customers : root[2] } : { headerShown: false }} />
+      )}
+      {details(v).map(([name, comp, title]) => (
+        <Stack.Screen key={name} name={name} component={comp} options={{ title }} />
+      ))}
     </Stack.Navigator>
   );
 }
 
-function AgendaStack() {
-  const opts = useStackOpts();
-  const { v } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="AgendaHome" component={AgendaScreen} options={{ title: 'Agenda' }} />
-      {shared(v)}
-    </Stack.Navigator>
-  );
+// Atalhos de teclado no computador (web): N novo agendamento, C abrir comanda, B buscar cliente
+function useShortcuts(role) {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      const el = e.target;
+      const typing = el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
+      if (typing || !navRef.isReady()) return;
+      const sc = shortcutFor(role, e.key);
+      if (!sc) return;
+      e.preventDefault();
+      if (sc.key === 'n') navRef.navigate('Agenda', { screen: 'NewAppointment', initial: false });
+      if (sc.key === 'c') navRef.navigate('Caixa', { screen: 'CaixaHome', params: { openNew: Date.now() } });
+      if (sc.key === 'b') navRef.navigate('Clientes', { screen: 'CustomersHome', params: { focus: Date.now() } });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [role]);
 }
 
-function PaymentsStack() {
-  const opts = useStackOpts();
-  const { v } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="PaymentsHome" component={PaymentsScreen} options={{ title: 'Pagamentos Pix' }} />
-      {shared(v)}
-    </Stack.Navigator>
-  );
-}
-
-function FinanceStack() {
-  const opts = useStackOpts();
-  const { v } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="FinanceHome" component={FinanceHomeScreen} options={{ title: 'Financeiro' }} />
-      <Stack.Screen name="Expenses" component={ExpensesScreen} options={{ title: 'Gastos' }} />
-      <Stack.Screen name="ExpenseEdit" component={ExpenseEditScreen} options={{ title: 'Gasto' }} />
-      <Stack.Screen name="Commissions" component={CommissionsScreen} options={{ title: 'Comissões e repasses' }} />
-      <Stack.Screen name="CommissionRules" component={CommissionRulesScreen} options={{ title: 'Regras de repasse' }} />
-      <Stack.Screen name="CommissionRuleEdit" component={CommissionRuleEditScreen} options={{ title: 'Regra de repasse' }} />
-      <Stack.Screen name="Settlements" component={SettlementsScreen} options={{ title: 'Acertos' }} />
-      {shared(v)}
-    </Stack.Navigator>
-  );
-}
-
-function CustomersStack() {
-  const opts = useStackOpts();
-  const { v } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="CustomersHome" component={CustomersScreen} options={{ title: v.Customers }} />
-      {shared(v)}
-    </Stack.Navigator>
-  );
-}
-
-function MoreStack({ onLogout, shopName }) {
-  const opts = useStackOpts();
-  const { v } = useTheme();
-  return (
-    <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="MoreHome" options={{ title: 'Mais' }}>
-        {(props) => <MoreScreen {...props} onLogout={onLogout} shopName={shopName} />}
-      </Stack.Screen>
-      <Stack.Screen name="Services" component={ServicesScreen} options={{ title: 'Serviços' }} />
-      <Stack.Screen name="ServiceEdit" component={ServiceEditScreen} options={{ title: 'Serviço' }} />
-      <Stack.Screen name="Barbers" component={BarbersScreen} options={{ title: v.Pros }} />
-      <Stack.Screen name="BarberEdit" component={BarberEditScreen} options={{ title: v.Pro }} />
-      <Stack.Screen name="Blocks" component={BlocksScreen} options={{ title: 'Bloqueios' }} />
-      <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ title: 'Avaliações' }} />
-      <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Relatórios' }} />
-      {/* aberta pela seção "Comissões" do profissional */}
-      <Stack.Screen name="CommissionRuleEdit" component={CommissionRuleEditScreen} options={{ title: 'Regra de repasse' }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
-      <Stack.Screen name="WhatsApp" component={WhatsAppScreen} options={{ title: 'Conexão do WhatsApp' }} />
-      <Stack.Screen name="About" component={AboutScreen} options={{ title: 'Sobre o SyncServ' }} />
-      {shared(v)}
-    </Stack.Navigator>
-  );
-}
-
-const ICONS = { Hoje: 'today', Agenda: 'calendar', Pix: 'cash', Financeiro: 'wallet', Clientes: 'people', Mais: 'menu' };
-
-function Tabs({ onLogout, shopName }) {
+function Tabs({ onLogout, session }) {
   const { c, font, v, mode } = useTheme();
   const navTheme = useNavTheme();
+  const wide = useWide();
+  const tabs = tabsFor(session.role);
+  useShortcuts(session.role);
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} ref={navRef} documentTitle={{ formatter: () => 'SyncServ' }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      <Tab.Navigator screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: c.accentText,
-        tabBarInactiveTintColor: c.textMuted,
-        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.divider, minHeight: 64 },
-        tabBarLabelStyle: { fontFamily: font.semibold, fontSize: 12 },
-        tabBarAllowFontScaling: false,
-        tabBarItemStyle: { paddingVertical: 4 },
-        tabBarIcon: ({ color, focused }) => (
-          <Ionicons name={ICONS[route.name] + (focused ? '' : '-outline')} size={24} color={color} />
-        ),
-      })}>
-        <Tab.Screen name="Hoje" component={HomeStack} />
-        <Tab.Screen name="Agenda" component={AgendaStack} />
-        <Tab.Screen name="Pix" component={PaymentsStack} />
-        <Tab.Screen name="Financeiro" component={FinanceStack} options={{ tabBarLabel: 'Finanças' }} />
-        <Tab.Screen name="Clientes" component={CustomersStack} options={{ tabBarLabel: v.Customers }} />
-        <Tab.Screen name="Mais">
-          {() => <MoreStack onLogout={onLogout} shopName={shopName} />}
-        </Tab.Screen>
+      <OfflineBanner />
+      <Tab.Navigator
+        tabBar={wide ? (props) => <Sidebar {...props} role={session.role} shopName={session.shop}
+                                             userName={session.name} /> : undefined}
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarPosition: wide ? 'left' : 'bottom',
+          tabBarActiveTintColor: c.accentText,
+          tabBarInactiveTintColor: c.textMuted,
+          tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.divider, minHeight: 64 },
+          tabBarLabelStyle: { fontFamily: font.semibold, fontSize: 12 },
+          tabBarAllowFontScaling: false,
+          tabBarItemStyle: { paddingVertical: 4 },
+          tabBarIcon: ({ color, focused }) => {
+            const t = tabs.find((x) => x.name === route.name);
+            return <Ionicons name={t.icon + (focused ? '' : '-outline')} size={24} color={color} />;
+          },
+        })}>
+        {tabs.map((t) => (
+          <Tab.Screen key={t.name} name={t.name}
+                      options={{ tabBarLabel: t.name === 'Clientes' ? v.Customers : t.label || t.name, sideIcon: t.icon }}>
+            {() => <TabStack tab={t.name} onLogout={onLogout} shopName={session.shop} />}
+          </Tab.Screen>
+        ))}
       </Tab.Navigator>
       <ToastHost />
+      <DialogHost />
     </NavigationContainer>
+  );
+}
+
+// Primeiro acesso de quem foi convidado: troca a senha provisória antes de tudo
+function FirstLogin({ onDone }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: c.background }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+        <ChangePasswordScreen first onDone={onDone} />
+      </View>
+      <ToastHost />
+      <DialogHost />
+    </View>
   );
 }
 
@@ -206,11 +230,17 @@ function BrandSplash() {
   );
 }
 
+const FONTS = {
+  PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+};
+const webFonts = preloadWebFonts({ ...FONTS, ...Ionicons.font });
+
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
-  });
+  const [loaded] = useFonts(FONTS);
+  const [webFontsReady, setWebFontsReady] = useState(Platform.OS !== 'web');
+  useEffect(() => { webFonts.then(() => setWebFontsReady(true)); }, []);
+  const fontsLoaded = loaded && webFontsReady;
   const [session, setSession] = useState(null);
 
   useEffect(() => {
@@ -222,7 +252,7 @@ export default function App() {
 
   const logout = useCallback(async () => {
     await clearSession();
-    setSession((s) => ({ ...s, token: '' }));
+    setSession((s) => ({ ...s, token: '', firstLogin: false }));
   }, []);
   useEffect(() => { setUnauthorizedHandler(logout); }, [logout]);
 
@@ -232,13 +262,21 @@ export default function App() {
     saveAppearance(niche, themeMode, shopName);
   }, []);
 
-  // Confere o tema do negócio na API (pode ter mudado em outro aparelho)
+  // Confere o tema do negócio e o papel na API (podem ter mudado em outro aparelho)
   const token = session?.token;
   useEffect(() => {
     if (!token) return;
     refreshSession().catch(() => {}); // renova a validade do token
-    api.get('/me').then((me) => setAppearance(me.niche, me.theme_mode, me.shop_name)).catch(() => {});
+    api.get('/me').then((me) => {
+      setAppearance(me.niche, me.theme_mode, me.shop_name);
+      setSession((s) => ({ ...s, role: me.role, barberId: me.barber_id, name: me.name, firstLogin: me.first_login }));
+    }).catch(() => {});
   }, [token, setAppearance]);
+
+  const sessionValue = useMemo(() => ({
+    role: session?.role || 'owner', barberId: session?.barberId || null, userName: session?.name || '',
+    shopName: session?.shop || '',
+  }), [session?.role, session?.barberId, session?.name, session?.shop]);
 
   if (!fontsLoaded) return null; // a splash nativa continua na tela
   if (!session) {
@@ -253,13 +291,20 @@ export default function App() {
           <Login initialUrl={session.baseUrl} initialEmail={session.email}
                  onLogged={(r) => setSession({
                    ...session, token: r.token, name: r.user_name, shop: r.shop_name, niche: r.niche,
-                   themeMode: r.theme_mode,
+                   themeMode: r.theme_mode, role: r.role, barberId: r.barber_id, firstLogin: r.first_login,
                  })} />
           <ToastHost />
+          <DialogHost />
         </ThemeProvider>
       ) : (
         <ThemeProvider niche={session.niche} themeMode={session.themeMode} setAppearance={setAppearance}>
-          <Tabs onLogout={logout} shopName={session.shop} />
+          <SessionProvider value={sessionValue}>
+            {session.firstLogin ? (
+              <FirstLogin onDone={(r) => setSession((s) => ({ ...s, token: r.token, firstLogin: false }))} />
+            ) : (
+              <Tabs onLogout={logout} session={session} />
+            )}
+          </SessionProvider>
         </ThemeProvider>
       )}
     </SafeAreaProvider>

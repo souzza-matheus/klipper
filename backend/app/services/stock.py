@@ -62,12 +62,16 @@ def undo_for_item(db: Session, shop: Shop, item: ComandaItem, reversal: ComandaI
     return out
 
 
+def is_low(product: Product, qty: Decimal) -> bool:
+    """Abaixo do mínimo ou negativo (vendeu sem ter: alguém precisa conferir)."""
+    return qty < 0 or (bool(product.min_stock) and qty <= product.min_stock)
+
+
 def low_stock(db: Session, shop: Shop) -> list[tuple[Product, Decimal]]:
     products = db.scalars(select(Product).where(Product.shop_id == shop.id, Product.active.is_(True))
                           .order_by(Product.name)).all()
     bal = balances(db, shop, [p.id for p in products])
-    return [(p, bal.get(p.id, Decimal(0))) for p in products
-            if p.min_stock and bal.get(p.id, Decimal(0)) <= p.min_stock]
+    return [(p, bal.get(p.id, Decimal(0))) for p in products if is_low(p, bal.get(p.id, Decimal(0)))]
 
 
 def fmt_qty(q: Decimal) -> str:

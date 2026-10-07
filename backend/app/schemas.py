@@ -25,9 +25,17 @@ class ORM(BaseModel):
 
 
 # ---- auth
+CLIENT = "^(app|web)$"
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(max_length=128)
+    client: str = Field("app", pattern=CLIENT)  # web: token curto + refresh token
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str = Field(max_length=2000)
 
 
 class RegisterIn(BaseModel):
@@ -54,6 +62,8 @@ class TokenOut(BaseModel):
     role: str = "owner"
     barber_id: int | None = None
     first_login: bool = False  # convite com senha provisória: precisa trocar antes de usar
+    refresh_token: str | None = None  # só na versão web
+    expires_in: int | None = None     # segundos de validade do token (web)
 
 
 class ChangePasswordIn(BaseModel):
@@ -813,6 +823,7 @@ class ComandaItemIn(BaseModel):
     cover: str = Field("none", pattern="^(none|package|subscription)$")
     value: PositiveMoney | None = None  # desconto em R$ ou gorjeta
     percent: Percent | None = None      # desconto em %
+    allow_negative_stock: bool = False  # vender produto mesmo sem estoque (confirmado no app)
 
 
 class ComandaPaymentIn(BaseModel):

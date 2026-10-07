@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
-import { api, apiUrl, authHeaders, download } from '../api';
+import { api, apiUrl, authHeaders, download, saveFile } from '../api';
+import { IS_WEB } from '../storage';
 import { confirmPix } from '../components/AppointmentCard';
 import { ago, dtLabel, money, phoneLabel } from '../format';
 import { PAY_LIST } from '../status';
@@ -15,16 +15,24 @@ import { Badge, BottomSheet, Button, Card, confirm, Empty, Loading, Screen, Segm
 function Receipt({ p }) {
   const { c, s } = useTheme();
   const [open, setOpen] = useState(false);
+  // No navegador, <img> não manda o cabeçalho de login: baixa com o token e mostra pelo endereço blob:
+  const [webUri, setWebUri] = useState(null);
+  const isImage = p.has_receipt && p.receipt_mime !== 'application/pdf';
+  useEffect(() => {
+    if (!IS_WEB || !isImage) return undefined;
+    let url = null;
+    download(`/payments/${p.id}/receipt`, null, `comprovante-${p.id}`).then((u) => { url = u; setWebUri(u); })
+      .catch(() => {});
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [p.id, isImage]);
   if (!p.has_receipt) return null;
-  const src = { uri: apiUrl(`/payments/${p.id}/receipt`), headers: authHeaders() };
+  const src = IS_WEB ? { uri: webUri || undefined } : { uri: apiUrl(`/payments/${p.id}/receipt`), headers: authHeaders() };
   if (p.receipt_mime === 'application/pdf') {
     return (
       <Button title="Abrir comprovante (PDF)" kind="ghost" icon="document-text-outline" compact
               style={{ marginBottom: SPACE(3), alignSelf: 'flex-start' }}
-              onPress={() => run(async () => {
-                const uri = await download(`/payments/${p.id}/receipt`, null, `comprovante-${p.id}.pdf`);
-                await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
-              })} />
+              onPress={() => run(() => saveFile(`/payments/${p.id}/receipt`, null, `comprovante-${p.id}.pdf`,
+                                                'application/pdf'))} />
     );
   }
   return (

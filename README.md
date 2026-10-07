@@ -48,7 +48,8 @@ O motivo é interno (só o dono vê, no app e na busca de cliente do bot). Nenhu
 - No app, o novo agendamento mostra um aviso discreto quando o cliente tem conflito com alguém agendado no dia e esconde os horários próximos (com a opção "Mostrar todos"). Se o horário violar a regra, o app mostra o nome e o horário do outro cliente e a distância exigida, e permite **Agendar mesmo assim**. O mesmo vale ao remarcar.
 - Nenhuma mensagem para cliente menciona o outro cliente ou a existência do conflito.
 
-**CRM (fase 1, backend; telas na próxima etapa).** Plano completo e decisões em [ROADMAP-CRM.md](ROADMAP-CRM.md).
+**CRM (fase 1).** No app (e na versão web): aba **Caixa** (comandas), e em Mais / menu lateral: Produtos e estoque,
+Pacotes, Clube de assinatura, Lista de espera e Equipe e permissões; menus e botões conforme o papel de quem entrou. Plano completo e decisões em [ROADMAP-CRM.md](ROADMAP-CRM.md).
 
 - **Equipe e permissões:** dono, recepção e profissional, com convite por senha provisória (trocada no primeiro acesso). A recepção agenda, faz check-in, fecha comandas e confirma Pix, sem o financeiro completo; o profissional vê só a própria agenda, os clientes que atendeu e as próprias comissões. Toda rota da API checa o papel.
 - **Comanda:** serviços, produtos, venda de pacote, desconto em R$ ou %, gorjeta para o profissional e pagamento dividido (Pix, dinheiro, débito, crédito), com saldo de pacote ou assinatura. Lançamentos imutáveis: corrigir é estornar (lançamento negativo). Fechada, entra no financeiro e nas comissões e conclui o atendimento.
@@ -381,6 +382,46 @@ Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/doc
 6. No app (apontando para `https://api.suabarbearia.com.br`): entre com o e-mail e a senha, cadastre serviços e barbeiros, configure o Pix e, em **Mais > Conexão do WhatsApp**, gere o QR Code e leia com o celular da barbearia.
 
 Builds Android de produção bloqueiam `http://`, por isso o domínio com HTTPS é obrigatório para o app.
+
+## Versão web do app (app.[DOMINIO])
+
+O app admin roda também no navegador, com o **mesmo código** (react-native-web). No computador (tela a partir de
+900 px) ganha menu lateral fixo com o logo, conteúdo mais largo, agenda com uma coluna por profissional, tabelas com
+busca e ordenação (produtos, clientes, assinantes, equipe), a comanda com o painel de pagamento ao lado e atalhos de
+teclado: **N** novo agendamento, **C** abrir comanda, **B** buscar cliente (fora de campos de texto). No celular,
+abas embaixo, como no app.
+
+**Gerar e publicar:**
+
+```bash
+cd mobile
+npx expo export --platform web            # gera mobile/dist (index.html, manifest, ícones, JS)
+rsync -a --delete dist/ usuario@vps:/srv/syncserv-web/
+```
+
+No servidor, use o bloco de `deploy/Caddyfile.app` (troque `[DOMINIO]`): o Caddy serve o app em `app.[DOMINIO]`,
+devolve o `index.html` para qualquer rota (app de página única), encaminha `/api/*` para o backend
+(`127.0.0.1:8002`) e aplica o CSP e os cabeçalhos de segurança (HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,
+`Permissions-Policy`). Com o app e a API no mesmo endereço não é preciso CORS. O título da aba é "SyncServ" e o
+`manifest.webmanifest` permite instalar como app (PWA) com os ícones do kit da marca.
+
+**Segurança da sessão no navegador:** o login web recebe um token de acesso de **15 minutos**, guardado só em
+memória, e um **refresh token** de 12 horas, guardado no `sessionStorage` da aba (nunca no `localStorage`). O app
+renova o token sozinho (`POST /api/auth/token`); fechar a aba encerra a sessão; "Sair de todos os aparelhos",
+trocar a senha ou desativar a pessoa invalidam o refresh token. O `/api/auth/refresh` mantém o token web curto.
+
+**Só online:** sem internet, a versão web mostra o aviso "Sem conexão" e bloqueia as alterações (o app nativo ganha o
+modo offline na próxima etapa).
+
+**CSP:** o Caddyfile não libera `'unsafe-inline'`. Os estilos do react-native-web e as fontes entram pelo CSSOM
+(`src/webFonts.web.js`), e o estilo base fica em `public/web.css`. Não coloque `<style>` nem `<script>` inline no
+`public/index.html`: o navegador bloqueia (e o teste de segurança acusa).
+
+Teste ponta a ponta: `cd mobile && npm run test:web`. Precisa do Playwright para Python:
+`pip install playwright && playwright install chromium`. O comando sobe um backend descartável (SQLite temporário com
+os dados fictícios do `seed_mock`, porta 8010), gera o export e o serve com o mesmo CSP do Caddyfile. Confere login,
+papéis, armazenamento, sessão, modo sem internet, fontes e ausência de erros de console ou bloqueios do CSP, em 375
+e 1440 px.
 
 ## Marca e temas (SyncServ)
 

@@ -52,15 +52,28 @@ export function ServiceEditScreen({ navigation, route }) {
   const [duration, setDuration] = useState(item ? String(item.duration_minutes) : '30');
   const [order, setOrder] = useState(item ? String(item.sort_order) : '0');
   const [active, setActive] = useState(item ? item.active : true);
+  const [depMode, setDepMode] = useState(item?.deposit_mode || '');
+  const [depValue, setDepValue] = useState(item && Number(item.deposit_value)
+    ? (item.deposit_mode === 'percent' ? String(Number(item.deposit_value)) : moneyInput(item.deposit_value)) : '');
+  const products = useLoad(() => api.get('/products'), []);
+  const consumption = useLoad(async () => (item ? api.get(`/services/${item.id}/consumption`) : []), [item?.id]);
+  const [cons, setCons] = useState(null); // { product_id: 'quantidade' }
+  const consMap = cons ?? Object.fromEntries((consumption.data || []).map((x) => [x.product_id, String(Number(x.quantity))]));
 
   const save = () => run(async () => {
     const value = parseMoney(price);
     if (value === null) throw new Error('Preço inválido.');
-    const body = { name, price: value, duration_minutes: Number(duration), sort_order: Number(order) || 0, active };
-    if (item) await api.put(`/services/${item.id}`, body);
-    else await api.post('/services', body);
+    const dep = depMode === 'percent' ? Number(String(depValue).replace(',', '.')) || 0 : parseMoney(depValue) ?? 0;
+    const body = { name, price: value, duration_minutes: Number(duration), sort_order: Number(order) || 0, active,
+                   deposit_mode: depMode, deposit_value: dep.toFixed(2) };
+    const saved = item ? await api.put(`/services/${item.id}`, body) : await api.post('/services', body);
+    if (cons) {
+      await api.put(`/services/${saved.id}/consumption`, Object.entries(cons).filter(([, q]) => Number(String(q).replace(',', '.')) > 0)
+        .map(([pid, q]) => ({ product_id: Number(pid), quantity: String(Number(String(q).replace(',', '.'))) })));
+    }
     navigation.goBack();
   });
+  const internal = (products.data || []).filter((p) => p.kind !== 'sale' && p.active);
 
   return (
     <Screen footer={<Button title="Salvar" icon="checkmark" onPress={save} disabled={!name || !price || !duration} style={{ marginBottom: 0 }} />}>
@@ -69,6 +82,23 @@ export function ServiceEditScreen({ navigation, route }) {
       <Field label="Duração (minutos)" value={duration} onChangeText={setDuration} keyboardType="number-pad" />
       <Field label="Ordem no menu" value={order} onChangeText={setOrder} keyboardType="number-pad" hint="Menor aparece primeiro." />
       <Toggle label="Ativo (aparece no bot)" value={active} onValueChange={setActive} />
+      <Section title="Sinal neste serviço">
+        <Chips value={depMode} onChange={setDepMode} options={[
+          { value: '', label: 'Regra do negócio' }, { value: 'off', label: 'Sem sinal' },
+          { value: 'fixed', label: 'Valor fixo' }, { value: 'percent', label: '%' },
+        ]} />
+        {depMode === 'fixed' ? <Field label="Valor do sinal" mask="money" value={depValue} onChangeText={setDepValue} /> : null}
+        {depMode === 'percent' ? <Field label="Porcentagem" value={depValue} onChangeText={setDepValue} keyboardType="decimal-pad" /> : null}
+      </Section>
+      {internal.length ? (
+        <Section title="Produtos que o serviço consome">
+          <Muted style={{ marginBottom: SPACE(3) }}>Baixados do estoque quando o serviço entra na comanda.</Muted>
+          {internal.map((p) => (
+            <Field key={p.id} label={`${p.name} (${p.unit})`} value={consMap[p.id] || ''} keyboardType="decimal-pad"
+                   placeholder="0" onChangeText={(t) => setCons({ ...consMap, [p.id]: t })} />
+          ))}
+        </Section>
+      ) : null}
       {item ? (
         <Button title="Excluir" kind="danger" icon="trash-outline" onPress={() => confirm('Excluir serviço?', 'Se já tiver agendamentos, ele só será desativado.',
           () => run(async () => { await api.del(`/services/${item.id}`); navigation.goBack(); }), 'Excluir', true)} />

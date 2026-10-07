@@ -1,0 +1,5 @@
+/* Estilo base recomendado pelo react-native-web: corpo em tela cheia, rolagem pelos ScrollView.
+   Arquivo separado (e não <style> no index.html) para o CSP não precisar de 'unsafe-inline'. */
+html, body { height: 100%; }
+body { overflow: hidden; background-color: #0F172A; }
+#root { display: flex; height: 100%; flex: 1; }

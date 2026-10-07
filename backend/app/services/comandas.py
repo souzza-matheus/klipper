@@ -32,6 +32,10 @@ class ComandaError(ValueError):
     pass
 
 
+class StockShortage(ComandaError):
+    """Venda maior que o estoque: o app pergunta se quer vender mesmo assim."""
+
+
 def q2(v) -> Decimal:
     return Decimal(v).quantize(CENT, rounding=ROUND_HALF_UP)
 
@@ -145,7 +149,9 @@ def add_service(db: Session, shop: Shop, user: User | None, c: Comanda, service:
 
 def add_product(db: Session, shop: Shop, user: User | None, c: Comanda, product: Product, quantity: int,
                 barber: Barber | None = None, unit_price: Decimal | None = None,
-                uuid: str | None = None) -> ComandaItem:
+                uuid: str | None = None, allow_negative: bool = True) -> ComandaItem:
+    """Vende produto. Com allow_negative=False recusa vender mais do que há em estoque
+    (quem está no balcão confirma e reenvia; a sincronização offline sempre aceita: a venda já aconteceu)."""
     _check_open(c)
     _owned(product, shop, "Produto")
     if product.kind == ProductKind.INTERNAL:
@@ -154,6 +160,10 @@ def add_product(db: Session, shop: Shop, user: User | None, c: Comanda, product:
         _owned(barber, shop, "Profissional")
     if quantity < 1:
         raise ComandaError("Quantidade inválida.")
+    if not allow_negative:
+        have = stock.balance(db, shop, product)
+        if have < quantity:
+            raise StockShortage(f"Estoque insuficiente: {product.name} tem {stock.fmt_qty(have)} {product.unit}.")
     price = q2(product.price if unit_price is None else unit_price)
     total = q2(price * quantity)
     it = _item(db, shop, user, c, uuid, kind=ItemKind.PRODUCT, description=product.name, product_id=product.id,

@@ -93,7 +93,7 @@ def add_item(db: Session, shop: Shop, user: User, c: Comanda, body: S.ComandaIte
         if not body.product_id:
             raise cs.ComandaError("Escolha o produto.")
         return cs.add_product(db, shop, user, c, _own(db, Product, body.product_id, shop), body.quantity, barber,
-                              body.unit_price, uuid=uuid)
+                              body.unit_price, uuid=uuid, allow_negative=body.allow_negative_stock)
     if body.kind == ItemKind.PACKAGE:
         if not body.package_plan_id:
             raise cs.ComandaError("Escolha o pacote.")

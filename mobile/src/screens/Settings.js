@@ -1,36 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
 import { LogoVertical, Symbol as BrandSymbol } from '../brand/Logo';
-import { phoneLabel } from '../format';
+import { moneyInput, parseMoney, phoneLabel } from '../format';
 import { buildTheme, NICHE_INFO, NICHES, SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
+import { moreItemsFor, ROLE_LABEL } from '../roles';
+import { useSession } from '../session';
 import {
   Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl,
   Stat, Toggle, run, toast, useLoad,
+  ask,
 } from '../ui';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
   const { c, s, font, v } = useTheme();
-  const items = [
-    ['Services', 'pricetags-outline', 'Serviços e preços'],
-    ['Barbers', 'people-outline', `${v.Pros} e expediente`],
-    ['Blocks', 'lock-closed-outline', 'Bloqueios de agenda'],
-    ['Reviews', 'star-outline', 'Avaliações'],
-    ['Reports', 'bar-chart-outline', 'Relatórios'],
-    ['Settings', 'settings-outline', 'Configurações e aparência'],
-    ['WhatsApp', 'logo-whatsapp', 'Conexão do WhatsApp'],
-    ['About', 'information-circle-outline', 'Sobre o SyncServ'],
-  ];
+  const { role, userName } = useSession();
+  const items = moreItemsFor(role, v).map((m) => [m.route, m.icon, m.label]);
   return (
     <Screen>
       <View style={[s.row, { gap: SPACE(3), marginBottom: SPACE(5) }]}>
         <BrandSymbol size={40} color={c.accent} />
-        <Text style={{ fontFamily: font.extrabold, fontSize: 24, color: c.text, flex: 1 }} numberOfLines={2}>{shopName}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: font.extrabold, fontSize: 24, color: c.text }} numberOfLines={2}>{shopName}</Text>
+          <Text style={s.caption}>{userName} · {ROLE_LABEL[role]}</Text>
+        </View>
       </View>
       <Group>
         {items.map(([route, icon, title], i) => (
@@ -79,6 +77,12 @@ const NUM = [
   ['human_pause_hours', 'Pausa do bot ao pedir atendente (horas)'],
   ['approval_expire_hours', 'Pedido para aprovar expira em (horas)'],
   ['conflict_default_gap_minutes', 'Distância padrão entre clientes incompatíveis (min)'],
+  ['waitlist_hold_minutes', 'Lista de espera: vaga reservada por (min)'],
+];
+
+const DEPOSIT_NUM = [
+  ['deposit_expire_minutes', 'Sem o sinal, libera o horário em (min)'],
+  ['deposit_refund_hours', 'Devolve o sinal se cancelar com (horas de antecedência)'],
 ];
 
 const MODE_LABEL = { dark: 'Escuro', light: 'Claro' };
@@ -209,7 +213,9 @@ export function SettingsScreen() {
     await run(async () => {
       const body = { ...f };
       delete body.id; delete body.evolution_instance; delete body.niche; delete body.theme_mode;
-      NUM.forEach(([k]) => { body[k] = Number(body[k]); });
+      [...NUM, ...DEPOSIT_NUM].forEach(([k]) => { body[k] = Number(body[k]); });
+      body.deposit_value = (parseMoney(f.deposit_value_text ?? '') ?? Number(f.deposit_value) ?? 0).toFixed(2);
+      delete body.deposit_value_text;
       const r = await api.put('/shop', body);
       setF({ ...r, owner_phone: phoneLabel(r.owner_phone) });
     }, 'Configurações salvas. O bot já usa os novos dados.');
@@ -246,6 +252,31 @@ export function SettingsScreen() {
                    keyboardType={f.pix_key_type === 'email' ? 'email-address' : ['cpf', 'cnpj', 'phone'].includes(f.pix_key_type) ? 'number-pad' : 'default'} />
             <Field label="Nome do recebedor (até 25 letras)" value={f.pix_receiver_name} onChangeText={set('pix_receiver_name')} maxLength={25} />
             <Field label="Cidade (até 15 letras)" value={f.pix_city} onChangeText={set('pix_city')} maxLength={15} />
+          </>
+        ) : null}
+      </Section>
+
+      <Section title="Sinal contra faltas">
+        <Text style={[s.muted, { marginBottom: SPACE(3) }]}>
+          Com sinal, o agendamento pelo WhatsApp só é confirmado quando o Pix do sinal é confirmado. Cada serviço pode
+          ter uma regra própria (em Serviços).
+        </Text>
+        <Chips value={f.deposit_mode} onChange={set('deposit_mode')} options={[
+          { value: 'off', label: 'Sem sinal' }, { value: 'fixed', label: 'Valor fixo' }, { value: 'percent', label: '% do serviço' },
+        ]} />
+        {f.deposit_mode !== 'off' ? (
+          <>
+            {f.deposit_mode === 'fixed' ? (
+              <Field label="Valor do sinal" mask="money" value={f.deposit_value_text ?? moneyInput(f.deposit_value)}
+                     onChangeText={set('deposit_value_text')} />
+            ) : (
+              <Field label="Porcentagem do serviço" value={f.deposit_value_text ?? String(Number(f.deposit_value))}
+                     onChangeText={set('deposit_value_text')} keyboardType="decimal-pad" />
+            )}
+            {DEPOSIT_NUM.map(([k, label]) => (
+              <Field key={k} label={label} value={String(f[k])} onChangeText={set(k)} keyboardType="number-pad" />
+            ))}
+            {!f.pix_enabled ? <Text style={s.caption}>O sinal precisa do Pix ativo (acima).</Text> : null}
           </>
         ) : null}
       </Section>
@@ -336,7 +367,7 @@ export function WhatsAppScreen() {
     if (field === 'pairing_code' && r.pairing_code) { setQr(null); setCode(r.pairing_code); return; }
     setQr(null);
     setCode(null);
-    Alert.alert(r.state === 'open' ? 'Já conectado' : 'Não foi possível gerar',
+    ask(r.state === 'open' ? 'Já conectado' : 'Não foi possível gerar',
       r.message || 'O servidor não devolveu o código. Tente de novo em alguns segundos.');
   };
   const connect = async () => {

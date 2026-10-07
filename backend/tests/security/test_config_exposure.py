@@ -1,5 +1,7 @@
 """Configuração e exposição: modo de produção, documentação, CORS, cabeçalhos, tamanho do corpo, erros 500, logs e
 arquivos de implantação."""
+import base64
+import hashlib
 import logging
 import os
 
@@ -174,10 +176,36 @@ def test_mobile_keeps_token_in_secure_store_and_has_no_api_keys():
             if f.endswith(".js"):
                 code += open(os.path.join(dirpath, f), encoding="utf-8").read()
     code += open(os.path.join(ROOT, "mobile", "App.js"), encoding="utf-8").read()
-    assert "AsyncStorage" not in code and "SecureStore.setItemAsync('token'" in code
+    storage = open(os.path.join(src, "storage.js"), encoding="utf-8").read()
     import re
+    # Celular: SecureStore. Web: token só em memória; o resto no sessionStorage; nunca armazenamento permanente
+    assert "AsyncStorage" not in code and "SecureStore.setItemAsync(key" in storage
+    assert re.search(r"MEMORY_ONLY = new Set\(\['token'\]\)", storage)
+    assert not re.search(r"localStorage\s*[.\[]", code), "nada pode ir para o localStorage"
+    assert not re.search(r"document\.cookie", code)
     for pattern in (r"AIza[0-9A-Za-z_-]{20,}", r"\bapikey\b", "GEMINI", "EVOLUTION_API_KEY", r"\bsk-[A-Za-z0-9]{20,}"):
         assert not re.search(pattern, code), pattern
+
+
+def test_web_app_is_served_with_csp_and_security_headers():
+    caddy = open(os.path.join(ROOT, "deploy", "Caddyfile.app"), encoding="utf-8").read()
+    import re
+    policy = re.search(r'Content-Security-Policy "([^"]+)"', caddy).group(1)
+    for rule in ("default-src 'self'", "script-src 'self'", "connect-src 'self'", "frame-ancestors 'none'",
+                 "object-src 'none'", "base-uri 'none'"):
+        assert rule in policy, rule
+    assert "unsafe-eval" not in policy and "unsafe-inline" not in policy
+    # Único hash liberado em style-src: o da string vazia (o <style> que o react-native-web e as fontes
+    # preenchem pelo CSSOM). Qualquer <style>/<script> com conteúdo no index.html seria bloqueado.
+    empty = "sha256-" + base64.b64encode(hashlib.sha256(b"").digest()).decode()
+    assert re.findall(r"'sha256-[^']+'", policy) == [f"'{empty}'"]
+    index = open(os.path.join(ROOT, "mobile", "public", "index.html"), encoding="utf-8").read()
+    assert "<style" not in index and not re.search(r"<script(?![^>]*\bsrc=)", index)
+    assert re.search(r"\bstyle=", index) is None
+    for header in ("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy",
+                   "Permissions-Policy", "-Server"):
+        assert header in caddy, header
+    assert "try_files {path} /index.html" in caddy  # app de página única
 
 
 def test_dev_mode_is_off_by_default(monkeypatch):

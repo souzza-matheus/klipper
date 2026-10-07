@@ -192,6 +192,20 @@ def test_stock_deduction_on_sale_and_service_and_low_stock_alert(env):
     assert "Estoque baixo" in msgs_to(db, shop.owner_phone)[-1] and "Shampoo" in msgs_to(db, shop.owner_phone)[-1]
 
 
+def test_selling_more_than_stock_needs_confirmation(env):
+    c = env.c
+    pomada = env.product(stock="1")
+    cid = c.post("/api/comandas", json={}).json()["id"]
+    r = c.post(f"/api/comandas/{cid}/items", json={"kind": "product", "product_id": pomada["id"], "quantity": 2})
+    assert r.status_code == 409 and "Estoque insuficiente" in r.json()["detail"]
+    assert env.stock_of(pomada["id"]) == D(1) and c.get(f"/api/comandas/{cid}").json()["items"] == []
+    r = c.post(f"/api/comandas/{cid}/items", json={"kind": "product", "product_id": pomada["id"], "quantity": 2,
+                                                  "allow_negative_stock": True})
+    assert r.status_code == 200
+    assert env.stock_of(pomada["id"]) == D(-1)  # registra a realidade; o produto aparece em estoque baixo
+    assert any(p["id"] == pomada["id"] and p["low_stock"] for p in c.get("/api/products").json())
+
+
 # ---------------------------------------------------------------- pacotes
 
 def _package(env, sessions=4, price="140", validity=90):

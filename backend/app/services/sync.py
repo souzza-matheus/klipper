@@ -525,7 +525,9 @@ def _item_create(db: Session, user: User, op) -> ComandaItem:
         obj = _by_uuid(db, shop, model, d.get(field), field, required=False)
         ids[field] = obj.id if obj else None
     try:
-        body = S.ComandaItemIn(**{**{k: v for k, v in d.items() if k in S.ComandaItemIn.model_fields}, **ids})
+        fields = {k: v for k, v in d.items() if k in S.ComandaItemIn.model_fields}
+        # venda feita offline já aconteceu no balcão: entra mesmo que o estoque fique negativo
+        body = S.ComandaItemIn(**{**fields, **ids, "allow_negative_stock": True})
         return add_item(db, shop, user, c, body, uuid=uid)
     except cs.ComandaError as e:
         raise Reject("regra", str(e))

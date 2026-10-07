@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { Symbol as BrandSymbol } from './brand/Logo';
 import { NICHE_INFO, SPACE, TOUCH } from './theme';
 import { useTheme } from './ThemeProvider';
+import { useWide } from './session';
 
 // ---------------------------------------------------------------- dados e feedback
 
@@ -47,12 +48,79 @@ export function toast(message, kind = 'success') {
   if (kind === 'success') haptic.success();
   else if (kind === 'error') haptic.error();
   if (toastListener) toastListener({ message, kind, id: Date.now() });
-  else Alert.alert(kind === 'error' ? 'Ops' : 'Pronto', message);
+  else ask(kind === 'error' ? 'Ops' : 'Pronto', message);
+}
+
+// Diálogo com botões. Celular: Alert nativo. Web: modal próprio (o Alert do react-native-web não faz nada).
+// buttons: [{ text, style: 'cancel' | 'destructive' | 'default', onPress }]
+let dialogListener = null;
+export function ask(title, message, buttons = [{ text: 'OK' }]) {
+  if (Platform.OS !== 'web' || !dialogListener) {
+    Alert.alert(title, message, buttons);
+    return;
+  }
+  dialogListener({ title, message, buttons, id: Date.now() });
+}
+
+export function DialogHost() {
+  const { c, s, font, radius } = useTheme();
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    dialogListener = setD;
+    return () => { dialogListener = null; };
+  }, []);
+  useEffect(() => {
+    if (!d || Platform.OS !== 'web') return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        const cancel = d.buttons.find((b) => b.style === 'cancel');
+        setD(null);
+        cancel?.onPress?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [d]);
+  if (!d) return null;
+  const press = (b) => { setD(null); b.onPress?.(); };
+  return (
+    <Modal transparent visible animationType="fade" onRequestClose={() => setD(null)}>
+      <View style={{ flex: 1, backgroundColor: c.overlay, alignItems: 'center', justifyContent: 'center',
+                     padding: SPACE(4) }}>
+        <View accessibilityRole="alert" style={{
+          width: '100%', maxWidth: 440, backgroundColor: c.surfaceElevated, borderRadius: radius.sheet,
+          padding: SPACE(5), borderWidth: 1, borderColor: c.divider,
+        }}>
+          <Text style={[s.heading, { marginBottom: SPACE(2) }]} accessibilityRole="header">{d.title}</Text>
+          {d.message ? <Text style={[s.body, { marginBottom: SPACE(4) }]}>{d.message}</Text> : null}
+          <View style={{ gap: SPACE(2) }}>
+            {d.buttons.map((b) => (
+              <Pressable key={b.text} onPress={() => press(b)} accessibilityRole="button"
+                         style={({ pressed }) => ({
+                           minHeight: 48, borderRadius: radius.input, alignItems: 'center', justifyContent: 'center',
+                           paddingHorizontal: SPACE(3), borderWidth: 1.5,
+                           borderColor: b.style === 'destructive' ? c.statusText.danger
+                             : b.style === 'cancel' ? c.border : c.accentFill,
+                           backgroundColor: pressed ? c.neutralBg : b.style === 'default' || !b.style ? c.accentFill
+                             : 'transparent',
+                         })}>
+                <Text style={{
+                  fontFamily: font.bold, fontSize: 16,
+                  color: b.style === 'destructive' ? c.statusText.danger : b.style === 'cancel' ? c.text : c.onAccent,
+                }}>{b.text}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 export function ToastHost() {
   const { c, s, font } = useTheme();
   const insets = useSafeAreaInsets();
+  const wide = useWide();
   const [item, setItem] = useState(null);
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -73,7 +141,8 @@ export function ToastHost() {
   const icon = { danger: 'alert-circle', info: 'information-circle', success: 'checkmark-circle' }[tone];
   return (
     <Animated.View pointerEvents="box-none" style={{
-      position: 'absolute', left: SPACE(4), right: SPACE(4), bottom: insets.bottom + SPACE(20),
+      position: 'absolute', left: wide ? undefined : SPACE(4), right: SPACE(4), width: wide ? 440 : undefined,
+      bottom: insets.bottom + (wide ? SPACE(6) : SPACE(20)),
       opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
     }}>
       <Pressable accessibilityRole="alert" accessibilityLiveRegion="polite" onPress={() => setItem(null)}
@@ -102,7 +171,7 @@ export async function run(fn, okMsg) {
 
 export function confirm(title, msg, onYes, yesLabel = 'Confirmar', destructive = false) {
   if (destructive) haptic.warning();
-  Alert.alert(title, msg, [
+  ask(title, msg, [
     { text: 'Voltar', style: 'cancel' },
     { text: yesLabel, style: destructive ? 'destructive' : 'default', onPress: onYes },
   ]);
@@ -111,13 +180,17 @@ export function confirm(title, msg, onYes, yesLabel = 'Confirmar', destructive =
 // ---------------------------------------------------------------- estrutura
 
 // footer: conteúdo fixo no rodapé (botão principal), que sobe junto com o teclado
-export function Screen({ children, onRefresh, refreshing, scroll = true, style, footer }) {
+// No computador (tela larga) o conteúdo ganha mais respiro e uma largura máxima confortável de leitura.
+export function Screen({ children, onRefresh, refreshing, scroll = true, style, footer, maxWidth = 1200 }) {
   const { c, s } = useTheme();
   const insets = useSafeAreaInsets();
-  const body = !scroll ? <View style={[s.screen, style]}>{children}</View> : (
+  const wide = useWide();
+  const wideStyle = wide ? { paddingHorizontal: SPACE(8), paddingTop: SPACE(6), width: '100%', maxWidth,
+                             alignSelf: 'center' } : null;
+  const body = !scroll ? <View style={[s.screen, wideStyle, style]}>{children}</View> : (
     <ScrollView
       style={s.screenScroll}
-      contentContainerStyle={[s.screen, style]}
+      contentContainerStyle={[s.screen, wideStyle, style]}
       keyboardShouldPersistTaps="handled"
       refreshControl={onRefresh ? (
         <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={c.accentText}

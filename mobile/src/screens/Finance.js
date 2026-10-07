@@ -1,8 +1,7 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import { api, download } from '../api';
+import { api, saveFile } from '../api';
 import { BarChart } from '../chart';
 import { MonthNav } from './Agenda';
 import {
@@ -11,6 +10,7 @@ import {
 } from '../format';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
+import { useSession } from '../session';
 import {
   Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section, Stat, Toggle,
   run, useLoad,
@@ -111,9 +111,7 @@ export function FinanceHomeScreen({ navigation }) {
   const exportCsv = async () => {
     setExporting(true);
     await run(async () => {
-      const uri = await download('/finance/export.csv', { date_from: from, date_to: to }, `financeiro_${from}_${to}.csv`);
-      if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste aparelho.');
-      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Exportar financeiro', UTI: 'public.comma-separated-values-text' });
+      await saveFile('/finance/export.csv', { date_from: from, date_to: to }, `financeiro_${from}_${to}.csv`, 'text/csv');
     });
     setExporting(false);
   };
@@ -377,12 +375,15 @@ export function BarberCommissionRules({ barberId, navigation }) {
 
 export function CommissionsScreen({ navigation }) {
   const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
+  const { can } = useSession();
+  const owner = can('finance'); // o profissional vê só a própria linha, sem acertos nem regras
   const [period, setPeriod] = useState('month');
   const [from, to] = PERIODS[period]();
   const r = useLoad(() => api.get('/finance/commissions', { date_from: from, date_to: to }), [period]);
   const d = r.data;
 
   useLayoutEffect(() => {
+    if (!owner) return;
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row' }}>
@@ -391,7 +392,7 @@ export function CommissionsScreen({ navigation }) {
         </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation, owner]);
 
   const settle = (b, due) => confirm('Registrar acerto?',
     `${b.barber_name} repassa ${money(due.open)} para ${due.beneficiary_name}, referente a ${brDate(from)} a ${brDate(to)}.`,
@@ -427,7 +428,9 @@ export function CommissionsScreen({ navigation }) {
                 <Text style={[s.body, { fontFamily: font.bold }]}>{money(b.gross)}</Text>
               </View>
               <Muted>{v.count(b.appointments, v.service, v.services)} · líquido {money(b.net)}
-                {isOpen(b.received) ? ` · recebe ${money(b.received)} de repasses` : ''}</Muted>
+                {isOpen(b.received) ? ` · recebe ${money(b.received)} de repasses` : ''}
+                {isOpen(b.tips) ? ` · gorjetas ${money(b.tips)}` : ''}
+                {isOpen(b.product_commission) ? ` · comissão de produtos ${money(b.product_commission)}` : ''}</Muted>
               {b.dues.map((due) => (
                 <View key={`${due.beneficiary_type}-${due.beneficiary_barber_id}`}
                       style={{ borderTopWidth: 1, borderTopColor: c.divider, marginTop: 10, paddingTop: 10 }}>
@@ -443,7 +446,7 @@ export function CommissionsScreen({ navigation }) {
                     {isOpen(due.open) ? <Badge info={{ label: `Em aberto ${money(due.open)}`, tone: 'warning', icon: 'time-outline' }} /> : null}
                     {!isOpen(due.open) && isOpen(due.amount) ? <Badge info={{ label: 'Quitado', tone: 'success', icon: 'checkmark-done' }} /> : null}
                   </View>
-                  {isOpen(due.open) ? (
+                  {isOpen(due.open) && owner ? (
                     <Button title="Registrar acerto" kind="ghost" icon="checkmark-done-outline"
                             onPress={() => settle(b, due)} style={{ marginTop: 10, marginBottom: 0 }} />
                   ) : null}

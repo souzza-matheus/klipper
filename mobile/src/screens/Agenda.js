@@ -10,12 +10,14 @@ import {
   addDays, addMonths, dayLabel, dtLabel, hm, money, moneyInput, monthLabel, parseMoney, PAY_METHODS,
   payMethodLabel, phoneLabel, todayISO, weekdayMonFirst,
 } from '../format';
-import { ACCESS, PAY, STATUS } from '../status';
+import { ACCESS, DEPOSIT, PAY, STATUS } from '../status';
+import { useSession } from '../session';
+import { openComandaFor } from './Comandas';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
   Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section,
-  SegmentedControl, run, toast, Title, useLoad,
+  SegmentedControl, run, toast, Title, Toggle, useLoad,
 } from '../ui';
 
 export { saveWithConflictCheck } from '../components/booking';
@@ -192,7 +194,9 @@ function buildColumns(agenda, mode, barber) {
 
 export function AgendaScreen({ navigation }) {
   const { c, s, v } = useTheme();
-  const [mode, setMode] = useState('timeline');
+  const { can, wide } = useSession();
+  // No computador, a agenda abre com uma coluna por profissional
+  const [mode, setMode] = useState(wide ? 'pros' : 'timeline');
   const [day, setDay] = useState(todayISO());
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [barber, setBarber] = useState(null);
@@ -207,7 +211,9 @@ export function AgendaScreen({ navigation }) {
       headerRight: () => (
         <View style={s.row}>
           <IconButton icon="refresh" label="Atualizar agenda" onPress={() => agenda.reload()} />
-          <IconButton icon="add-circle" size={30} label="Novo agendamento" onPress={() => navigation.navigate('NewAppointment', { day })} />
+          {can('newAppointment') ? (
+            <IconButton icon="add-circle" size={30} label="Novo agendamento" onPress={() => navigation.navigate('NewAppointment', { day })} />
+          ) : null}
         </View>
       ),
     });
@@ -219,6 +225,7 @@ export function AgendaScreen({ navigation }) {
 
   // Toque num horário vago: acha o profissional livre naquele minuto e abre o agendamento rápido
   const onEmpty = (col, minute) => {
+    if (!can('newAppointment')) return;
     const candidates = col.id ? d.barbers.filter((b) => b.id === col.id) : d.barbers;
     for (const b of candidates) {
       const f = b.free.find((x) => toMin(x.start) <= minute && minute < toMin(x.end));
@@ -242,7 +249,7 @@ export function AgendaScreen({ navigation }) {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <View style={{ paddingHorizontal: SPACE(4), paddingTop: SPACE(3) }}>
-        <ApprovalsBanner navigation={navigation} />
+        {can('approvals') ? <ApprovalsBanner navigation={navigation} /> : null}
         <SegmentedControl value={mode} onChange={(m) => { setMode(m); if (m === 'month') setMonth(day.slice(0, 7)); }}
                           options={[
                             { value: 'timeline', label: 'Timeline', icon: 'time-outline' },
@@ -261,7 +268,7 @@ export function AgendaScreen({ navigation }) {
       ) : (
         <View style={{ flex: 1 }}>
           <Text style={[s.caption, { paddingHorizontal: SPACE(4), marginBottom: SPACE(2) }]}>
-            Toque num horário vago para agendar. Toque e segure {v.aService} para ações rápidas.
+            {can('newAppointment') ? 'Toque num horário vago para agendar. ' : ''}Toque e segure {v.aService} para ações rápidas.
           </Text>
           <DayGrid day={day} columns={columns} now={d.now} showPro={mode === 'timeline' && !barber}
                    onEmpty={onEmpty} onAppt={(a) => navigation.navigate('Appointment', { id: a.id, item: a })}
@@ -320,6 +327,11 @@ export function NewAppointmentScreen({ navigation, route }) {
   const [day, setDay] = useState(route.params?.day || todayISO());
   const [hits, setHits] = useState([]);
   const [showAll, setShowAll] = useState(false);
+  const [useBalance, setUseBalance] = useState(true);
+  const [deposit, setDeposit] = useState(false);
+  const shop = useLoad(() => api.get('/shop'), []);
+  const svc = (services.data || []).find((x) => x.id === serviceId);
+  const depositMode = svc?.deposit_mode || shop.data?.deposit_mode || 'off';
 
   // Procura o cliente pelo telefone para avisar sobre acesso restrito e conflitos
   const digits = phone.replace(/\D/g, '');
@@ -340,8 +352,9 @@ export function NewAppointmentScreen({ navigation, route }) {
     setBusy(true);
     const r = await saveWithConflictCheck((force) => api.post('/appointments', {
       customer_phone: phone, customer_name: name, service_id: serviceId, barber_id: slot.barber_id, start: slot.start,
-      notes, force,
-    }), `Agendado. O ${v.customer} recebeu a confirmação no WhatsApp.`);
+      notes, force, use_balance: useBalance, require_deposit: deposit && depositMode !== 'off',
+    }), deposit && depositMode !== 'off' ? `Reservado. O ${v.customer} recebeu o Pix do sinal no WhatsApp.`
+      : `Agendado. O ${v.customer} recebeu a confirmação no WhatsApp.`);
     setBusy(false);
     if (r) navigation.goBack();
   });
@@ -376,6 +389,14 @@ export function NewAppointmentScreen({ navigation, route }) {
                     onChange={setSlot} initialDay={route.params?.day} onDayChange={setDay} />
       </Section>
       <Field label="Observação" value={notes} onChangeText={setNotes} multiline />
+      {customer ? (
+        <Toggle label="Usar pacote ou assinatura do cliente, se cobrir o serviço" value={useBalance}
+                onValueChange={setUseBalance} />
+      ) : null}
+      {depositMode !== 'off' ? (
+        <Toggle label="Cobrar sinal pelo WhatsApp" value={deposit} onValueChange={setDeposit}
+                hint="O horário fica reservado até o Pix do sinal ser confirmado e é liberado se não for pago a tempo." />
+      ) : null}
     </Screen>
   );
 }
@@ -404,6 +425,7 @@ export { Stars };
 
 export function AppointmentScreen({ navigation, route }) {
   const { s, v } = useTheme();
+  const { can } = useSession();
   const { id } = route.params;
   const appt = useLoad(async () => {
     const list = await api.get('/appointments', { date_from: route.params.item.start.slice(0, 10), include_cancelled: true });
@@ -466,6 +488,10 @@ export function AppointmentScreen({ navigation, route }) {
         <Badge info={STATUS[a.status]} large />
         <Badge info={PAY[a.payment_status]} large />
         <Badge info={ACCESS[a.customer_access_status]} large />
+        <Badge info={DEPOSIT[a.deposit_status]} large />
+        {a.checked_in_at ? <Badge info={{ label: `Chegou às ${hm(a.checked_in_at)}`, tone: 'success', icon: 'enter-outline' }} large /> : null}
+        {a.customer_package_id ? <Badge info={{ label: 'Pago com pacote', tone: 'accent', icon: 'albums-outline' }} large /> : null}
+        {a.subscription_id ? <Badge info={{ label: 'Pela assinatura', tone: 'accent', icon: 'repeat-outline' }} large /> : null}
         {a.rating ? <Stars n={a.rating} /> : null}
       </View>
       <Card>
@@ -476,8 +502,17 @@ export function AppointmentScreen({ navigation, route }) {
         {a.notes ? <Text style={s.muted}>{a.notes}</Text> : null}
       </Card>
 
-      {a.payment_status === 'pending' && a.payment_id ? (
-        <Button title="Confirmar Pix" icon="checkmark-circle-outline" onPress={() => confirmPix(a, appt.reload)} />
+      {can('pix') && a.payment_id && (a.payment_status === 'pending' || a.deposit_status === 'pending') ? (
+        <Button title={a.deposit_status === 'pending' ? 'Confirmar Pix do sinal' : 'Confirmar Pix'}
+                icon="checkmark-circle-outline" onPress={() => confirmPix(a, appt.reload)} />
+      ) : null}
+      {a.deposit_status === 'refund_due' && can('finance') ? (
+        <Button title={`Marcar sinal de ${money(a.deposit_amount)} como devolvido`} kind="secondary" icon="return-down-back-outline"
+                onPress={() => run(() => api.post(`/appointments/${a.id}/deposit-refunded`).then(appt.reload), 'Sinal marcado como devolvido.')} />
+      ) : null}
+      {can('comandas') && ['scheduled', 'confirmed', 'completed'].includes(a.status) ? (
+        <Button title="Abrir comanda" icon="receipt-outline" kind={a.status === 'completed' ? 'ghost' : 'primary'}
+                onPress={() => openComandaFor(navigation, a.id)} />
       ) : null}
       <View style={[s.row, { gap: SPACE(2) }]}>
         <Button title="WhatsApp" kind="ghost" icon="logo-whatsapp" style={{ flex: 1 }}
@@ -486,7 +521,7 @@ export function AppointmentScreen({ navigation, route }) {
                 onPress={() => navigation.navigate('Customer', { id: a.customer_id })} />
       </View>
 
-      {pending ? (
+      {pending && can('approvals') ? (
         <Section title="Pedido para aprovar">
           {a.approval_deadline ? <Text style={[s.muted, { marginBottom: SPACE(3) }]}>Expira {dtLabel(a.approval_deadline).toLowerCase()} se não for respondido.</Text> : null}
           <Button title="Aprovar" icon="checkmark" onPress={() => decide('approve', 'Pedido aprovado. O cliente foi avisado.')} />
@@ -498,15 +533,22 @@ export function AppointmentScreen({ navigation, route }) {
       {active ? (
         <>
           <Section title="Ações">
-            {a.status === 'scheduled' ? <Button title="Confirmar presença" kind="secondary" icon="checkmark" onPress={() => setStatus('confirmed', 'Presença confirmada.')} /> : null}
-            {!completing ? <Button title={`Concluir ${v.service}`} icon="checkmark-done" onPress={openComplete} /> : null}
+            {!a.checked_in_at ? (
+              <Button title="Cliente chegou (check-in)" kind="secondary" icon="enter-outline"
+                      onPress={() => run(() => api.post(`/appointments/${a.id}/check-in`).then(appt.reload), 'Check-in feito.')} />
+            ) : null}
+            {a.status === 'scheduled' && a.checked_in_at ? <Button title="Confirmar presença" kind="secondary" icon="checkmark" onPress={() => setStatus('confirmed', 'Presença confirmada.')} /> : null}
+            {!completing ? (can('changePrice') ? <Button title={`Concluir sem comanda`} kind="ghost" icon="checkmark-done" onPress={openComplete} />
+              : <Button title={`Marcar como ${v.done}`} kind="ghost" icon="checkmark-done" onPress={() => setStatus('completed', `${v.Service} ${v.done}.`)} />) : null}
             {completePanel}
             <Button title={`${v.Customer} faltou`} kind="ghost" icon="close-circle-outline" onPress={() => setStatus('no_show', 'Falta registrada.')} />
-            {a.payment_status !== 'paid' ? (
+            {a.payment_status !== 'paid' && can('sendPix') && !a.customer_package_id && !a.subscription_id ? (
               <Button title="Enviar Pix pelo WhatsApp" kind="secondary" icon="qr-code-outline"
                       onPress={() => run(() => api.post(`/appointments/${a.id}/send-pix`).then(appt.reload), 'Pix enviado.')} />
             ) : null}
-            <Button title={moving ? 'Fechar remarcação' : 'Remarcar'} kind="ghost" icon="swap-horizontal" onPress={() => setMoving(!moving)} />
+            {can('reschedule') ? (
+              <Button title={moving ? 'Fechar remarcação' : 'Remarcar'} kind="ghost" icon="swap-horizontal" onPress={() => setMoving(!moving)} />
+            ) : null}
           </Section>
           {moving ? (
             <Section title="Novo horário">
@@ -520,15 +562,19 @@ export function AppointmentScreen({ navigation, route }) {
               }} />
             </Section>
           ) : null}
-          <Button title="Cancelar agendamento" kind="danger" icon="trash-outline"
-                  onPress={() => confirm('Cancelar?', 'O cliente será avisado pelo WhatsApp.', () => setStatus('cancelled', 'Cancelado.'), 'Cancelar', true)} />
+          {can('cancelAppointment') ? (
+            <Button title="Cancelar agendamento" kind="danger" icon="trash-outline"
+                    onPress={() => confirm('Cancelar?', 'O cliente será avisado pelo WhatsApp.', () => setStatus('cancelled', 'Cancelado.'), 'Cancelar', true)} />
+          ) : null}
         </>
       ) : (
         <>
-          {a.status === 'completed' ? (completePanel || (
+          {a.status === 'completed' && can('changePrice') ? (completePanel || (
             <Button title="Alterar pagamento ou valor" kind="ghost" icon="card-outline" onPress={openComplete} />
           )) : null}
-          {a.status !== 'cancelled' && !pending ? <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} /> : null}
+          {['completed', 'no_show'].includes(a.status) && can('reschedule') ? (
+            <Button title="Voltar para agendado" kind="ghost" onPress={() => setStatus('scheduled')} />
+          ) : null}
         </>
       )}
     </Screen>

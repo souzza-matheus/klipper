@@ -5,11 +5,13 @@ import { hm, money, PAY_METHODS, payMethodLabel, phoneLabel } from '../format';
 import { ACCESS, PAY, STATUS } from '../status';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
+import { useSession } from '../session';
 import { Badge, BottomSheet, Button, Card, Chips, confirm, run } from '../ui';
 
 export function confirmPix(a, onDone) {
   confirm('Confirmar recebimento?',
-    `Confira no extrato se o Pix de ${money(a.price ?? a.amount)} de ${a.customer_name || 'cliente'} caiu na conta.`,
+    `Confira no extrato se o Pix de ${money(a.deposit_status === 'pending' ? a.deposit_amount : (a.price ?? a.amount))} `
+    + `de ${a.customer_name || 'cliente'} caiu na conta.`,
     () => run(async () => {
       await api.post(`/payments/${a.payment_id ?? a.id}/confirm`);
       onDone && onDone();
@@ -20,6 +22,7 @@ export function confirmPix(a, onDone) {
 // Ações rápidas ao segurar o card: confirmar presença, concluir, faltou, WhatsApp
 export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
   const { s, v } = useTheme();
+  const { can } = useSession();
   const [method, setMethod] = useState(null);
   const [completing, setCompleting] = useState(false);
   if (!a) return null;
@@ -47,9 +50,29 @@ export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
             <Button title="Confirmar presença" icon="checkmark" kind="secondary"
                     onPress={() => act({ status: 'confirmed' }, 'Presença confirmada.')} />
           ) : null}
-          {active ? (
-            <Button title="Concluir" icon="checkmark-done"
+          {active && can('comandas') ? (
+            <Button title="Abrir comanda" icon="receipt-outline"
+                    onPress={() => run(async () => {
+                      const r = await api.post('/comandas', { appointment_id: a.id });
+                      close();
+                      navigation.navigate('Comanda', { id: r.id });
+                    })} />
+          ) : null}
+          {active && !a.checked_in_at ? (
+            <Button title="Cliente chegou" icon="enter-outline" kind="secondary"
+                    onPress={() => run(async () => {
+                      await api.post(`/appointments/${a.id}/check-in`);
+                      close();
+                      onChanged && onChanged();
+                    }, 'Check-in feito.')} />
+          ) : null}
+          {active && can('changePrice') ? (
+            <Button title="Concluir sem comanda" icon="checkmark-done" kind="ghost"
                     onPress={() => { setMethod(a.payment_method || (a.payment_status === 'paid' ? 'pix' : null)); setCompleting(true); }} />
+          ) : null}
+          {active && !can('changePrice') ? (
+            <Button title={`Marcar como ${v.done}`} icon="checkmark-done" kind="ghost"
+                    onPress={() => act({ status: 'completed' }, `${v.Service} ${v.done}.`)} />
           ) : null}
           {active ? (
             <Button title={`${v.Customer} faltou`} icon="close-circle-outline" kind="danger"
