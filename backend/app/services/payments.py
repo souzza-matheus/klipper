@@ -1,13 +1,20 @@
 """Pix por chave direta do estabelecimento, com confirmação manual pelo dono."""
+import logging
 from datetime import timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import now_local
-from ..models import Appointment, PayMethod, PayStatus, Payment, Shop
+from ..models import Appointment, Customer, PayMethod, PayStatus, Payment, Shop
 from .fmt import appt_summary, money
 from .pix import build_brcode, new_txid
+
+log = logging.getLogger("payments")
+
+# Comprovante: só imagem ou PDF, até 5 MB
+MAX_RECEIPT_BYTES = 5 * 1024 * 1024
+RECEIPT_TYPES = ("image/", "application/pdf")
 
 
 def pix_ready(shop: Shop) -> bool:
@@ -30,6 +37,7 @@ def get_or_create_pix(db: Session, shop: Shop, appt: Appointment) -> Payment:
     else:  # Pix anterior expirado: gera um novo
         pay.txid, pay.brcode, pay.amount = txid, brcode, appt.price
         pay.status, pay.created_at, pay.customer_reported_at = PayStatus.PENDING, now_local(), None
+        pay.receipt_mime, pay.receipt_data, pay.receipt_at = None, None, None
     appt.payment_status = PayStatus.PENDING
     db.flush()
     return pay
@@ -54,6 +62,41 @@ def confirm_payment(db: Session, pay: Payment) -> None:
     pay.appointment.payment_status = PayStatus.PAID
     if pay.appointment.payment_method is None:
         pay.appointment.payment_method = PayMethod.PIX
+
+
+def reject_payment(db: Session, pay: Payment) -> None:
+    """O dono não achou o Pix no extrato: o pagamento expira e o atendimento volta a ser pago no local."""
+    pay.status = PayStatus.EXPIRED
+    pay.appointment.payment_status = PayStatus.EXPIRED
+
+
+def save_receipt(db: Session, shop: Shop, phone: str, media: dict) -> int:
+    """Guarda o comprovante (imagem ou PDF) mandado pelo cliente nos Pix pendentes dele. Devolve quantos recebeu.
+    media: {"key": ..., "message": ...} do evento messages.upsert, usado para baixar o arquivo na Evolution API."""
+    from .whatsapp import EvolutionError, media_base64
+    customer = db.scalar(select(Customer).where(Customer.shop_id == shop.id, Customer.phone == phone))
+    if customer is None:
+        return 0
+    pays = db.scalars(select(Payment).join(Appointment).where(
+        Payment.shop_id == shop.id, Payment.status == PayStatus.PENDING, Appointment.customer_id == customer.id,
+    )).all()
+    if not pays:
+        return 0
+    try:
+        mime, data = media_base64(shop, media)
+    except EvolutionError:
+        log.exception("Não foi possível baixar o comprovante de %s", phone)
+        return 0
+    if not mime.startswith(RECEIPT_TYPES):
+        log.info("Anexo de %s ignorado: tipo %s não é comprovante", phone, mime)
+        return 0
+    if len(data) > MAX_RECEIPT_BYTES:
+        log.warning("Comprovante de %s ignorado: %d bytes (limite %d)", phone, len(data), MAX_RECEIPT_BYTES)
+        return 0
+    now = now_local()
+    for pay in pays:
+        pay.receipt_mime, pay.receipt_data, pay.receipt_at = mime[:60], data, now
+    return len(pays)
 
 
 def pending_payments(db: Session, shop: Shop) -> list[Payment]:

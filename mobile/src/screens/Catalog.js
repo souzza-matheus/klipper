@@ -1,20 +1,19 @@
 import React, { useLayoutEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Text, View } from 'react-native';
 import { api } from '../api';
-import { dtLabel, hm, isHM, money, normHM, parseBRDate, phoneLabel, todayISO, WEEKDAYS_MON_FIRST } from '../format';
-import { colors } from '../theme';
 import {
-  Button, Card, Chips, confirm, Empty, Field, ListRow, Loading, Muted, Screen, Section, Toggle, run, s, useLoad,
+  dtLabel, hm, isHM, money, moneyInput, normHM, parseBRDate, parseMoney, phoneLabel, todayISO, WEEKDAYS_MON_FIRST,
+} from '../format';
+import { SPACE } from '../theme';
+import { useTheme } from '../ThemeProvider';
+import {
+  Button, Card, Chips, confirm, Empty, Field, Group, IconButton, ListRow, Loading, Muted, Screen, Section, Toggle,
+  run, useLoad,
 } from '../ui';
 import { BarberCommissionRules } from './Finance';
 
-function AddButton({ onPress }) {
-  return (
-    <Pressable onPress={onPress} hitSlop={10}>
-      <Ionicons name="add-circle" size={30} color={colors.accent} />
-    </Pressable>
-  );
+function AddButton({ onPress, label }) {
+  return <IconButton icon="add-circle" size={30} label={label} onPress={onPress} />;
 }
 
 // ---------------------------------------------------------------- serviços
@@ -22,48 +21,56 @@ function AddButton({ onPress }) {
 export function ServicesScreen({ navigation }) {
   const list = useLoad(() => api.get('/services'), []);
   useLayoutEffect(() => {
-    navigation.setOptions({ headerRight: () => <AddButton onPress={() => navigation.navigate('ServiceEdit', {})} /> });
+    navigation.setOptions({ headerRight: () => <AddButton label="Novo serviço" onPress={() => navigation.navigate('ServiceEdit', {})} /> });
   }, [navigation]);
+  const items = list.data || [];
   return (
     <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
-      {list.data && !list.data.length ? <Empty text="Cadastre os serviços que aparecem no bot." /> : null}
-      <View style={{ borderRadius: 12, overflow: 'hidden' }}>
-        {(list.data || []).map((x) => (
-          <ListRow key={x.id} title={x.name + (x.active ? '' : ' (inativo)')}
-                   subtitle={`${money(x.price)} · ${x.duration_minutes} min`}
-                   onPress={() => navigation.navigate('ServiceEdit', { item: x })} />
-        ))}
-      </View>
+      {list.data && !items.length ? (
+        <Empty text="Cadastre os serviços que aparecem no bot."
+               action={{ title: 'Novo serviço', icon: 'add', onPress: () => navigation.navigate('ServiceEdit', {}) }} />
+      ) : null}
+      {items.length ? (
+        <Group>
+          {items.map((x, i) => (
+            <ListRow key={x.id} icon="pricetag-outline" title={x.name + (x.active ? '' : ' (inativo)')}
+                     subtitle={`${money(x.price)} · ${x.duration_minutes} min`} first={i === 0} last={i === items.length - 1}
+                     onPress={() => navigation.navigate('ServiceEdit', { item: x })} />
+          ))}
+        </Group>
+      ) : null}
     </Screen>
   );
 }
 
 export function ServiceEditScreen({ navigation, route }) {
+  const { v } = useTheme();
   const item = route.params?.item;
   const [name, setName] = useState(item?.name || '');
-  const [price, setPrice] = useState(item ? String(item.price).replace('.', ',') : '');
+  const [price, setPrice] = useState(item ? moneyInput(item.price) : '');
   const [duration, setDuration] = useState(item ? String(item.duration_minutes) : '30');
   const [order, setOrder] = useState(item ? String(item.sort_order) : '0');
   const [active, setActive] = useState(item ? item.active : true);
 
   const save = () => run(async () => {
-    const body = { name, price: Number(price.replace(',', '.')), duration_minutes: Number(duration), sort_order: Number(order) || 0, active };
+    const value = parseMoney(price);
+    if (value === null) throw new Error('Preço inválido.');
+    const body = { name, price: value, duration_minutes: Number(duration), sort_order: Number(order) || 0, active };
     if (item) await api.put(`/services/${item.id}`, body);
     else await api.post('/services', body);
     navigation.goBack();
   });
 
   return (
-    <Screen>
-      <Field label="Nome" value={name} onChangeText={setName} placeholder="Ex.: Corte degradê" />
-      <Field label="Preço (R$)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+    <Screen footer={<Button title="Salvar" icon="checkmark" onPress={save} disabled={!name || !price || !duration} style={{ marginBottom: 0 }} />}>
+      <Field label="Nome" value={name} onChangeText={setName} placeholder={v.serviceExample} />
+      <Field label="Preço" mask="money" value={price} onChangeText={setPrice} />
       <Field label="Duração (minutos)" value={duration} onChangeText={setDuration} keyboardType="number-pad" />
       <Field label="Ordem no menu" value={order} onChangeText={setOrder} keyboardType="number-pad" hint="Menor aparece primeiro." />
       <Toggle label="Ativo (aparece no bot)" value={active} onValueChange={setActive} />
-      <Button title="Salvar" onPress={save} disabled={!name || !price || !duration} />
       {item ? (
-        <Button title="Excluir" kind="danger" onPress={() => confirm('Excluir serviço?', 'Se já tiver agendamentos, ele só será desativado.',
+        <Button title="Excluir" kind="danger" icon="trash-outline" onPress={() => confirm('Excluir serviço?', 'Se já tiver agendamentos, ele só será desativado.',
           () => run(async () => { await api.del(`/services/${item.id}`); navigation.goBack(); }), 'Excluir', true)} />
       ) : null}
     </Screen>
@@ -73,21 +80,29 @@ export function ServiceEditScreen({ navigation, route }) {
 // ---------------------------------------------------------------- barbeiros
 
 export function BarbersScreen({ navigation }) {
+  const { v } = useTheme();
   const list = useLoad(() => api.get('/barbers'), []);
   useLayoutEffect(() => {
-    navigation.setOptions({ headerRight: () => <AddButton onPress={() => navigation.navigate('BarberEdit', {})} /> });
-  }, [navigation]);
+    navigation.setOptions({ headerRight: () => <AddButton label={`Novo ${v.pro}`} onPress={() => navigation.navigate('BarberEdit', {})} /> });
+  }, [navigation, v.pro]);
+  const items = list.data || [];
   return (
     <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
-      {list.data && !list.data.length ? <Empty text="Cadastre pelo menos um barbeiro com expediente." /> : null}
-      <View style={{ borderRadius: 12, overflow: 'hidden' }}>
-        {(list.data || []).map((b) => (
-          <ListRow key={b.id} icon="cut-outline" title={b.name + (b.active ? '' : ' (inativo)')}
-                   subtitle={`${new Set(b.working_hours.map((w) => w.weekday)).size} dias por semana · ${phoneLabel(b.phone) || 'sem WhatsApp'}`}
-                   onPress={() => navigation.navigate('BarberEdit', { item: b })} />
-        ))}
-      </View>
+      {list.data && !items.length ? (
+        <Empty text={`Cadastre pelo menos um ${v.proHint} com expediente.`}
+               action={{ title: `Novo ${v.pro}`, icon: 'add', onPress: () => navigation.navigate('BarberEdit', {}) }} />
+      ) : null}
+      {items.length ? (
+        <Group>
+          {items.map((b, i) => (
+            <ListRow key={b.id} icon="person-outline" title={b.name + (b.active ? '' : ' (inativo)')} first={i === 0}
+                     last={i === items.length - 1}
+                     subtitle={`${new Set(b.working_hours.map((w) => w.weekday)).size} dias por semana · ${phoneLabel(b.phone) || 'sem WhatsApp'}`}
+                     onPress={() => navigation.navigate('BarberEdit', { item: b })} />
+          ))}
+        </Group>
+      ) : null}
     </Screen>
   );
 }
@@ -125,6 +140,7 @@ function daysToHours(days) {
 const HMInput = (props) => <Field {...props} keyboardType="numbers-and-punctuation" maxLength={5} />;
 
 export function BarberEditScreen({ navigation, route }) {
+  const { s, v } = useTheme();
   const item = route.params?.item;
   const services = useLoad(() => api.get('/services'), []);
   const [name, setName] = useState(item?.name || '');
@@ -145,14 +161,14 @@ export function BarberEditScreen({ navigation, route }) {
   });
 
   return (
-    <Screen>
-      <Field label="Nome" value={name} onChangeText={setName} />
-      <Field label="WhatsApp" value={phone} onChangeText={setPhone} keyboardType="phone-pad"
-             hint="Recebe alertas da própria agenda e acessa o menu do barbeiro no bot." />
+    <Screen footer={<Button title="Salvar" icon="checkmark" onPress={save} disabled={!name} style={{ marginBottom: 0 }} />}>
+      <Field label="Nome" value={name} onChangeText={setName} autoCapitalize="words" />
+      <Field label="WhatsApp" mask="phone" value={phone} onChangeText={setPhone}
+             hint={`Recebe alertas da própria agenda e acessa o menu do ${v.pro} no bot.`} />
       <Field label="Apresentação curta" value={bio} onChangeText={setBio} placeholder="Ex.: especialista em degradê" />
       <Toggle label="Ativo" value={active} onValueChange={setActive} />
       <Section title="Serviços que faz">
-        <Muted style={{ marginBottom: 8 }}>Nenhum marcado = faz todos.</Muted>
+        <Muted style={{ marginBottom: SPACE(2) }}>Nenhum marcado = faz todos.</Muted>
         <Chips multi value={serviceIds} onChange={setServiceIds}
                options={(services.data || []).map((x) => ({ value: x.id, label: x.name }))} />
       </Section>
@@ -162,23 +178,22 @@ export function BarberEditScreen({ navigation, route }) {
             <Toggle label={WEEKDAYS_MON_FIRST[d]} value={x.on} onValueChange={(on) => setDay(d, { on })} />
             {x.on ? (
               <>
-                <View style={[s.row, { gap: 10 }]}>
-                  <View style={{ flex: 1 }}><HMInput label="Início" value={x.a1} onChangeText={(v) => setDay(d, { a1: v })} /></View>
-                  <View style={{ flex: 1 }}><HMInput label="Fim" value={x.b1} onChangeText={(v) => setDay(d, { b1: v })} /></View>
+                <View style={[s.row, { gap: SPACE(2.5) }]}>
+                  <View style={{ flex: 1 }}><HMInput label="Início" value={x.a1} onChangeText={(t) => setDay(d, { a1: t })} /></View>
+                  <View style={{ flex: 1 }}><HMInput label="Fim" value={x.b1} onChangeText={(t) => setDay(d, { b1: t })} /></View>
                 </View>
-                <View style={[s.row, { gap: 10 }]}>
-                  <View style={{ flex: 1 }}><HMInput label="2º turno início" value={x.a2} onChangeText={(v) => setDay(d, { a2: v })} placeholder="opcional" /></View>
-                  <View style={{ flex: 1 }}><HMInput label="2º turno fim" value={x.b2} onChangeText={(v) => setDay(d, { b2: v })} placeholder="opcional" /></View>
+                <View style={[s.row, { gap: SPACE(2.5) }]}>
+                  <View style={{ flex: 1 }}><HMInput label="2º turno início" value={x.a2} onChangeText={(t) => setDay(d, { a2: t })} placeholder="opcional" /></View>
+                  <View style={{ flex: 1 }}><HMInput label="2º turno fim" value={x.b2} onChangeText={(t) => setDay(d, { b2: t })} placeholder="opcional" /></View>
                 </View>
               </>
             ) : null}
           </Card>
         ))}
       </Section>
-      <Button title="Salvar" onPress={save} disabled={!name} />
       {item ? <BarberCommissionRules barberId={item.id} navigation={navigation} /> : null}
       {item ? (
-        <Button title="Excluir" kind="danger" onPress={() => confirm('Excluir barbeiro?', 'Se já tiver agendamentos, ele só será desativado.',
+        <Button title="Excluir" kind="danger" icon="trash-outline" onPress={() => confirm(`Excluir ${v.pro}?`, 'Se já tiver agendamentos, só será desativado.',
           () => run(async () => { await api.del(`/barbers/${item.id}`); navigation.goBack(); }), 'Excluir', true)} />
       ) : null}
     </Screen>
@@ -188,6 +203,7 @@ export function BarberEditScreen({ navigation, route }) {
 // ---------------------------------------------------------------- bloqueios
 
 export function BlocksScreen() {
+  const { s, v } = useTheme();
   const list = useLoad(() => api.get('/blocks'), []);
   const barbers = useLoad(() => api.get('/barbers'), []);
   const [date, setDate] = useState('');
@@ -208,7 +224,8 @@ export function BlocksScreen() {
     list.reload();
   }, 'Horário bloqueado. O bot não oferece mais esse intervalo.');
 
-  const name = (id) => (barbers.data || []).find((b) => b.id === id)?.name || 'Barbearia inteira';
+  const whole = `${v.Business} ${['clínica', 'barbearia'].includes(v.business) ? 'inteira' : 'inteiro'}`;
+  const name = (id) => (barbers.data || []).find((b) => b.id === id)?.name || whole;
 
   return (
     <Screen onRefresh={list.reload}>
@@ -216,32 +233,35 @@ export function BlocksScreen() {
         <Field label="Data" value={date} onChangeText={setDate} placeholder="dd/mm ou hoje" />
         <Toggle label="Dia inteiro" value={allDay} onValueChange={setAllDay} />
         {!allDay ? (
-          <View style={[s.row, { gap: 10 }]}>
-            <View style={{ flex: 1 }}><Field label="Início" value={start} onChangeText={setStart} maxLength={5} /></View>
-            <View style={{ flex: 1 }}><Field label="Fim" value={end} onChangeText={setEnd} maxLength={5} /></View>
+          <View style={[s.row, { gap: SPACE(2.5) }]}>
+            <View style={{ flex: 1 }}><Field label="Início" value={start} onChangeText={setStart} maxLength={5} keyboardType="numbers-and-punctuation" /></View>
+            <View style={{ flex: 1 }}><Field label="Fim" value={end} onChangeText={setEnd} maxLength={5} keyboardType="numbers-and-punctuation" /></View>
           </View>
         ) : null}
         <Field label="Motivo" value={reason} onChangeText={setReason} placeholder="Almoço, folga, feriado..." />
         <Chips value={barberId} onChange={setBarberId}
-               options={[{ value: null, label: 'Barbearia inteira' }, ...(barbers.data || []).filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }))]} />
+               options={[{ value: null, label: whole }, ...(barbers.data || []).filter((b) => b.active).map((b) => ({ value: b.id, label: b.name }))]} />
         <Button title="Bloquear" icon="lock-closed-outline" onPress={add} disabled={!date} />
       </Section>
       <Section title="Próximos bloqueios">
-        {list.data && !list.data.length ? <Empty text="Nenhum bloqueio." /> : null}
+        {list.data && !list.data.length ? <Empty icon="lock-open-outline" text="Nenhum bloqueio." /> : null}
         {(list.data || []).map((b) => (
           <Card key={b.id}>
             <View style={s.row}>
               <View style={{ flex: 1 }}>
-                <Text style={s.body}>{dtLabel(b.start)} até {hm(b.end)}</Text>
+                <Text style={s.bodyBold}>{dtLabel(b.start)} até {hm(b.end)}</Text>
                 <Muted>{name(b.barber_id)}{b.reason ? ` · ${b.reason}` : ''}</Muted>
               </View>
-              <Pressable hitSlop={10} onPress={() => confirm('Remover bloqueio?', '', () => run(async () => { await api.del(`/blocks/${b.id}`); list.reload(); }), 'Remover', true)}>
-                <Ionicons name="trash-outline" size={22} color={colors.bad} />
-              </Pressable>
+              <RemoveBlock onPress={() => confirm('Remover bloqueio?', '', () => run(async () => { await api.del(`/blocks/${b.id}`); list.reload(); }, 'Bloqueio removido.'), 'Remover', true)} />
             </View>
           </Card>
         ))}
       </Section>
     </Screen>
   );
+}
+
+function RemoveBlock({ onPress }) {
+  const { c } = useTheme();
+  return <IconButton icon="trash-outline" label="Remover bloqueio" color={c.statusText.danger} onPress={onPress} />;
 }

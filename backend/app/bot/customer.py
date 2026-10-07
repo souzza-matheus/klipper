@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 
 from ..config import now_local
-from ..models import AccessStatus, Appointment, ApptStatus, Barber, PayStatus, Review, Service
+from ..models import AccessStatus, Appointment, ApptStatus, Barber, ConflictAction, PayStatus, Review, Service
 from ..services import approvals
 from ..services import scheduling as sch
 from ..services.fmt import WEEKDAYS_FULL, appt_summary, day_label, dt_label, money
@@ -185,13 +185,22 @@ def show_times(ctx: Ctx, day: date, prefix: str = "") -> None:
     ignore = ctx.get("reschedule_of")
     c = customer(ctx)
     # Com o cliente, some também o que fica perto demais de alguém em conflito com ele (sem explicar o motivo)
+    # Conflitos "approval" não escondem o horário: viram pedido para o dono aprovar
     if barber:
-        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore, customer=c)]
+        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore, customer=c,
+                                                        only_blocking=True)]
     else:
-        slots = [(s, b.id) for s, b in sch.free_slots_any(ctx.db, ctx.shop, service, day, customer=c)]
-    if c.access_status == AccessStatus.APPROVAL:  # o dono precisa de tempo para responder antes de expirar
-        earliest = now_local() + approvals.APPROVAL_MIN_LEAD
+        slots = [(s, b.id) for s, b in sch.free_slots_any(ctx.db, ctx.shop, service, day, customer=c,
+                                                          only_blocking=True)]
+    earliest = now_local() + approvals.APPROVAL_MIN_LEAD  # o dono precisa de tempo para responder antes de expirar
+    if c.access_status == AccessStatus.APPROVAL:
         slots = [x for x in slots if x[0] >= earliest]
+    else:
+        duration = timedelta(minutes=service.duration_minutes)
+        needs_ok = [(ws, we) for ws, we, hit in sch.conflict_windows(ctx.db, ctx.shop, c, day)
+                    if hit.conflict.conflict_action == ConflictAction.APPROVAL]
+        slots = [x for x in slots
+                 if x[0] >= earliest or not any(x[0] < we and x[0] + duration > ws for ws, we in needs_ok)]
     if not slots:
         ask_day(ctx, prefix=f"Não há horários livres em {day_label(day).lower()}. 😕")
         return
@@ -261,16 +270,26 @@ def _do_book(ctx: Ctx) -> None:
     if _blocked(ctx):  # o acesso pode ter mudado no meio da conversa
         return
     pending = c.access_status == AccessStatus.APPROVAL
-    status = ApptStatus.PENDING_APPROVAL if pending else ApptStatus.SCHEDULED
     old_id = ctx.get("reschedule_of")
-    try:
+    old_label = dt_label(db.get(Appointment, old_id).start) if old_id else ""
+
+    def book(force: bool = False):
+        status = ApptStatus.PENDING_APPROVAL if pending else ApptStatus.SCHEDULED
         if old_id:
-            appt = db.get(Appointment, old_id)
-            old_label = dt_label(appt.start)
-            sch.reschedule_appointment(db, shop, appt, start, barber, status=status)
-        else:
-            appt = sch.create_appointment(db, shop, c, barber, service, start, status=status)
-    except sch.SchedulingError:  # inclui conflito entre clientes: a mensagem é a mesma de horário ocupado
+            return sch.reschedule_appointment(db, shop, db.get(Appointment, old_id), start, barber, status=status,
+                                              force=force)
+        return sch.create_appointment(db, shop, c, barber, service, start, status=status, force=force)
+
+    try:
+        try:
+            appt = book()
+        except sch.ConflictError as e:
+            if e.hit.conflict.conflict_action != ConflictAction.APPROVAL:
+                raise
+            # Perto de um cliente em conflito com "exigir aprovação": vira pedido (o cliente não sabe o motivo)
+            pending = True
+            appt = book(force=True)
+    except sch.SchedulingError:  # inclui conflito "block": a mensagem é a mesma de horário ocupado
         show_times(ctx, start.date(), prefix="Poxa, esse horário acabou de ser ocupado. 😕 Escolha outro:")
         return
 

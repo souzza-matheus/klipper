@@ -143,3 +143,14 @@ export const ACCESS_OPTIONS = [
   { value: 'approval', label: 'Precisa de aprovação' },
   { value: 'blocked', label: 'Bloqueado' },
 ];
+
+// Há quanto tempo (data local sem fuso): "agora", "há 15 min", "há 3 h", "há 2 dias"
+export function ago(iso, now = new Date()) {
+  if (!iso) return '';
+  const min = Math.max(0, Math.round((now - new Date(iso.slice(0, 19))) / 60000));
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 48) return `há ${h} h`;
+  return `há ${Math.floor(h / 24)} dias`;
+}

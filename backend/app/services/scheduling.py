@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import now_local
 from ..models import (
-    Appointment, ApptStatus, Barber, Block, Customer, CustomerConflict, PayMethod, PayStatus, Service, Shop,
+    Appointment, ApptStatus, Barber, Block, ConflictAction, Customer, CustomerConflict, PayMethod, PayStatus,
+    Service, Shop,
 )
 
 
@@ -138,15 +139,15 @@ def conflict_windows(db: Session, shop: Shop, customer: Customer | None, day: da
 
 def find_conflict(db: Session, shop: Shop, customer: Customer | None, start: datetime, end: datetime,
                   ignore_appt_id: int | None = None) -> ConflictHit | None:
-    """Primeiro agendamento de cliente em conflito que impede [start, end), considerando todos os barbeiros."""
-    for ws, we, hit in conflict_windows(db, shop, customer, start.date(), ignore_appt_id):
-        if start < we and end > ws:
-            return hit
+    """Agendamento de cliente em conflito que impede [start, end), considerando todos os barbeiros.
+    Um conflito "block" tem preferência: só devolve um "approval" quando não há nenhum que bloqueie."""
+    hits = [hit for ws, we, hit in conflict_windows(db, shop, customer, start.date(), ignore_appt_id)
+            if start < we and end > ws]
     if end.date() != start.date():  # atendimento que passa da meia-noite
-        for ws, we, hit in conflict_windows(db, shop, customer, end.date(), ignore_appt_id):
-            if start < we and end > ws:
-                return hit
-    return None
+        hits += [hit for ws, we, hit in conflict_windows(db, shop, customer, end.date(), ignore_appt_id)
+                 if start < we and end > ws]
+    blocking = [h for h in hits if h.conflict.conflict_action != ConflictAction.APPROVAL]
+    return (blocking or hits or [None])[0]
 
 
 def conflicts_on_day(db: Session, shop: Shop, customer: Customer, day: date) -> list[ConflictHit]:
@@ -164,13 +165,16 @@ def conflicts_on_day(db: Session, shop: Shop, customer: Customer, day: date) -> 
 # ---------------------------------------------------------------- horários livres
 
 def free_slots(db: Session, shop: Shop, service: Service, barber: Barber, day: date,
-               ignore_appt_id: int | None = None, customer: Customer | None = None) -> list[datetime]:
-    """Com customer, esconde também os horários perto demais de clientes em conflito com ele."""
+               ignore_appt_id: int | None = None, customer: Customer | None = None,
+               only_blocking: bool = False) -> list[datetime]:
+    """Com customer, esconde também os horários perto demais de clientes em conflito com ele.
+    only_blocking=True (bot) esconde só os conflitos "block": nos "approval" o horário aparece e vira pedido."""
     earliest = now_local() + timedelta(minutes=shop.min_advance_minutes)
     duration = timedelta(minutes=service.duration_minutes)
     step = timedelta(minutes=shop.slot_step_minutes)
     busy = _busy_intervals(db, shop, barber, day, ignore_appt_id)
-    busy += [(ws, we) for ws, we, _ in conflict_windows(db, shop, customer, day)]
+    busy += [(ws, we) for ws, we, hit in conflict_windows(db, shop, customer, day)
+             if not (only_blocking and hit.conflict.conflict_action == ConflictAction.APPROVAL)]
     slots: list[datetime] = []
     for wh in barber.working_hours:
         if wh.weekday != day.weekday():
@@ -186,11 +190,11 @@ def free_slots(db: Session, shop: Shop, service: Service, barber: Barber, day: d
 
 
 def free_slots_any(db: Session, shop: Shop, service: Service, day: date,
-                   customer: Customer | None = None) -> list[tuple[datetime, Barber]]:
+                   customer: Customer | None = None, only_blocking: bool = False) -> list[tuple[datetime, Barber]]:
     """Horários livres com qualquer barbeiro: para cada horário, o primeiro barbeiro disponível."""
     result: dict[datetime, Barber] = {}
     for barber in active_barbers(db, shop, service):
-        for slot in free_slots(db, shop, service, barber, day, customer=customer):
+        for slot in free_slots(db, shop, service, barber, day, customer=customer, only_blocking=only_blocking):
             result.setdefault(slot, barber)
     return sorted(result.items(), key=lambda x: x[0])
 
@@ -376,3 +380,74 @@ def month_overview(db: Session, shop: Shop, year: int, month: int, barber_id: in
         elif row["total"]:
             row["occupancy"] = 1.0
     return days
+
+
+# ---------------------------------------------------------------- agenda do dia
+
+@dataclass
+class BarberDay:
+    barber: Barber
+    working: list[tuple[datetime, datetime]]
+    blocks: list[Block]
+    appointments: list[Appointment]
+    free: list[tuple[datetime, datetime]]
+
+
+@dataclass
+class DayAgenda:
+    now: datetime
+    barbers: list[BarberDay]
+
+
+def _subtract(intervals: list[tuple[datetime, datetime]], busy: list[tuple[datetime, datetime]]):
+    """Partes dos intervalos que não cruzam nenhum ocupado."""
+    out = []
+    for s, e in intervals:
+        cur = s
+        for bs, be in sorted(busy):
+            if be <= cur or bs >= e:
+                continue
+            if bs > cur:
+                out.append((cur, bs))
+            cur = max(cur, be)
+            if cur >= e:
+                break
+        if cur < e:
+            out.append((cur, e))
+    return out
+
+
+def day_agenda(db: Session, shop: Shop, day: date) -> DayAgenda:
+    """Expediente, bloqueios, agendamentos (sem os cancelados) e intervalos livres de cada profissional no dia.
+    Entra quem está ativo ou tem agendamento no dia. Livre só a partir de agora (dias passados não têm livre).
+    Usa 3 consultas principais, mais os carregamentos em lote das relações dos agendamentos."""
+    day_start, day_end = _day_bounds(day)
+    now = now_local()
+    barbers = db.scalars(select(Barber).options(selectinload(Barber.working_hours))
+                         .where(Barber.shop_id == shop.id).order_by(Barber.name)).all()
+    blocks = db.scalars(select(Block).where(Block.shop_id == shop.id, Block.start < day_end, Block.end > day_start)
+                        .order_by(Block.start)).all()
+    appts = db.scalars(select(Appointment).options(
+        selectinload(Appointment.customer), selectinload(Appointment.service),
+        selectinload(Appointment.review), selectinload(Appointment.payment),
+    ).where(
+        Appointment.shop_id == shop.id, Appointment.start >= day_start, Appointment.start < day_end,
+        Appointment.status != ApptStatus.CANCELLED,
+    ).order_by(Appointment.start)).all()
+
+    out = []
+    for b in barbers:
+        mine = [a for a in appts if a.barber_id == b.id]
+        if not b.active and not mine:
+            continue
+        working = sorted((datetime.combine(day, wh.start), datetime.combine(day, wh.end))
+                         for wh in b.working_hours if wh.weekday == day.weekday())
+        own_blocks = [k for k in blocks if k.barber_id in (None, b.id)]
+        busy = [(k.start, k.end) for k in own_blocks]
+        busy += [(a.start, a.end) for a in mine if a.status in ApptStatus.OCCUPYING]
+        free = _subtract(working, busy) if day >= now.date() else []
+        if day == now.date():
+            free = [(max(s, now), e) for s, e in free if e > now]
+        out.append(BarberDay(barber=b, working=working, blocks=own_blocks, appointments=mine,
+                             free=[(s, e) for s, e in free if (e - s) >= timedelta(minutes=5)]))
+    return DayAgenda(now=now, barbers=out)

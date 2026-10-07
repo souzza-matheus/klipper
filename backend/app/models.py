@@ -2,7 +2,7 @@ from datetime import datetime, time, date
 from decimal import Decimal
 
 from sqlalchemy import (
-    JSON, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, Numeric, String,
+    JSON, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String,
     Table, Text, Time, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,6 +38,30 @@ class PayMethod:
     CREDIT = "credito"
     ALL = (PIX, CASH, DEBIT, CREDIT)
     LABELS = {PIX: "Pix", CASH: "Dinheiro", DEBIT: "Débito", CREDIT: "Crédito"}
+
+
+class Niche:
+    """Segmento do negócio: define o tema e o vocabulário do app."""
+    BARBERSHOP = "barbershop"
+    BEAUTY = "beauty"
+    PETSHOP = "petshop"
+    CLINIC = "clinic"
+    FITNESS = "fitness"
+    ALL = (BARBERSHOP, BEAUTY, PETSHOP, CLINIC, FITNESS)
+
+
+class ThemeMode:
+    AUTO = "auto"  # usa o modo (claro ou escuro) do segmento
+    DARK = "dark"
+    LIGHT = "light"
+    ALL = (AUTO, DARK, LIGHT)
+
+
+class ConflictAction:
+    """O que o bot faz quando o horário fica perto de um cliente em conflito."""
+    BLOCK = "block"        # esconde o horário (o cliente não vê o motivo)
+    APPROVAL = "approval"  # deixa agendar, mas o pedido fica aguardando a aprovação do dono
+    ALL = (BLOCK, APPROVAL)
 
 
 class PayStatus:
@@ -90,6 +114,10 @@ class Shop(Base):
     approval_expire_hours: Mapped[int] = mapped_column(Integer, default=12)
     # Distância mínima entre clientes em conflito quando o conflito não define a sua
     conflict_default_gap_minutes: Mapped[int] = mapped_column(Integer, default=240)
+
+    # Aparência do app
+    niche: Mapped[str] = mapped_column(String(20), default=Niche.BARBERSHOP)
+    theme_mode: Mapped[str] = mapped_column(String(10), default=ThemeMode.AUTO)
 
     # WhatsApp (Evolution API)
     evolution_instance: Mapped[str] = mapped_column(String(60), unique=True)
@@ -200,6 +228,7 @@ class CustomerConflict(Base):
     customer_b_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     min_gap_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     same_day_block: Mapped[bool] = mapped_column(Boolean, default=False)  # nunca os dois no mesmo dia
+    conflict_action: Mapped[str] = mapped_column(String(10), default=ConflictAction.BLOCK)
     notes: Mapped[str] = mapped_column(Text, default="")  # motivo interno
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
 
@@ -252,6 +281,10 @@ class Payment(Base):
     status: Mapped[str] = mapped_column(String(20), default=PayStatus.PENDING, index=True)
     customer_reported_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # cliente disse "paguei"
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Comprovante mandado pelo cliente no WhatsApp (imagem ou PDF, baixado da Evolution API)
+    receipt_mime: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    receipt_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    receipt_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
 
     appointment: Mapped[Appointment] = relationship(back_populates="payment")

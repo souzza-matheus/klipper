@@ -23,10 +23,17 @@ class RegisterIn(BaseModel):
     owner_phone: str = ""
 
 
+NICHE = "^(barbershop|beauty|petshop|clinic|fitness)$"
+THEME_MODE = "^(auto|dark|light)$"
+CONFLICT_ACTION = "^(block|approval)$"
+
+
 class TokenOut(BaseModel):
     token: str
     user_name: str
     shop_name: str
+    niche: str = "barbershop"
+    theme_mode: str = "auto"
 
 
 # ---- shop
@@ -54,6 +61,8 @@ class ShopIn(BaseModel):
     human_pause_hours: int | None = Field(None, ge=1, le=48)
     approval_expire_hours: int | None = Field(None, ge=1, le=72)
     conflict_default_gap_minutes: int | None = Field(None, ge=0, le=1440)
+    niche: str | None = Field(None, pattern=NICHE)
+    theme_mode: str | None = Field(None, pattern=THEME_MODE)
 
 
 class ShopOut(ORM):
@@ -81,6 +90,8 @@ class ShopOut(ORM):
     human_pause_hours: int
     approval_expire_hours: int
     conflict_default_gap_minutes: int
+    niche: str
+    theme_mode: str
     evolution_instance: str
 
 
@@ -190,12 +201,14 @@ class ConflictIn(BaseModel):
     other_customer_id: int
     min_gap_minutes: int | None = Field(None, ge=0, le=1440)  # nulo = padrão da barbearia
     same_day_block: bool = False
+    conflict_action: str = Field("block", pattern=CONFLICT_ACTION)
     notes: str = Field("", max_length=1000)
 
 
 class ConflictUpdate(BaseModel):
     min_gap_minutes: int | None = Field(None, ge=0, le=1440)
     same_day_block: bool = False
+    conflict_action: str = Field("block", pattern=CONFLICT_ACTION)
     notes: str = Field("", max_length=1000)
 
 
@@ -212,6 +225,7 @@ class ConflictOut(BaseModel):
     min_gap_minutes: int | None
     effective_gap_minutes: int  # o que vale de fato (padrão da barbearia quando min_gap_minutes é nulo)
     same_day_block: bool
+    conflict_action: str = "block"  # block: esconde o horário; approval: o pedido fica aguardando aprovação
     notes: str
     created_at: datetime
 
@@ -227,6 +241,7 @@ class ConflictHitOut(BaseModel):
     barber_name: str
     gap_minutes: int
     same_day_block: bool
+    conflict_action: str = "block"
 
 
 # ---- appointments
@@ -278,6 +293,8 @@ class AppointmentOut(ORM):
     rating: int | None = None
     customer_access_status: str = "normal"
     approval_deadline: datetime | None = None  # só em pending_approval
+    payment_id: int | None = None  # Pix gerado para o atendimento (para confirmar direto do card)
+    customer_reported_paid: bool = False  # o cliente disse que pagou o Pix
 
 
 # ---- payments / reviews
@@ -292,6 +309,12 @@ class PaymentOut(ORM):
     confirmed_at: datetime | None
     customer_name: str
     appointment_start: datetime
+    customer_phone: str = ""
+    service_name: str = ""
+    barber_name: str = ""
+    has_receipt: bool = False
+    receipt_mime: str | None = None
+    receipt_at: datetime | None = None
 
 
 class ReviewOut(ORM):
@@ -526,3 +549,33 @@ CustomerDetail.model_rebuild()
 # ---- whatsapp
 class PairingCodeIn(BaseModel):
     number: str
+
+
+# ---- agenda do dia
+class Interval(BaseModel):
+    start: datetime
+    end: datetime
+
+
+class AgendaBlock(BaseModel):
+    id: int
+    start: datetime
+    end: datetime
+    reason: str
+    whole_shop: bool  # bloqueio da barbearia inteira (vale para todos os profissionais)
+
+
+class AgendaBarber(BaseModel):
+    id: int
+    name: str
+    working: list[Interval]
+    blocks: list[AgendaBlock]
+    appointments: list["AppointmentOut"]
+    free: list[Interval]  # expediente menos bloqueios e agendamentos (a partir de agora, se for hoje)
+
+
+class AgendaDayOut(BaseModel):
+    day: date
+    now: datetime
+    slot_step_minutes: int
+    barbers: list[AgendaBarber]

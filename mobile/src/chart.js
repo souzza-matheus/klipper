@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { money } from './format';
-import { colors } from './theme';
-import { Muted, s } from './ui';
+import { useTheme } from './ThemeProvider';
+import { Muted } from './ui';
 
 const AXIS_W = 40;
 const LABEL_H = 18;
@@ -21,7 +21,9 @@ const short = (n) => (n >= 1000 ? `${(n / 1000).toLocaleString('pt-BR', { maximu
  * Barras agrupadas por dia: duas séries lado a lado.
  * data: [{ key, label, a, b }]  (a = faturamento, b = gastos)
  */
-export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'], barColors = [colors.primary, colors.accent], detail }) {
+export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'], barColors, detail }) {
+  const { c, s, font } = useTheme();
+  const bars = barColors || [c.accentText, c.statusText.danger];
   const [width, setWidth] = useState(0);
   const [sel, setSel] = useState(null);
   const max = niceMax(Math.max(0, ...data.map((d) => Math.max(d.a, d.b))));
@@ -39,8 +41,8 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
         <Svg width={width} height={height}>
           {[0, 0.5, 1].map((f) => (
             <G key={f}>
-              <Line x1={AXIS_W} x2={width} y1={y(max * f)} y2={y(max * f)} stroke={colors.line} strokeWidth={1} />
-              <SvgText x={AXIS_W - 6} y={y(max * f) + 4} fontSize={10} fill={colors.muted} textAnchor="end">
+              <Line x1={AXIS_W} x2={width} y1={y(max * f)} y2={y(max * f)} stroke={c.divider} strokeWidth={1} />
+              <SvgText x={AXIS_W - 6} y={y(max * f) + 4} fontSize={10} fill={c.textMuted} textAnchor="end">
                 {short(max * f)}
               </SvgText>
             </G>
@@ -50,11 +52,11 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
             const dim = sel !== null && sel !== i ? 0.35 : 1;
             return (
               <G key={d.key}>
-                {sel === i ? <Rect x={cx - slot / 2} y={0} width={slot} height={plotH} fill={colors.infoBg} /> : null}
-                <Rect x={cx - bar - 0.5} y={y(d.a)} width={bar} height={plotH - y(d.a)} rx={1.5} fill={barColors[0]} opacity={dim} />
-                <Rect x={cx + 0.5} y={y(d.b)} width={bar} height={plotH - y(d.b)} rx={1.5} fill={barColors[1]} opacity={dim} />
+                {sel === i ? <Rect x={cx - slot / 2} y={0} width={slot} height={plotH} fill={c.accentSoft} /> : null}
+                <Rect x={cx - bar - 0.5} y={y(d.a)} width={bar} height={plotH - y(d.a)} rx={1.5} fill={bars[0]} opacity={dim} />
+                <Rect x={cx + 0.5} y={y(d.b)} width={bar} height={plotH - y(d.b)} rx={1.5} fill={bars[1]} opacity={dim} />
                 {i % every === 0 ? (
-                  <SvgText x={cx} y={height - 4} fontSize={10} fill={colors.muted} textAnchor="middle">{d.label}</SvgText>
+                  <SvgText x={cx} y={height - 4} fontSize={10} fill={c.textMuted} textAnchor="middle">{d.label}</SvgText>
                 ) : null}
                 {/* área de toque do dia inteiro */}
                 <Rect x={cx - slot / 2} y={0} width={slot} height={height} fill="transparent"
@@ -67,11 +69,11 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
       <View style={[s.row, { gap: 16, marginTop: 8, flexWrap: 'wrap' }]}>
         {labels.map((l, i) => (
           <View key={l} style={[s.row, { gap: 6 }]}>
-            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: barColors[i] }} />
+            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: bars[i] }} />
             <Muted>{picked ? `${l}: ${money(i ? picked.b : picked.a)}` : l}</Muted>
           </View>
         ))}
-        {picked ? <Text style={[s.muted, { fontWeight: '700' }]}>{detail ? detail(picked) : picked.label}</Text> : null}
+        {picked ? <Text style={[s.muted, { fontFamily: font.bold }]}>{detail ? detail(picked) : picked.label}</Text> : null}
       </View>
       {!picked && data.length ? <Muted style={{ marginTop: 4, fontSize: 12 }}>Toque em um dia para ver os valores.</Muted> : null}
     </View>

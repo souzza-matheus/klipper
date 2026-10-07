@@ -3,9 +3,9 @@ import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, undefer
 
 from .. import schemas as S
 from ..auth import check_password, current_user, hash_password, make_token
@@ -19,7 +19,7 @@ from ..services import scheduling as sch
 from ..services import whatsapp as wa
 from ..services.approvals import approval_deadline
 from ..services.fmt import appt_summary, dt_label, money
-from ..services.payments import confirm_payment
+from ..services.payments import confirm_payment, reject_payment
 
 router = APIRouter()
 
@@ -42,7 +42,13 @@ def login(body: S.LoginIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     if user is None or not check_password(body.password, user.password_hash):
         raise HTTPException(401, "E-mail ou senha incorretos")
-    return S.TokenOut(token=make_token(user), user_name=user.name, shop_name=user.shop.name)
+    return _token_out(user)
+
+
+def _token_out(user: User) -> S.TokenOut:
+    shop = user.shop
+    return S.TokenOut(token=make_token(user), user_name=user.name, shop_name=shop.name, niche=shop.niche,
+                      theme_mode=shop.theme_mode)
 
 
 @router.post("/auth/register", response_model=S.TokenOut, tags=["auth"])
@@ -64,12 +70,13 @@ def register(body: S.RegisterIn, db: Session = Depends(get_db)):
     user = User(shop_id=shop.id, name=body.owner_name, email=body.email.lower(), password_hash=hash_password(body.password))
     db.add(user)
     db.commit()
-    return S.TokenOut(token=make_token(user), user_name=user.name, shop_name=shop.name)
+    return _token_out(user)
 
 
 @router.get("/me", tags=["auth"])
 def me(user: User = Depends(current_user)):
-    return {"name": user.name, "email": user.email, "shop_id": user.shop_id, "shop_name": user.shop.name}
+    return {"name": user.name, "email": user.email, "shop_id": user.shop_id, "shop_name": user.shop.name,
+            "niche": user.shop.niche, "theme_mode": user.shop.theme_mode}
 
 
 # ---------------------------------------------------------------- barbearia
@@ -254,6 +261,8 @@ def appt_out(a: Appointment) -> S.AppointmentOut:
         customer_phone=a.customer.phone, barber_id=a.barber_id, barber_name=a.barber.name,
         service_id=a.service_id, service_name=a.service.name, rating=a.review.rating if a.review else None,
         customer_access_status=a.customer.access_status, approval_deadline=deadline,
+        payment_id=a.payment.id if a.payment else None,
+        customer_reported_paid=bool(a.payment and a.payment.customer_reported_at),
     )
 
 
@@ -263,7 +272,7 @@ def conflict_hit_out(hit: sch.ConflictHit) -> S.ConflictHitOut:
         conflict_id=hit.conflict.id, other_customer_id=a.customer_id,
         other_customer_name=a.customer.name or a.customer.phone, appointment_id=a.id,
         start=a.start, end=a.end, barber_name=a.barber.name, gap_minutes=hit.gap_minutes,
-        same_day_block=hit.same_day_block,
+        same_day_block=hit.same_day_block, conflict_action=hit.conflict.conflict_action,
     )
 
 
@@ -293,6 +302,23 @@ def list_appointments(date_from: date, date_to: date | None = None, barber_id: i
     if not include_cancelled:
         q = q.where(Appointment.status != ApptStatus.CANCELLED)
     return [appt_out(a) for a in db.scalars(q.order_by(Appointment.start))]
+
+
+@router.get("/agenda/day", response_model=S.AgendaDayOut, tags=["appointments"])
+def agenda_day(day: date, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+    """Tudo o que a agenda do dia precisa em uma resposta: expediente, bloqueios, agendamentos e horários livres
+    de cada profissional ativo (ou com agendamento no dia)."""
+    d = sch.day_agenda(db, shop, day)
+    return S.AgendaDayOut(day=day, now=d.now, slot_step_minutes=shop.slot_step_minutes, barbers=[
+        S.AgendaBarber(
+            id=b.barber.id, name=b.barber.name,
+            working=[S.Interval(start=a, end=z) for a, z in b.working],
+            blocks=[S.AgendaBlock(id=k.id, start=k.start, end=k.end, reason=k.reason, whole_shop=k.barber_id is None)
+                    for k in b.blocks],
+            appointments=[appt_out(a) for a in b.appointments],
+            free=[S.Interval(start=a, end=z) for a, z in b.free],
+        ) for b in d.barbers
+    ])
 
 
 @router.get("/appointments/month", response_model=S.MonthOut, tags=["appointments"])
@@ -441,18 +467,25 @@ def update_customer(cid: int, body: S.CustomerIn, shop: Shop = Depends(shop_of),
 # ---------------------------------------------------------------- pagamentos
 
 def pay_out(p: Payment) -> S.PaymentOut:
+    a = p.appointment
     return S.PaymentOut(id=p.id, appointment_id=p.appointment_id, amount=p.amount, status=p.status, brcode=p.brcode,
                         created_at=p.created_at, customer_reported_at=p.customer_reported_at,
-                        confirmed_at=p.confirmed_at, customer_name=p.appointment.customer.name,
-                        appointment_start=p.appointment.start)
+                        confirmed_at=p.confirmed_at, customer_name=a.customer.name, appointment_start=a.start,
+                        customer_phone=a.customer.phone, service_name=a.service.name, barber_name=a.barber.name,
+                        has_receipt=p.receipt_mime is not None, receipt_mime=p.receipt_mime, receipt_at=p.receipt_at)
 
 
 @router.get("/payments", response_model=list[S.PaymentOut], tags=["payments"])
 def list_payments(status: str | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
-    q = select(Payment).where(Payment.shop_id == shop.id)
+    """Pendentes vêm primeiro os que o cliente disse que pagou, depois pelo horário do atendimento."""
+    q = select(Payment).join(Appointment).where(Payment.shop_id == shop.id)
     if status:
         q = q.where(Payment.status == status)
-    return [pay_out(p) for p in db.scalars(q.order_by(Payment.created_at.desc()).limit(200))]
+    if status == PayStatus.PENDING:
+        q = q.order_by(Payment.customer_reported_at.is_(None), Appointment.start)
+    else:
+        q = q.order_by(Payment.created_at.desc())
+    return [pay_out(p) for p in db.scalars(q.limit(200))]
 
 
 @router.post("/payments/{pid}/confirm", response_model=S.PaymentOut, tags=["payments"])
@@ -466,6 +499,32 @@ def confirm(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_d
                  f"✅ Recebemos o seu Pix de {money(p.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈")
     db.commit()
     return pay_out(p)
+
+
+@router.post("/payments/{pid}/reject", response_model=S.PaymentOut, tags=["payments"])
+def reject(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+    """O Pix não caiu: marca como expirado e avisa o cliente com uma mensagem neutra. O horário continua marcado."""
+    p = _own(db, Payment, pid, shop)
+    if p.status != PayStatus.PENDING:
+        raise HTTPException(409, "Esse pagamento não está mais pendente.")
+    reject_payment(db, p)
+    a = p.appointment
+    wa.send_text(db, shop, a.customer.phone,
+                 f"Não localizamos o seu Pix de {money(p.amount)} referente ao horário de {dt_label(a.start)}. "
+                 "Seu horário continua marcado e você pode pagar no atendimento. Se já pagou, responda por aqui "
+                 "que a gente confere.")
+    db.commit()
+    return pay_out(p)
+
+
+@router.get("/payments/{pid}/receipt", tags=["payments"])
+def payment_receipt(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+    """Comprovante que o cliente mandou no WhatsApp (imagem ou PDF)."""
+    p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid))
+    if p is None or p.shop_id != shop.id or not p.receipt_data:
+        raise HTTPException(404, "Comprovante não encontrado")
+    return Response(p.receipt_data, media_type=p.receipt_mime or "application/octet-stream",
+                    headers={"Cache-Control": "private, max-age=3600"})
 
 
 # ---------------------------------------------------------------- avaliações e relatórios

@@ -8,9 +8,11 @@ let onUnauthorized = () => {};
 export async function loadSession() {
   baseUrl = (await SecureStore.getItemAsync('baseUrl')) || '';
   token = (await SecureStore.getItemAsync('token')) || '';
-  const name = (await SecureStore.getItemAsync('userName')) || '';
-  const shop = (await SecureStore.getItemAsync('shopName')) || '';
-  return { baseUrl, token, name, shop };
+  const get = async (k) => (await SecureStore.getItemAsync(k)) || '';
+  return {
+    baseUrl, token, name: await get('userName'), shop: await get('shopName'), email: await get('lastEmail'),
+    niche: (await get('niche')) || 'barbershop', themeMode: (await get('themeMode')) || 'auto',
+  };
 }
 
 export async function saveSession(url, t, name, shop) {
@@ -21,6 +23,17 @@ export async function saveSession(url, t, name, shop) {
   await SecureStore.setItemAsync('userName', name || '');
   await SecureStore.setItemAsync('shopName', shop || '');
 }
+
+// Segmento e modo do tema do negócio (aplicados já na abertura do app, antes de carregar a API)
+export async function saveAppearance(niche, themeMode, shopName) {
+  await SecureStore.setItemAsync('niche', niche || 'barbershop');
+  await SecureStore.setItemAsync('themeMode', themeMode || 'auto');
+  if (shopName) await SecureStore.setItemAsync('shopName', shopName);
+}
+
+// Endereço e cabeçalho autenticado para imagens servidas pela API (ex.: comprovante do Pix)
+export const apiUrl = (path) => baseUrl.replace(/\/$/, '') + '/api' + path;
+export const authHeaders = () => (token ? { Authorization: `Bearer ${token}` } : {});
 
 export async function clearSession() {
   token = '';
@@ -101,6 +114,8 @@ export async function login(url, email, password) {
   token = '';
   const r = await request('POST', '/auth/login', { email: email.trim(), password });
   await saveSession(baseUrl, r.token, r.user_name, r.shop_name);
+  await saveAppearance(r.niche, r.theme_mode);
+  await SecureStore.setItemAsync('lastEmail', email.trim());
   return r;
 }
 

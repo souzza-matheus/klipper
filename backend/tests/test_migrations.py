@@ -32,11 +32,13 @@ def test_upgrade_from_empty_matches_models(tmp_path):
     assert _diff(url) == []
 
 
-# Colunas que as migrações 0002 e 0003 adicionam em tabelas que já existiam
+# Colunas que as migrações 0002 a 0004 adicionam em tabelas que já existiam
 NEW_COLUMNS = [
     ("appointments", "payment_method"), ("appointments", "approval_requested_at"),
     ("customers", "access_status"), ("customers", "access_reason"), ("customers", "access_changed_at"),
     ("shops", "approval_expire_hours"), ("shops", "conflict_default_gap_minutes"),
+    ("shops", "niche"), ("shops", "theme_mode"),
+    ("payments", "receipt_mime"), ("payments", "receipt_data"), ("payments", "receipt_at"),
 ]
 
 
@@ -64,4 +66,5 @@ def test_upgrade_database_created_without_alembic(tmp_path):
     # Linhas que já existiam recebem os padrões
     with create_engine(url).connect() as conn:
         assert conn.exec_driver_sql("SELECT approval_expire_hours, conflict_default_gap_minutes FROM shops").one() == (12, 240)
+        assert conn.exec_driver_sql("SELECT niche, theme_mode FROM shops").one() == ("barbershop", "auto")
         assert conn.exec_driver_sql("SELECT access_status, access_reason FROM customers").one() == ("normal", "")

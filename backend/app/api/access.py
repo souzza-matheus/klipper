@@ -83,7 +83,8 @@ def conflict_out(shop: Shop, c: CustomerConflict, customer_id: int | None = None
     out = S.ConflictOut(
         id=c.id, customer_a_id=c.customer_a_id, customer_a_name=c.customer_a.name,
         customer_b_id=c.customer_b_id, customer_b_name=c.customer_b.name, min_gap_minutes=c.min_gap_minutes,
-        effective_gap_minutes=sch.conflict_gap(shop, c), same_day_block=c.same_day_block, notes=c.notes,
+        effective_gap_minutes=sch.conflict_gap(shop, c), same_day_block=c.same_day_block,
+        conflict_action=c.conflict_action, notes=c.notes,
         created_at=c.created_at,
     )
     if customer_id in (c.customer_a_id, c.customer_b_id):
@@ -132,7 +133,8 @@ def create_conflict(body: S.ConflictIn, shop: Shop = Depends(shop_of), db: Sessi
     if exists:
         raise HTTPException(409, "Esses dois clientes já estão marcados para não agendar juntos")
     c = CustomerConflict(shop_id=shop.id, customer_a_id=a, customer_b_id=b, min_gap_minutes=body.min_gap_minutes,
-                         same_day_block=body.same_day_block, notes=body.notes.strip())
+                         same_day_block=body.same_day_block, conflict_action=body.conflict_action,
+                         notes=body.notes.strip())
     db.add(c)
     try:
         db.commit()
@@ -146,6 +148,7 @@ def create_conflict(body: S.ConflictIn, shop: Shop = Depends(shop_of), db: Sessi
 def update_conflict(conf_id: int, body: S.ConflictUpdate, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     c = _own(db, CustomerConflict, conf_id, shop)
     c.min_gap_minutes, c.same_day_block, c.notes = body.min_gap_minutes, body.same_day_block, body.notes.strip()
+    c.conflict_action = body.conflict_action
     db.commit()
     return conflict_out(shop, c)
 

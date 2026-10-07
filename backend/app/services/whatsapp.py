@@ -1,4 +1,6 @@
 """Cliente da Evolution API (v2). Toda troca de provedor (ex.: API oficial da Meta) fica isolada aqui."""
+import base64
+import binascii
 import logging
 import re
 import time
@@ -259,6 +261,25 @@ def connection_state(shop: Shop) -> str:
         return "erro"
 
 
+def media_base64(shop: Shop, media: dict) -> tuple[str, bytes]:
+    """Baixa a mídia de uma mensagem recebida (POST /chat/getBase64FromMediaMessage). Manda a mensagem inteira
+    (key + message) para a Evolution não precisar procurar no banco dela. Devolve (mimetype, bytes)."""
+    if not settings.evolution_url:
+        raise EvolutionError("Modo simulação: não há mídia para baixar.")
+    r = _call("POST", f"/chat/getBase64FromMediaMessage/{shop.evolution_instance}", timeout=60,
+              json={"message": {"key": media.get("key") or {}, "message": media.get("message") or {}},
+                    "convertToMp4": False})
+    data = _json(r)
+    if r.status_code >= 400 or not data.get("base64"):
+        raise _fail(r, "baixar a mídia")
+    raw = data["base64"].split(",", 1)[-1]  # aceita com ou sem o prefixo data:...;base64,
+    try:
+        content = base64.b64decode(raw, validate=False)
+    except (binascii.Error, ValueError) as exc:
+        raise EvolutionError("A Evolution API devolveu uma mídia inválida.") from exc
+    return (data.get("mimetype") or "application/octet-stream").split(";")[0].strip(), content
+
+
 def _phone_jid(data: dict) -> str:
     """Escolhe o jid com o número real. Em contas com LID, o remoteJid vem como '<id>@lid' e o número
     fica em remoteJidAlt (Evolution 2.3+ já troca o remoteJid por ele quando existe) ou senderPn (versões antigas)."""
@@ -290,8 +311,10 @@ def parse_webhook(payload: dict) -> dict | None:
         or (message.get("listResponseMessage") or {}).get("title")
         or ""
     )
-    if not text and (message.get("imageMessage") or message.get("documentMessage")):
-        text = (message.get("imageMessage") or message.get("documentMessage") or {}).get("caption") or "[anexo]"
+    media_msg = message.get("imageMessage") or message.get("documentMessage") or (
+        (message.get("documentWithCaptionMessage") or {}).get("message") or {}).get("documentMessage")
+    if not text and media_msg:
+        text = media_msg.get("caption") or "[anexo]"
     if not text:
         return None
     phone_jid = _phone_jid(data)
@@ -299,9 +322,12 @@ def parse_webhook(payload: dict) -> dict | None:
         # Só veio o LID: ele não é um telefone, então não dá para identificar o cliente
         log.warning("Mensagem ignorada: contato sem número real (jid %s)", jid)
         return None
-    return {
+    out = {
         "instance": payload.get("instance", ""),
         "phone": normalize_phone(phone_jid),
         "text": text.strip(),
         "name": data.get("pushName", ""),
     }
+    if media_msg:  # imagem ou documento: pode ser o comprovante do Pix
+        out["media"] = {"key": key, "message": message, "mimetype": media_msg.get("mimetype", "")}
+    return out

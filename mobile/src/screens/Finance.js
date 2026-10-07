@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { api, download } from '../api';
@@ -9,10 +9,11 @@ import {
   addDays, change, dmy, EXPENSE_CATEGORIES, money, moneyInput, monthBounds, monthRange,
   parseBRDate, parseMoney, PAY_METHODS, payMethodLabel, pct, todayISO,
 } from '../format';
-import { colors } from '../theme';
+import { SPACE } from '../theme';
+import { useTheme } from '../ThemeProvider';
 import {
-  Badge, Button, Card, Chips, confirm, Empty, Field, ListRow, Loading, Muted, Screen, Section, Stat, Toggle, run, s,
-  useLoad,
+  Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section, Stat, Toggle,
+  run, useLoad,
 } from '../ui';
 
 const PERIODS = {
@@ -34,9 +35,10 @@ const SUMMARY_PERIODS = {
 
 // Card com valor e variação contra o período anterior. upIsGood=false: subir é ruim (gastos).
 function Kpi({ label, value, delta, upIsGood = true }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const txt = change(delta);
   const n = Number(delta);
-  const color = !txt || n === 0 ? colors.muted : (n > 0) === upIsGood ? colors.good : colors.bad;
+  const color = !txt || n === 0 ? c.textMuted : (n > 0) === upIsGood ? c.statusText.success : c.statusText.danger;
   return (
     <View style={[s.stat, { minWidth: '45%' }]}>
       <Muted>{label}</Muted>
@@ -47,31 +49,33 @@ function Kpi({ label, value, delta, upIsGood = true }) {
 }
 
 // Linha com valor e barra proporcional ao maior do grupo
-function ShareRow({ title, subtitle, value, max, color = colors.primary }) {
+function ShareRow({ title, subtitle, value, max, color }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const w = max > 0 ? Math.max(2, (Number(value) / max) * 100) : 0;
   return (
-    <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+    <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.divider }}>
       <View style={s.row}>
         <Text style={[s.body, { flex: 1 }]} numberOfLines={1}>{title}</Text>
-        <Text style={[s.body, { fontWeight: '700' }]}>{money(value)}</Text>
+        <Text style={[s.body, { fontFamily: font.bold }]}>{money(value)}</Text>
       </View>
       {subtitle ? <Muted>{subtitle}</Muted> : null}
-      <View style={{ height: 4, backgroundColor: colors.bg, borderRadius: 2, marginTop: 6 }}>
-        <View style={{ height: 4, width: `${w}%`, backgroundColor: color, borderRadius: 2 }} />
+      <View style={{ height: 4, backgroundColor: c.neutralBg, borderRadius: 2, marginTop: 6 }}>
+        <View style={{ height: 4, width: `${w}%`, backgroundColor: color || c.accentText, borderRadius: 2 }} />
       </View>
     </View>
   );
 }
 
 function Breakdown({ title, rows, color }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const max = Math.max(0, ...rows.map((g) => Number(g.revenue)));
   return (
     <Section title={title}>
       <Card>
-        {!rows.length ? <Muted>Sem atendimentos concluídos no período.</Muted> : null}
+        {!rows.length ? <Muted>Sem {v.services} {v.doneMany} no período.</Muted> : null}
         {rows.map((g) => (
           <ShareRow key={g.method || g.id || g.name} title={g.label || g.name} value={g.revenue} max={max} color={color}
-                    subtitle={`${g.appointments} atendimento(s)`} />
+                    subtitle={v.count(g.appointments, v.service, v.services)} />
         ))}
       </Card>
     </Section>
@@ -79,6 +83,7 @@ function Breakdown({ title, rows, color }) {
 }
 
 export function FinanceHomeScreen({ navigation }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const [period, setPeriod] = useState('month');
   const [custom, setCustom] = useState({ from: brDate(monthRange(0)[0]), to: brDate(todayISO()) });
   const [range, setRange] = useState(monthRange(0));
@@ -146,7 +151,7 @@ export function FinanceHomeScreen({ navigation }) {
             <Kpi label="Ticket médio" value={money(d.avg_ticket)} delta={d.change.avg_ticket} />
           </View>
           <Muted style={{ marginBottom: 16 }}>
-            {d.appointments} atendimento(s) concluído(s)
+            {v.count(d.appointments, v.service, v.services)} {v.doneMany}
             {isOpen(d.expenses_open) ? ` · ${money(d.expenses_open)} em gastos a pagar no período` : ''}
           </Muted>
 
@@ -163,18 +168,18 @@ export function FinanceHomeScreen({ navigation }) {
                      onPress={() => navigation.navigate('Commissions')} />
           </View>
 
-          <Breakdown title="Por barbeiro" rows={d.by_barber} />
-          <Breakdown title="Por serviço" rows={d.by_service} color={colors.accent} />
-          <Breakdown title="Por forma de pagamento" rows={d.by_payment_method} color={colors.good} />
+          <Breakdown title={`Por ${v.pro}`} rows={d.by_barber} />
+          <Breakdown title="Por serviço" rows={d.by_service} color={c.accentText} />
+          <Breakdown title="Por forma de pagamento" rows={d.by_payment_method} color={c.statusText.success} />
 
           {d.expenses_by_category.length ? (
             <Section title="Gastos por categoria">
               <Card>
-                {d.expenses_by_category.map((c) => (
-                  <ShareRow key={c.category} title={c.label} color={colors.bad}
-                            value={Number(c.paid) + Number(c.open)}
+                {d.expenses_by_category.map((cat) => (
+                  <ShareRow key={cat.category} title={cat.label} color={c.statusText.danger}
+                            value={Number(cat.paid) + Number(cat.open)}
                             max={Math.max(...d.expenses_by_category.map((x) => Number(x.paid) + Number(x.open)))}
-                            subtitle={`pago ${money(c.paid)}${isOpen(c.open) ? ` · em aberto ${money(c.open)}` : ''}`} />
+                            subtitle={`pago ${money(cat.paid)}${isOpen(cat.open) ? ` · em aberto ${money(cat.open)}` : ''}`} />
                 ))}
               </Card>
             </Section>
@@ -191,6 +196,7 @@ export function FinanceHomeScreen({ navigation }) {
 // ---------------------------------------------------------------- gastos
 
 export function ExpensesScreen({ navigation }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [status, setStatus] = useState(null);
   const list = useLoad(() => api.get('/expenses', { month }), [month]);
@@ -198,9 +204,7 @@ export function ExpensesScreen({ navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => navigation.navigate('ExpenseEdit', { month })} hitSlop={10}>
-          <Ionicons name="add-circle" size={30} color={colors.accent} />
-        </Pressable>
+        <IconButton icon="add-circle" size={30} label="Novo gasto" onPress={() => navigation.navigate('ExpenseEdit', { month })} />
       ),
     });
   }, [navigation, month]);
@@ -229,23 +233,23 @@ export function ExpensesScreen({ navigation }) {
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
       {list.data && !items.length ? <Empty text="Nenhum gasto neste mês. Toque no + para cadastrar." /> : null}
       {sorted.map(([label, rows]) => (
-        <Section key={label} title={label} right={<Text style={[s.muted, { fontWeight: '700' }]}>{money(sum(rows))}</Text>}>
+        <Section key={label} title={label} right={<Text style={[s.muted, { fontFamily: font.bold }]}>{money(sum(rows))}</Text>}>
           {rows.map((e) => (
             <Card key={e.id} onPress={() => navigation.navigate('ExpenseEdit', { item: e })}
-                  style={e.overdue && { borderColor: colors.bad, backgroundColor: colors.badBg }}>
+                  style={e.overdue && { borderColor: c.statusText.danger, backgroundColor: c.statusBg.danger }}>
               <View style={s.row}>
                 <View style={{ flex: 1 }}>
                   <View style={[s.row, { gap: 6 }]}>
                     <Text style={[s.body, { flexShrink: 1 }]} numberOfLines={1}>{e.description}</Text>
-                    {e.recurring || e.recurring_source_id ? <Ionicons name="repeat" size={15} color={colors.muted} /> : null}
+                    {e.recurring || e.recurring_source_id ? <Ionicons name="repeat" size={15} color={c.textMuted} /> : null}
                   </View>
-                  <Muted style={e.overdue && { color: colors.bad, fontWeight: '600' }}>
+                  <Muted style={e.overdue && { color: c.statusText.danger, fontFamily: font.semibold }}>
                     {e.paid_at ? `Pago em ${brDate(e.paid_at)}${e.payment_method ? ` · ${payMethodLabel(e.payment_method)}` : ''}`
                       : e.overdue ? `Venceu em ${brDate(e.due_date)}` : `Vence em ${brDate(e.due_date)}`}
                     {e.barber_name ? ` · ${e.barber_name}` : ''}
                   </Muted>
                 </View>
-                <Text style={[s.body, { fontWeight: '700', color: e.overdue ? colors.bad : colors.ink }]}>{money(e.amount)}</Text>
+                <Text style={[s.body, { fontFamily: font.bold, color: e.overdue ? c.statusText.danger : c.text }]}>{money(e.amount)}</Text>
               </View>
               {!e.paid_at ? (
                 <Button title="Marcar como pago" kind="ghost" icon="checkmark-done-outline" onPress={() => pay(e)}
@@ -260,6 +264,7 @@ export function ExpensesScreen({ navigation }) {
 }
 
 export function ExpenseEditScreen({ navigation, route }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const item = route.params?.item;
   const month = route.params?.month || todayISO().slice(0, 7);
   const defaultDue = todayISO().startsWith(month) ? todayISO() : monthBounds(month)[0];
@@ -309,7 +314,7 @@ export function ExpenseEditScreen({ navigation, route }) {
           </Section>
         </>
       ) : null}
-      <Section title="Ligado a um barbeiro (opcional)">
+      <Section title={`Ligado a um ${v.pro} (opcional)`}>
         <Chips value={barberId} onChange={setBarberId}
                options={[{ value: null, label: 'Nenhum' }, ...(barbers.data || []).map((b) => ({ value: b.id, label: b.name }))]} />
       </Section>
@@ -339,14 +344,15 @@ export function ExpenseEditScreen({ navigation, route }) {
   );
 }
 
-// ---------------------------------------------------------------- regras de um barbeiro (Mais > Barbeiros)
+// ---------------------------------------------------------------- regras de um profissional (Mais > Profissionais)
 
 export function BarberCommissionRules({ barberId, navigation }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const list = useLoad(() => api.get('/commission-rules', { barber_id: barberId }), [barberId]);
   const today = todayISO();
   return (
     <Section title="Comissões">
-      <Muted style={{ marginBottom: 8 }}>Quanto este barbeiro repassa do que fatura, para a barbearia ou para um padrinho.</Muted>
+      <Muted style={{ marginBottom: SPACE(2) }}>Quanto este {v.pro} repassa do que fatura, para {v.theBusiness} ou para um padrinho.</Muted>
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
       {list.data && !list.data.length ? <Muted style={{ marginBottom: 8 }}>Nenhuma regra: fica com 100% do que fatura.</Muted> : null}
       {(list.data || []).map((x) => {
@@ -355,7 +361,7 @@ export function BarberCommissionRules({ barberId, navigation }) {
           <Card key={x.id} onPress={() => navigation.navigate('CommissionRuleEdit', { item: x })} style={ended && { opacity: 0.5 }}>
             <View style={s.row}>
               <Text style={[s.body, { flex: 1 }]}>Para {x.beneficiary_name}</Text>
-              <Text style={[s.body, { fontWeight: '700' }]}>{pct(x.percentage)}</Text>
+              <Text style={[s.body, { fontFamily: font.bold }]}>{pct(x.percentage)}</Text>
             </View>
             <Muted>{x.service_name || 'Todos os serviços'} · desde {brDate(x.valid_from)}
               {x.valid_to ? ` até ${brDate(x.valid_to)}` : ''}{ended ? ' · encerrada' : ''}</Muted>
@@ -370,6 +376,7 @@ export function BarberCommissionRules({ barberId, navigation }) {
 // ---------------------------------------------------------------- repasses do período
 
 export function CommissionsScreen({ navigation }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const [period, setPeriod] = useState('month');
   const [from, to] = PERIODS[period]();
   const r = useLoad(() => api.get('/finance/commissions', { date_from: from, date_to: to }), [period]);
@@ -378,13 +385,9 @@ export function CommissionsScreen({ navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={[s.row, { gap: 16 }]}>
-          <Pressable onPress={() => navigation.navigate('Settlements')} hitSlop={10}>
-            <Ionicons name="time-outline" size={26} color={colors.primary} />
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('CommissionRules')} hitSlop={10}>
-            <Ionicons name="options-outline" size={26} color={colors.primary} />
-          </Pressable>
+        <View style={{ flexDirection: 'row' }}>
+          <IconButton icon="time-outline" label="Acertos registrados" onPress={() => navigation.navigate('Settlements')} />
+          <IconButton icon="options-outline" label="Regras de repasse" onPress={() => navigation.navigate('CommissionRules')} />
         </View>
       ),
     });
@@ -398,7 +401,7 @@ export function CommissionsScreen({ navigation }) {
         beneficiary_barber_id: due.beneficiary_barber_id, period_start: from, period_end: to, amount: due.open,
       });
       r.reload();
-    }, 'Acerto registrado. O barbeiro foi avisado pelo WhatsApp.'),
+    }, `Acerto registrado. O ${v.pro} foi avisado pelo WhatsApp.`),
     'Registrar');
 
   return (
@@ -408,37 +411,37 @@ export function CommissionsScreen({ navigation }) {
       ]} />
       {!d ? <Loading error={r.error} onRetry={r.reload} /> : (
         <>
-          <Muted style={{ marginBottom: 10 }}>{brDate(from)} a {brDate(to)} · só atendimentos concluídos</Muted>
+          <Muted style={{ marginBottom: 10 }}>{brDate(from)} a {brDate(to)} · só {v.services} {v.doneMany}</Muted>
           <View style={[s.row, { gap: 8, marginBottom: 18 }]}>
             <Stat label="Faturado" value={money(d.total_gross)} />
             <Stat label="Repasses" value={money(d.total_due)} />
             <Stat label="Em aberto" value={money(d.total_open)} />
           </View>
           {!d.barbers.length ? (
-            <Empty text="Nenhum atendimento concluído no período. Cadastre as regras de repasse no ícone acima." />
+            <Empty text={`${v.noService} ${v.done} no período. Cadastre as regras de repasse no ícone acima.`} />
           ) : null}
           {d.barbers.map((b) => (
             <Card key={b.barber_id}>
               <View style={s.row}>
-                <Text style={[s.body, { flex: 1, fontWeight: '700' }]}>{b.barber_name}</Text>
-                <Text style={[s.body, { fontWeight: '700' }]}>{money(b.gross)}</Text>
+                <Text style={[s.body, { flex: 1, fontFamily: font.bold }]}>{b.barber_name}</Text>
+                <Text style={[s.body, { fontFamily: font.bold }]}>{money(b.gross)}</Text>
               </View>
-              <Muted>{b.appointments} atendimento(s) · líquido {money(b.net)}
+              <Muted>{v.count(b.appointments, v.service, v.services)} · líquido {money(b.net)}
                 {isOpen(b.received) ? ` · recebe ${money(b.received)} de repasses` : ''}</Muted>
               {b.dues.map((due) => (
                 <View key={`${due.beneficiary_type}-${due.beneficiary_barber_id}`}
-                      style={{ borderTopWidth: 1, borderTopColor: colors.line, marginTop: 10, paddingTop: 10 }}>
+                      style={{ borderTopWidth: 1, borderTopColor: c.divider, marginTop: 10, paddingTop: 10 }}>
                   <View style={s.row}>
                     <View style={{ flex: 1 }}>
                       <Text style={s.body}>Para {due.beneficiary_name}</Text>
                       <Muted>{due.percentages.map(pct).join(' / ') || '-'} sobre {money(due.base)}</Muted>
                     </View>
-                    <Text style={[s.body, { fontWeight: '700' }]}>{money(due.amount)}</Text>
+                    <Text style={[s.body, { fontFamily: font.bold }]}>{money(due.amount)}</Text>
                   </View>
                   <View style={[s.row, { gap: 6, marginTop: 6 }]}>
-                    {isOpen(due.settled) ? <Badge info={{ label: `Acertado ${money(due.settled)}`, fg: colors.good, bg: colors.goodBg }} /> : null}
-                    {isOpen(due.open) ? <Badge info={{ label: `Em aberto ${money(due.open)}`, fg: colors.warn, bg: colors.warnBg }} /> : null}
-                    {!isOpen(due.open) && isOpen(due.amount) ? <Badge info={{ label: 'Quitado', fg: colors.good, bg: colors.goodBg }} /> : null}
+                    {isOpen(due.settled) ? <Badge info={{ label: `Acertado ${money(due.settled)}`, tone: 'success', icon: 'checkmark-circle' }} /> : null}
+                    {isOpen(due.open) ? <Badge info={{ label: `Em aberto ${money(due.open)}`, tone: 'warning', icon: 'time-outline' }} /> : null}
+                    {!isOpen(due.open) && isOpen(due.amount) ? <Badge info={{ label: 'Quitado', tone: 'success', icon: 'checkmark-done' }} /> : null}
                   </View>
                   {isOpen(due.open) ? (
                     <Button title="Registrar acerto" kind="ghost" icon="checkmark-done-outline"
@@ -457,6 +460,7 @@ export function CommissionsScreen({ navigation }) {
 // ---------------------------------------------------------------- histórico de acertos
 
 export function SettlementsScreen() {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const list = useLoad(() => api.get('/finance/settlements'), []);
   const remove = (x) => confirm('Excluir acerto?', 'O valor volta a aparecer como em aberto.',
     () => run(async () => { await api.del(`/finance/settlements/${x.id}`); list.reload(); }), 'Excluir', true);
@@ -472,10 +476,8 @@ export function SettlementsScreen() {
               <Muted>Período {brDate(x.period_start)} a {brDate(x.period_end)}</Muted>
               <Muted>Pago em {dmy(x.paid_at)}{x.notes ? ` · ${x.notes}` : ''}</Muted>
             </View>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.ink, marginRight: 12 }}>{money(x.amount)}</Text>
-            <Pressable hitSlop={10} onPress={() => remove(x)}>
-              <Ionicons name="trash-outline" size={22} color={colors.bad} />
-            </Pressable>
+            <Text style={{ fontSize: 20, fontFamily: font.extrabold, color: c.text, marginRight: SPACE(2) }}>{money(x.amount)}</Text>
+            <IconButton icon="trash-outline" label="Remover acerto" color={c.statusText.danger} onPress={() => remove(x)} />
           </View>
         </Card>
       ))}
@@ -486,13 +488,12 @@ export function SettlementsScreen() {
 // ---------------------------------------------------------------- regras de repasse
 
 export function CommissionRulesScreen({ navigation }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const list = useLoad(() => api.get('/commission-rules'), []);
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => navigation.navigate('CommissionRuleEdit', {})} hitSlop={10}>
-          <Ionicons name="add-circle" size={30} color={colors.accent} />
-        </Pressable>
+        <IconButton icon="add-circle" size={30} label="Nova regra de repasse" onPress={() => navigation.navigate('CommissionRuleEdit', {})} />
       ),
     });
   }, [navigation]);
@@ -505,7 +506,7 @@ export function CommissionRulesScreen({ navigation }) {
     <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
       {list.data && !list.data.length ? (
-        <Empty text="Cadastre quanto cada barbeiro repassa para a barbearia ou para um padrinho." />
+        <Empty text={`Cadastre quanto cada ${v.pro} repassa para ${v.theBusiness} ou para um padrinho.`} />
       ) : null}
       {Object.entries(byBarber).map(([name, rules]) => (
         <Section key={name} title={`${name} paga`}>
@@ -517,7 +518,7 @@ export function CommissionRulesScreen({ navigation }) {
                     style={ended && { opacity: 0.5 }}>
                 <View style={s.row}>
                   <Text style={[s.body, { flex: 1 }]}>Para {x.beneficiary_name}</Text>
-                  <Text style={[s.body, { fontWeight: '700' }]}>{pct(x.percentage)}</Text>
+                  <Text style={[s.body, { fontFamily: font.bold }]}>{pct(x.percentage)}</Text>
                 </View>
                 <Muted>{x.service_name || 'Todos os serviços'} · desde {brDate(x.valid_from)}
                   {x.valid_to ? ` até ${brDate(x.valid_to)}` : ''}</Muted>
@@ -534,11 +535,12 @@ export function CommissionRulesScreen({ navigation }) {
 }
 
 export function CommissionRuleEditScreen({ navigation, route }) {
+  const { c, s, font, v } = useTheme(); // eslint-disable-line no-unused-vars
   const item = route.params?.item;
   const barbers = useLoad(() => api.get('/barbers'), []);
   const services = useLoad(() => api.get('/services'), []);
   const [barberId, setBarberId] = useState(item?.barber_id ?? route.params?.barberId ?? null);
-  // 'shop' ou id do barbeiro beneficiário
+  // 'shop' ou id do profissional beneficiário
   const [beneficiary, setBeneficiary] = useState(item ? (item.beneficiary_barber_id ?? 'shop') : 'shop');
   const [percentage, setPercentage] = useState(item ? String(item.percentage).replace('.', ',') : '');
   const [serviceId, setServiceId] = useState(item?.service_id ?? null);
@@ -576,11 +578,11 @@ export function CommissionRuleEditScreen({ navigation, route }) {
       </Section>
       <Section title="Para quem">
         <Chips value={beneficiary} onChange={setBeneficiary}
-               options={[{ value: 'shop', label: 'Barbearia' },
+               options={[{ value: 'shop', label: v.Business },
                  ...activeBarbers.filter((b) => b.id !== barberId).map((b) => ({ value: b.id, label: b.name }))]} />
       </Section>
       <Field label="Porcentagem (%)" value={percentage} onChangeText={setPercentage} keyboardType="decimal-pad"
-             placeholder="Ex.: 30" hint="A soma dos repasses de um barbeiro não pode passar de 100%." />
+             placeholder="Ex.: 30" hint={`A soma dos repasses de um ${v.pro} não pode passar de 100%.`} />
       <Section title="Serviço">
         <Chips value={serviceId} onChange={setServiceId}
                options={[{ value: null, label: 'Todos' }, ...services.data.map((x) => ({ value: x.id, label: x.name }))]} />

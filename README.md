@@ -1,11 +1,12 @@
-# BarberBot
+# SyncServ
 
-Agendamento para barbearias pelo WhatsApp, com bot para o cliente, bot para o dono e app nativo de administração.
+Plataforma de agendamento pelo WhatsApp para vários segmentos (barbearia, salão de beleza e estética, pet shop, clínica e consultório, estúdio fitness), com bot para o cliente, bot para o dono e app nativo de administração que aplica o tema e o vocabulário do segmento de cada negócio. O projeto nasceu como BarberBot: a pasta, a instância de demonstração (`barbearia-demo`) e o pacote do app (`br.com.barberbot.admin`) continuam com esse nome.
 
 ```
 barberbot/
 ├── backend/            API em Python (FastAPI), bots, Pix, rotinas automáticas
 ├── mobile/             App admin em React Native (Expo)
+├── branding/           kit de logo SyncServ (syncserv-logo-kit) e arquivos da futura landing page (web-publico)
 ├── docker-compose.yml  Postgres + Redis + Evolution API + backend
 ├── scripts/whatsapp.sh atalhos do Docker e do WhatsApp (up, qr, status...)
 └── .env.example
@@ -19,9 +20,9 @@ barberbot/
 
 **Alertas automáticos:** novo agendamento, pedido para aprovar, cancelamento (com o horário que ficou livre), remarcação, "paguei" do cliente, avaliação baixa, pedido de atendente, pedidos que expiraram sem resposta e resumo diário de manhã.
 
-**App admin:** agenda por dia ou por mês e por barbeiro, novo agendamento manual, confirmar, concluir (com forma de pagamento e valor final), falta, remarcar, cancelar, enviar Pix, clientes com histórico, Pix pendentes, financeiro, serviços, barbeiros com expediente e comissões, bloqueios, avaliações, relatórios, configurações do bot e do Pix, conexão do WhatsApp por QR Code.
+**App admin:** aba **Hoje** (resumo do dia, banners de Pix pendente e de pedidos para aprovar, próximos atendimentos), agenda em **Timeline**, **Profissionais** lado a lado ou **Mês**, agendamento rápido tocando num horário vago, ações rápidas ao segurar um atendimento (confirmar presença, concluir, faltou, WhatsApp), confirmar Pix direto no card, novo agendamento manual, remarcar, cancelar, enviar Pix, Pix pendentes com comprovante, clientes com histórico, aprovação manual, bloqueio e clientes incompatíveis, financeiro, serviços, profissionais com expediente e comissões, bloqueios, avaliações, relatórios, configurações do bot, do Pix e da aparência, conexão do WhatsApp por QR Code ou código de pareamento. Detalhes em [App admin](#app-admin).
 
-**Agenda do mês:** na aba Agenda, o seletor **Dia | Mês** mostra o calendário (seg a dom) com o número de atendimentos e uma barra de ocupação em cada dia. Ocupação = atendimentos ÷ capacidade do dia, onde a capacidade é o expediente dos barbeiros (menos os bloqueios) dividido pela duração média dos serviços ativos. Dias sem expediente ficam esmaecidos, dias com bloqueio têm um cadeado e hoje fica destacado. Tocar em um dia abre a visão Dia. Respeita o filtro de barbeiro.
+**Agenda:** na aba Agenda, o seletor **Timeline | Profissionais | Mês** troca a visão. A Timeline tem um eixo vertical de horas, blocos com altura proporcional à duração (lado a lado quando se sobrepõem), o expediente em destaque, bloqueios hachurados e a linha do "agora" (atualiza a cada minuto); filtra por profissional. Profissionais mostra uma coluna por profissional no mesmo eixo de horas (rola na horizontal se não couber). Mês mostra o calendário (seg a dom) com o número de atendimentos e uma barra de ocupação em cada dia. Ocupação = atendimentos ÷ capacidade do dia, onde a capacidade é o expediente dos profissionais (menos os bloqueios) dividido pela duração média dos serviços ativos. Tocar em um dia abre a Timeline.
 
 **Forma de pagamento:** ao marcar um atendimento como concluído, o app pergunta como o cliente pagou (Pix, dinheiro, débito ou crédito) e permite ajustar o valor cobrado (desconto ou acréscimo). Se o cliente já pagou o Pix pelo bot, vem "Pix" marcado. O valor final é o que entra no faturamento e nas comissões.
 
@@ -39,13 +40,14 @@ barberbot/
 
 O motivo é interno (só o dono vê, no app e na busca de cliente do bot). Nenhuma mensagem ao cliente diz que ele foi bloqueado ou que precisa de aprovação. A lista de clientes mostra um selo para quem está em aprovação ou bloqueado e tem filtro por acesso. O dono pode agendar manualmente pelo app um cliente bloqueado ou em aprovação: o app avisa antes de confirmar e o agendamento já entra como agendado.
 
-**Clientes que não podem se encontrar:** na ficha do cliente, em **Não agendar junto com**, o dono adiciona outro cliente (busca por nome ou telefone), a distância mínima (padrão da barbearia, 1 h, 2 h, 4 h, 8 h ou "dia inteiro") e o motivo interno. A distância vale entre o fim de um atendimento e o início do outro, nos dois sentidos e **com qualquer barbeiro**, contando agendamentos agendados, confirmados e aguardando aprovação. "Dia inteiro" impede os dois no mesmo dia. Sem distância própria, vale a configuração "Distância padrão entre clientes que não podem se encontrar" (padrão 240 min = 4 h).
+**Clientes que não podem se encontrar:** na ficha do cliente, em **Incompatível com**, o dono adiciona outro cliente (busca por nome ou telefone num painel que sobe de baixo), a distância mínima (padrão do negócio, 1 h, 2 h, 4 h, 8 h ou "dia inteiro"), o que fazer quando o horário ficar perto demais (`conflict_action`: **Bloquear o horário**, o padrão, ou **Exigir minha aprovação**) e o motivo interno. A distância vale entre o fim de um atendimento e o início do outro, nos dois sentidos e **com qualquer barbeiro**, contando agendamentos agendados, confirmados e aguardando aprovação. "Dia inteiro" impede os dois no mesmo dia. Sem distância própria, vale a configuração "Distância padrão entre clientes que não podem se encontrar" (padrão 240 min = 4 h).
 
-- No bot, os horários proibidos simplesmente não aparecem; se o dia inteiro ficar sem horário, o bot diz só que não há horários livres no dia. Ao confirmar, a regra é conferida de novo (dois clientes agendando ao mesmo tempo): se não puder, o bot diz que o horário acabou de ser ocupado.
+- Com **Exigir minha aprovação**, o bot mostra o horário normalmente, mas o agendamento fica **Aguardando aprovação** (mesmo fluxo do cliente "precisa de aprovação", com o alerta ao dono). Se houver ao mesmo tempo um conflito "bloquear" e um "exigir aprovação", vale o bloqueio.
+- No bot, com **Bloquear o horário**, os horários proibidos simplesmente não aparecem; se o dia inteiro ficar sem horário, o bot diz só que não há horários livres no dia. Ao confirmar, a regra é conferida de novo (dois clientes agendando ao mesmo tempo): se não puder, o bot diz que o horário acabou de ser ocupado.
 - No app, o novo agendamento mostra um aviso discreto quando o cliente tem conflito com alguém agendado no dia e esconde os horários próximos (com a opção "Mostrar todos"). Se o horário violar a regra, o app mostra o nome e o horário do outro cliente e a distância exigida, e permite **Agendar mesmo assim**. O mesmo vale ao remarcar.
 - Nenhuma mensagem para cliente menciona o outro cliente ou a existência do conflito.
 
-**Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave da própria barbearia. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp).
+**Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave do próprio negócio. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp). Se o cliente manda a imagem ou o PDF do comprovante no WhatsApp, o backend baixa o arquivo pela Evolution API (`POST /chat/getBase64FromMediaMessage/{instância}`, até 5 MB, só imagem ou PDF) e guarda junto do Pix pendente; o app mostra o comprovante na lista. **Recusar** um Pix (o dinheiro não caiu) marca como expirado e avisa o cliente com uma mensagem neutra; o horário continua marcado.
 
 ## Testar em 2 minutos (sem WhatsApp)
 
@@ -96,6 +98,7 @@ alembic upgrade head                                   # aplica as migrações p
 alembic revision --autogenerate -m "o que mudou"      # depois de alterar app/models.py
 ```
 
+- `0004` adiciona o segmento e o modo do tema do negócio (`shops.niche`, padrão `barbershop`, e `shops.theme_mode`, padrão `auto`), a ação de conflito (`customer_conflicts.conflict_action`, padrão `block`) e o comprovante do Pix (`payments.receipt_mime`, `receipt_data`, `receipt_at`).
 - `0001` representa o esquema de antes do Alembic, `0002` adiciona a forma de pagamento nos atendimentos e a tabela de gastos e `0003` adiciona o acesso do cliente (`access_status`, `access_reason`, `access_changed_at`), o início do pedido para aprovar nos agendamentos (`approval_requested_at`), as configurações `approval_expire_hours` e `conflict_default_gap_minutes` e a tabela `customer_conflicts`. Clientes que já existiam ficam com acesso "normal".
 - Bancos criados pela versão antiga (`create_all`) também funcionam: as migrações só criam as tabelas e colunas que faltam e depois passam a controlar o banco normalmente. Não é preciso apagar nada.
 - No Docker, o container do backend roda `alembic upgrade head` antes de subir a API.
@@ -133,10 +136,22 @@ Todas as rotas exigem login e enxergam só a barbearia do usuário. Valores em r
 | `PUT /api/customers/{id}/access` | `access_status`, `access_reason`; ao bloquear, `cancel_future=true` cancela os agendamentos futuros e `notify_customer=true` avisa o cliente (mensagem neutra) |
 | `GET /api/approvals` | pedidos aguardando aprovação, com `approval_deadline` |
 | `POST /api/appointments/{id}/approve`, `.../refuse` | aprova ou recusa (409 se já foi respondido ou expirou) |
-| `GET/POST /api/customer-conflicts`, `GET/PUT/DELETE /api/customer-conflicts/{id}` | pares que não podem se encontrar; `?customer_id=` lista os de um cliente (com `other_customer_*`). Corpo: `customer_id`, `other_customer_id`, `min_gap_minutes` (nulo = padrão), `same_day_block`, `notes` |
+| `GET/POST /api/customer-conflicts`, `GET/PUT/DELETE /api/customer-conflicts/{id}` | pares que não podem se encontrar; `?customer_id=` lista os de um cliente (com `other_customer_*`). Corpo: `customer_id`, `other_customer_id`, `min_gap_minutes` (nulo = padrão), `same_day_block`, `conflict_action` (`block` ou `approval`), `notes` |
 | `GET /api/customer-conflicts/day?day&customer_id\|customer_phone` | clientes em conflito com horário no dia (aviso da tela de agendamento) |
 | `GET /api/availability?...&customer_id=` | horários livres já sem os que violam conflitos do cliente |
 | `POST /api/appointments`, `POST /api/appointments/{id}/reschedule` | aceitam `force=true`. Sem ele, um conflito entre clientes devolve 409 com `detail = {code: "customer_conflict", message, conflict: {other_customer_name, start, end, barber_name, gap_minutes, same_day_block}}` |
+
+## API da agenda, do Pix e da aparência
+
+| Rota | O que faz |
+| --- | --- |
+| `GET /api/agenda/day?day=AAAA-MM-DD` | tudo da agenda do dia numa resposta: para cada profissional ativo (ou com agendamento no dia), `working` (expediente), `blocks` (com `whole_shop`), `appointments` (sem os cancelados) e `free` (expediente menos bloqueios e agendamentos, a partir de agora; dia passado não tem livre). Também `now` e `slot_step_minutes` |
+| `GET /api/payments?status=pending` | pendentes primeiro os que o cliente disse que pagou, depois pelo horário do atendimento; trazem serviço, profissional, `has_receipt`, `receipt_mime` e `receipt_at` |
+| `POST /api/payments/{id}/reject` | o Pix não caiu: marca como expirado e avisa o cliente com mensagem neutra (409 se não estiver pendente) |
+| `GET /api/payments/{id}/receipt` | o comprovante (imagem ou PDF) com o `Content-Type` original; exige login |
+| `GET/PUT /api/shop`, `POST /api/auth/login`, `GET /api/me` | incluem `niche` (`barbershop`, `beauty`, `petshop`, `clinic`, `fitness`) e `theme_mode` (`auto`, `dark`, `light`) |
+
+Os agendamentos (`AppointmentOut`) trazem `payment_id` e `customer_reported_paid`, para o app confirmar o Pix direto do card.
 
 ## WhatsApp de verdade no seu PC (Docker + Evolution API)
 
@@ -179,8 +194,10 @@ Como as peças se falam (rede interna do Docker):
 
 Em **Mais > Conexão do WhatsApp** (o app precisa estar logado em `http://IP_DO_PC:8002`, o backend do Docker; um `uvicorn` local na 8000 sem `EVOLUTION_URL` fica em **modo simulação** e não gera QR Code):
 
-- **Ler QR Code:** toque em **Gerar QR Code** e, no celular do número da barbearia, abra **WhatsApp > Aparelhos conectados > Conectar aparelho** e leia o código. Ele vale cerca de 40 s; quando vencer, toque em **Gerar novo QR Code**. O app consulta o status a cada 3 s e mostra **Conectado** sozinho.
-- **Conectar com código** (sem outro aparelho para ler o QR Code): digite o número do bot com DDD e toque em **Gerar código**. No celular da barbearia: **WhatsApp > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone** e digite o código de 8 caracteres.
+O status atualiza a cada 3 s enquanto a tela está aberta. A tela tem duas abas:
+
+- **QR Code:** toque em **Gerar QR Code** e, no celular do número da barbearia, abra **WhatsApp > Aparelhos conectados > Conectar aparelho** e leia o código. Ele vale cerca de 40 s; quando vencer, toque em **Gerar novo QR Code**. O app consulta o status a cada 3 s e mostra **Conectado** sozinho.
+- **Código de pareamento** (sem outro aparelho para ler o QR Code): digite o número do bot com DDD e toque em **Gerar código**. O código aparece grande, com o botão **Copiar código** e o passo a passo. No celular do bot: **WhatsApp > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone** e digite o código de 8 caracteres.
 - **Desconectar WhatsApp** aparece quando está conectado (pede confirmação). O bot para de responder até conectar de novo.
 
 Se não der para gerar, o app mostra o motivo (já conectado, modo simulação ou o erro da Evolution).
@@ -229,13 +246,55 @@ Se a mensagem não chegar:
 
 Builds Android de produção bloqueiam `http://`, por isso o domínio com HTTPS é obrigatório para o app.
 
+## Marca e temas (SyncServ)
+
+**Logo:** só os arquivos de `branding/syncserv-logo-kit` (ver o `LEIA-ME.md` do kit), sem redesenhar.
+
+- Ícone do app (`mobile/assets/icon.png`), ícone adaptativo do Android (`adaptive-icon.png` sobre `#0F172A`), splash (`splash-icon.png` sobre `#0F172A`, pelo plugin `expo-splash-screen`) e favicon do Expo web vêm de `png/app` e `png/web`. Não há ícone monocromático do Android (não foi gerado a partir do SVG branco).
+- Dentro do app o logo é vetorial: `mobile/src/brand/logoData.js` é gerado a partir dos SVG do kit (mesmos paths e cores) e `mobile/src/brand/Logo.js` exporta `Symbol` (sem `color`, o degradê azul → verde; com `color`, o símbolo inteiro naquela cor), `Wordmark` (horizontal) e `LogoVertical`. Dentro do app importe como `{ Symbol as BrandSymbol }`, para não esconder o `Symbol` do JavaScript.
+- Onde aparece: login e splash interna (logo vertical), header da aba Hoje e menu Mais (símbolo na cor do segmento + nome do negócio), estados vazios e tela Sobre (símbolo em cor neutra).
+- `branding/web-publico` guarda a imagem de prévia (`og-image-1200x630.png`) e os favicons para a futura landing page; o app não usa.
+
+**Segmento do negócio:** cada negócio tem `niche` e `theme_mode`, escolhidos em **Mais > Configurações > Aparência** (cards com o símbolo na cor de cada segmento). A troca vale na hora. `theme_mode` "Automático" usa o modo do segmento; "Escuro" ou "Claro" forçam o modo e derivam as superfícies, mantendo a cor do segmento.
+
+| Segmento | Modo | Fundo | Destaque (accent) | Termos |
+| --- | --- | --- | --- | --- |
+| Barbearia (`barbershop`) | escuro | `#121212` | âmbar `#F59E0B` | barbeiro, cliente, atendimento |
+| Salão de beleza e estética (`beauty`) | claro | `#FAF5F5` | rosa `#EC4899` | profissional, cliente, atendimento |
+| Pet shop (`petshop`) | claro | `#F8FAFC` | turquesa `#06B6D4` | tosador, tutor, atendimento |
+| Clínica e consultório (`clinic`) | claro | `#F0FDFA` | azul `#0284C7` | profissional, paciente, consulta |
+| Estúdio fitness (`fitness`) | escuro | `#18181B` | verde-limão `#84CC16` | professor, aluno, aula |
+
+A marca-base SyncServ (login) usa fundo `#0F172A`, superfícies `#1E293B` e `#273449`, texto `#F8FAFC` e `#94A3B8`, primária `#0284C7` e secundária `#22C55E`.
+
+**Design system (`mobile/src/theme.js`):** tokens por tema (`background`, `surface`, `surfaceElevated`, `border`, `divider`, `text`, `textMuted`, `accent`, `accentPressed`, `accentFill`, `onAccent`, `accentText`), cores de status iguais em todos os temas (Pix confirmado `#22C55E`, Pix pendente `#F97316`, erro e cancelado `#EF4444`, informação `#0284C7`; badges com fundo a 15% e texto num tom da mesma família que passe no contraste), fonte Plus Jakarta Sans (escala 32/24/20/17/15/13), espaçamento em múltiplos de 4, raios 10/14/20 e alvo de toque de 48 px. O `ThemeProvider` (`src/ThemeProvider.js`) lê o segmento e o modo do negócio logado e expõe `useTheme()` com os tokens, os estilos e o vocabulário (`src/vocab.js`); nenhuma tela usa cor fixa.
+
+Contraste (WCAG AA): `cd mobile && npm test` confere 4.5:1 para textos e 3:1 para bordas e ícones em todos os temas. Ajustes que o teste exigiu:
+
+- O azul `#0284C7` não chega a 4.5:1 com texto branco nem escuro, então os botões principais da clínica e da marca-base usam `accentFill` `#0369A1`; o `#0284C7` continua no símbolo, nas barras e na seleção.
+- Nos temas claros, o accent como texto ou ícone usa `accentText` mais escuro (rosa `#BE185D`, turquesa `#0E7490`, azul `#0369A1`, âmbar `#92400E`, limão `#4D7C0F`); botões rosa, turquesa, âmbar e limão usam texto escuro.
+- A "borda" `#334155` da marca é o `divider` (separadores); contornos de campos e botões usam `border`, que passa em 3:1.
+
 ## App admin
 
 ```bash
 cd mobile
 npm install
 npx expo start          # abre no celular pelo app Expo Go
+npm test                # teste de contraste dos temas
 ```
+
+Telas:
+
+- **Hoje:** símbolo na cor do segmento e nome do negócio; banner laranja quando há Pix aguardando confirmação (abre a lista) e banner de pedidos para aprovar; cards de resumo (atendimentos, faturamento previsto, próximo cliente, horários livres); próximos atendimentos. Puxar para atualizar e atualização automática a cada 60 s.
+- **Agenda:** Timeline, Profissionais e Mês (ver "Agenda" acima). Tocar num horário vago abre o **agendamento rápido** (painel que sobe de baixo) com horário e profissional preenchidos: busca ou cadastro rápido do cliente, serviço com duração e preço (só os que o profissional faz), aviso quando o serviço não cabe no espaço livre, avisos de acesso restrito e de clientes incompatíveis no dia, e **Agendar mesmo assim** quando a API recusa por conflito. Segurar um atendimento abre as ações rápidas.
+- **Cards de atendimento:** horário grande, nome em negrito, serviço, profissional, valor, status, Pix (e "disse que pagou") e o botão **Confirmar Pix** quando o Pix está pendente.
+- **Pix:** pendentes primeiro os que o cliente disse que pagou, com valor em destaque, há quanto tempo está pendente, comprovante (imagem ampliável ou PDF) e botões **Confirmar** e **Recusar**.
+- **Ficha do cliente:** **Aprovação manual obrigatória** e **Bloqueado** (com motivo interno) e os chips **Incompatível com**.
+- **Configurações:** seção **Aparência** (segmento e modo), dados do negócio, Pix e regras do bot, com o botão de salvar fixo no rodapé.
+- **Login:** logo vertical, tema da marca-base; lembra o endereço do servidor e o e-mail.
+
+Experiência: esqueletos enquanto carrega, estados vazios com ícone e ação, avisos curtos (toast) para sucesso e erro, alerta só para confirmar ações destrutivas, vibração nas ações importantes, máscaras de telefone e dinheiro, teclado certo em cada campo, rótulos de acessibilidade em botões só com ícone e textos que respeitam o tamanho de fonte do sistema.
 
 APK para instalar direto no Android: `npx eas-cli build -p android --profile apk` (precisa de conta gratuita na Expo). Publicar na Play Store: perfil `production`.
 
