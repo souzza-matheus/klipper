@@ -9,7 +9,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./barberbot.db"
     jwt_secret: str = "troque-este-segredo"
-    jwt_expire_hours: int = 24 * 30
+    # Validade do token: o app renova a cada abertura (POST /api/auth/refresh), então quem usa sempre não precisa
+    # logar de novo; um token vazado vale no máximo isso (e "sair de todos os aparelhos" corta na hora)
+    jwt_expire_hours: int = 24 * 7
 
     # Evolution API. Se evolution_url ficar vazio, as mensagens só são registradas no log (modo simulação).
     evolution_url: str = ""
@@ -30,6 +32,8 @@ class Settings(BaseSettings):
     # DEV_MODE=true; em produção, nenhuma origem. "*" com DEV_MODE=false impede a API de subir.
     cors_origins: str = ""
     max_body_bytes: int = 2_000_000  # requisições maiores recebem 413
+    # Redis para o limite de tentativas de login (vários workers). Vazio = em memória.
+    redis_url: str = ""
 
     # Agente de IA na conversa do cliente (backend/app/ai). Sem chave, a IA fica desligada e vale só o menu.
     ai_provider: str = "gemini"

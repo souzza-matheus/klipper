@@ -22,6 +22,12 @@ def normalize_phone(raw: str) -> str:
     return digits
 
 
+def mask_phone(phone: str) -> str:
+    """Telefone para log: só os 4 últimos dígitos (dado pessoal não vai inteiro para o log)."""
+    digits = re.sub(r"\D", "", str(phone or ""))
+    return f"...{digits[-4:]}" if digits else "?"
+
+
 def phones_match(a: str, b: str) -> bool:
     """Compara números ignorando o nono dígito (o WhatsApp às vezes entrega sem ele)."""
     a, b = normalize_phone(a), normalize_phone(b)
@@ -43,8 +49,44 @@ def send_text(db: Session, shop: Shop, phone: str, text: str) -> bool:
     phone = normalize_phone(phone)
     msg = OutboxMessage(shop_id=shop.id, phone=phone, text=text)
     db.add(msg)
+    queue = db.info.get(QUEUE_KEY)
+    if queue is not None:  # sync/push: só envia depois que a operação foi gravada (send_queued)
+        queue.append((msg, shop, phone, text))
+        return True
+    return _deliver(msg, shop, phone, text)
+
+
+QUEUE_KEY = "whatsapp_queue"
+
+
+def start_queue(db: Session) -> None:
+    db.info[QUEUE_KEY] = []
+
+
+def queue_mark(db: Session) -> int:
+    return len(db.info.get(QUEUE_KEY) or [])
+
+
+def queue_drop_from(db: Session, mark: int) -> None:
+    """Operação desfeita: as mensagens que ela geraria não saem."""
+    del db.info[QUEUE_KEY][mark:]
+
+
+def send_queued(db: Session) -> int:
+    """Depois do commit: envia o que ficou na fila e registra falhas no histórico."""
+    queue = db.info.pop(QUEUE_KEY, None) or []
+    failed = 0
+    for msg, shop, phone, text in queue:
+        if not _deliver(msg, shop, phone, text):
+            failed += 1
+    if failed:
+        db.commit()
+    return len(queue)
+
+
+def _deliver(msg: OutboxMessage, shop: Shop, phone: str, text: str) -> bool:
     if not settings.evolution_url:
-        log.info("[SIMULAÇÃO] para %s:\n%s", phone, text)
+        log.info("[SIMULAÇÃO] para %s:\n%s", mask_phone(phone), text)
         return True
     try:
         r = httpx.post(
@@ -54,7 +96,7 @@ def send_text(db: Session, shop: Shop, phone: str, text: str) -> bool:
         r.raise_for_status()
         return True
     except Exception as exc:  # não derruba o fluxo do bot por falha de envio
-        log.exception("Falha ao enviar mensagem para %s", phone)
+        log.exception("Falha ao enviar mensagem para %s", mask_phone(phone))
         msg.ok = False
         msg.error = str(exc)[:500]
         return False
@@ -142,7 +184,7 @@ def create_instance(shop: Shop, number: str | None = None) -> dict:
             "enabled": True,
             # Secret no cabeçalho, não na URL: a URL aparece em logs (da Evolution, de proxies)
             "url": f"{settings.public_url}/webhook/evolution",
-            "headers": {"x-webhook-secret": settings.webhook_secret},
+            "headers": {"x-webhook-secret": shop.webhook_secret or settings.webhook_secret},
             "byEvents": False,
             "base64": False,
             "events": ["MESSAGES_UPSERT"],
@@ -325,7 +367,7 @@ def parse_webhook(payload: dict) -> dict | None:
     phone_jid = _phone_jid(data)
     if not phone_jid:
         # Só veio o LID: ele não é um telefone, então não dá para identificar o cliente
-        log.warning("Mensagem ignorada: contato sem número real (jid %s)", jid)
+        log.warning("Mensagem ignorada: contato sem número real (jid %s)", mask_phone(jid))
         return None
     out = {
         "instance": payload.get("instance", ""),

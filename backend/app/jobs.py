@@ -1,5 +1,5 @@
-"""Rotinas que rodam a cada minuto: lembretes, pesquisa de satisfação, expiração de Pix e de pedidos para aprovar
-e resumo diário."""
+"""Rotinas que rodam a cada minuto: lembretes, pesquisa de satisfação, expiração de Pix, de pedidos para aprovar, de
+sinais não pagos e das reservas da lista de espera, cobrança do clube de assinatura e resumo diário."""
 import logging
 from datetime import timedelta
 
@@ -17,6 +17,7 @@ from .services.notify import notify_staff
 from .services.expenses import bills_text
 from .services.payments import expire_old
 from .services.scheduling import complete_appointment
+from .services.stock import low_stock_text
 from .services.whatsapp import send_text
 
 log = logging.getLogger("jobs")
@@ -83,8 +84,22 @@ def send_daily_summary(db, shop: Shop) -> bool:
     bills = bills_text(db, shop, now.date())
     if bills:
         parts.append(bills)
+    low = low_stock_text(db, shop)
+    if low:
+        parts.append(low)
     send_text(db, shop, shop.owner_phone, "\n\n".join(parts))
     return True
+
+
+def run_crm(db, shop: Shop) -> None:
+    """Sinal não confirmado no prazo libera o horário; reserva da lista de espera sem resposta passa a vez; clube de
+    assinatura: cobra os vencimentos do dia e marca atraso."""
+    from .services import billing, deposits, waitlist
+    released = deposits.expire_unpaid(db, shop)
+    if released:
+        notify_staff(db, shop, f"⌛ {len(released)} horário(s) liberado(s): o sinal não foi pago a tempo.")
+    waitlist.expire_offers(db, shop)
+    billing.run_subscriptions(db, shop)
 
 
 def run_all() -> None:
@@ -105,6 +120,7 @@ def run_all() -> None:
                 if expired:
                     notify_staff(db, shop, f"⌛ {expired} Pix pendente(s) expiraram sem confirmação.")
                 expire_pending(db, shop)
+                run_crm(db, shop)
                 send_daily_summary(db, shop)
                 db.commit()
             except Exception:

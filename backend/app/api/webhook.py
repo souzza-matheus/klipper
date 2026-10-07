@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -13,7 +13,9 @@ from ..jobs import run_all
 from ..models import Shop
 from ..security import same_secret
 from ..services.payments import save_receipt
-from ..services.whatsapp import EvolutionError, media_base64, normalize_phone, parse_webhook, send_text
+from ..services.whatsapp import (
+    EvolutionError, mask_phone, media_base64, normalize_phone, parse_webhook, send_text,
+)
 
 router = APIRouter()
 log = logging.getLogger("webhook")
@@ -21,15 +23,24 @@ log = logging.getLogger("webhook")
 
 @router.post("/webhook/evolution", tags=["webhook"])
 @router.post("/webhook/evolution/{event}", tags=["webhook"])
-async def evolution_webhook(request: Request, background: BackgroundTasks, secret: str = "", event: str = "",
+async def evolution_webhook(request: Request, background: BackgroundTasks, event: str = "",
                             db: Session = Depends(get_db)):
-    # Secret no cabeçalho X-Webhook-Secret (preferido) ou na query ?secret= (instâncias antigas), em tempo constante
-    if not same_secret(request.headers.get("x-webhook-secret") or secret, settings.webhook_secret):
+    # Secret só no cabeçalho X-Webhook-Secret (nunca na URL, que aparece em logs). Cada barbearia tem o seu.
+    given = request.headers.get("x-webhook-secret")
+    if not given:
         raise HTTPException(403, "secret inválido")
     try:
         payload = await request.json()
-        msg = parse_webhook(payload) if isinstance(payload, dict) else None
-    except Exception:  # JSON inválido ou com tipos inesperados: ignora, nunca derruba
+    except Exception:
+        raise HTTPException(400, "payload inválido")
+    instance = payload.get("instance") if isinstance(payload, dict) else None
+    shop = db.scalar(select(Shop).where(Shop.evolution_instance == instance)) if isinstance(instance, str) else None
+    expected = (shop.webhook_secret if shop and shop.webhook_secret else settings.webhook_secret)
+    if not same_secret(given, expected):
+        raise HTTPException(403, "secret inválido")
+    try:
+        msg = parse_webhook(payload)
+    except Exception:  # tipos inesperados: ignora, nunca derruba
         log.warning("Webhook com payload inválido ignorado")
         return {"ignored": True}
     if not msg or not msg["phone"]:
@@ -43,7 +54,7 @@ async def evolution_webhook(request: Request, background: BackgroundTasks, secre
         await run_in_threadpool(handle_incoming, db, msg["instance"], msg["phone"], msg["text"], msg["name"])
     except Exception:
         db.rollback()
-        log.exception("Erro ao processar mensagem de %s", msg["phone"])
+        log.exception("Erro ao processar mensagem de %s", mask_phone(msg["phone"]))
     if msg.get("media"):
         # Baixar a mídia leva alguns segundos: fica para depois da resposta do bot
         background.add_task(store_receipt, msg["instance"], msg["phone"], msg["media"])
@@ -98,7 +109,7 @@ def store_receipt(instance: str, phone: str, media: dict) -> None:
             db.commit()
     except Exception:
         db.rollback()
-        log.exception("Erro ao guardar o comprovante de %s", phone)
+        log.exception("Erro ao guardar o comprovante de %s", mask_phone(phone))
     finally:
         db.close()
 
@@ -110,18 +121,24 @@ class SimIn(BaseModel):
     name: str = ""
 
 
-@router.post("/dev/simulate", tags=["dev"])
-def simulate(body: SimIn, db: Session = Depends(get_db)):
-    """Simula uma mensagem recebida no WhatsApp e devolve as respostas do bot (só com DEV_MODE=true)."""
+def dev_only(x_setup_token: str = Header("", description="SETUP_TOKEN do .env")) -> None:
+    """Rotas de desenvolvimento: 404 em produção e, mesmo em desenvolvimento, só com o SETUP_TOKEN (quem alcança a
+    porta do backend na rede não consegue se passar pelo dono no bot)."""
     if not settings.dev_mode:
         raise HTTPException(404)
+    if not same_secret(x_setup_token, settings.setup_token):
+        raise HTTPException(403, "Informe o SETUP_TOKEN no cabeçalho X-Setup-Token")
+
+
+@router.post("/dev/simulate", tags=["dev"], dependencies=[Depends(dev_only)])
+def simulate(body: SimIn, db: Session = Depends(get_db)):
+    """Simula uma mensagem recebida no WhatsApp e devolve as respostas do bot (só com DEV_MODE=true e o cabeçalho
+    X-Setup-Token)."""
     instance = body.instance or db.scalar(select(Shop.evolution_instance).order_by(Shop.id))
     return {"replies": handle_incoming(db, instance, normalize_phone(body.phone), body.text, body.name)}
 
 
-@router.post("/dev/run-jobs", tags=["dev"])
+@router.post("/dev/run-jobs", tags=["dev"], dependencies=[Depends(dev_only)])
 def dev_run_jobs():
-    if not settings.dev_mode:
-        raise HTTPException(404)
     run_all()
     return {"ok": True}

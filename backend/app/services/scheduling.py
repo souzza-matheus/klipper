@@ -258,18 +258,29 @@ def can_customer_cancel(shop: Shop, appt: Appointment) -> bool:
     return appt.start - now_local() >= timedelta(hours=shop.cancel_min_hours)
 
 
-def cancel_appointment(db: Session, appt: Appointment) -> None:
+def cancel_appointment(db: Session, appt: Appointment, offer_waitlist: bool = True) -> None:
+    """Cancela, devolve a sessão do pacote ou o uso da assinatura, aplica a regra do sinal e oferece o horário à
+    lista de espera."""
+    from . import benefits, deposits, waitlist
+    was_occupying = appt.status in ApptStatus.OCCUPYING
+    shop = appt.barber.shop
     appt.status = ApptStatus.CANCELLED
     appt.cancelled_at = now_local()
     if appt.payment and appt.payment.status == PayStatus.PENDING:
         appt.payment.status = PayStatus.EXPIRED
-        appt.payment_status = PayStatus.EXPIRED
+        if appt.payment.kind != "deposit":
+            appt.payment_status = PayStatus.EXPIRED
+    deposits.on_cancel(shop, appt)
+    benefits.release_on_cancel(db, shop, appt)
+    if was_occupying and offer_waitlist:
+        waitlist.on_slot_freed(db, shop, appt.barber_id, appt.start, appt.end)
 
 
 def reschedule_appointment(db: Session, shop: Shop, appt: Appointment, new_start: datetime,
                            new_barber: Barber | None = None, status: str = ApptStatus.SCHEDULED,
                            force: bool = False) -> Appointment:
     barber = new_barber or appt.barber
+    old = (appt.barber_id, appt.start, appt.end)
     end = new_start + timedelta(minutes=appt.service.duration_minutes)
     if not is_free(db, shop, barber, new_start, end, ignore_appt_id=appt.id):
         raise SchedulingError("Esse horário não está mais disponível.")
@@ -282,9 +293,13 @@ def reschedule_appointment(db: Session, shop: Shop, appt: Appointment, new_start
     appt.start = new_start
     appt.end = end
     appt.reminder_sent = False
-    appt.status = status
+    if not (appt.status == ApptStatus.AWAITING_DEPOSIT and status == ApptStatus.SCHEDULED):
+        appt.status = status  # quem ainda deve o sinal continua devendo depois de remarcar
     appt.approval_requested_at = now_local() if status == ApptStatus.PENDING_APPROVAL else None
     db.flush()
+    if old != (appt.barber_id, appt.start, appt.end):
+        from . import waitlist
+        waitlist.on_slot_freed(db, shop, *old)  # o horário antigo abriu
     return appt
 
 

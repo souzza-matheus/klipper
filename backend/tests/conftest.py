@@ -8,7 +8,12 @@ os.environ["DEV_MODE"] = "true"
 os.environ["JWT_SECRET"] = "segredo-de-teste-com-mais-de-32-caracteres"
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+import bcrypt  # noqa: E402
 import pytest  # noqa: E402
+
+# Nos testes, bcrypt com custo baixo (o mesmo algoritmo; só mais rápido). Produção usa o padrão (12).
+_gensalt = bcrypt.gensalt
+bcrypt.gensalt = lambda rounds=4, prefix=b"2b": _gensalt(4, prefix)
 
 
 @pytest.fixture()

@@ -16,7 +16,8 @@ RESET_WORDS = {"0", "menu", "inicio", "voltar", "sair", "cancelar fluxo"}
 
 # Estados em que a pessoa está no meio de um fluxo: avisos automáticos não mudam o estado da conversa
 BUSY_STATES = {"book_service", "book_barber", "book_day", "book_time", "book_name", "book_confirm",
-               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment", "ai_confirm"}
+               "book_pay", "my_pick", "my_action", "my_cancel_confirm", "pay_pick", "survey_comment", "ai_confirm",
+               "pkg_pick", "pkg_confirm", "wl_offer"}
 
 
 def conversation_for(db: Session, shop: Shop, phone: str) -> Conversation:

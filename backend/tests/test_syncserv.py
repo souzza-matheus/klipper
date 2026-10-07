@@ -193,7 +193,7 @@ def test_receipt_from_whatsapp_is_stored_and_served(env, api, monkeypatch):
         return "image/jpeg", PNG
     monkeypatch.setattr(wa, "media_base64", fake_media)
 
-    r = api.post(f"/webhook/evolution?secret={settings.webhook_secret}", json=_image_payload())
+    r = api.post("/webhook/evolution", json=_image_payload(), headers={"x-webhook-secret": shop.webhook_secret})
     assert r.status_code == 200 and calls == ["3EB0IMG"]
     db.expire_all()
     p = db.get(Payment, pay.id)

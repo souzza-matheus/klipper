@@ -97,6 +97,8 @@ def _rand_between(a: datetime, b: datetime) -> datetime:
 
 
 def reset_mock(db: Session, shop: Shop) -> None:
+    from .seed_crm import reset_crm
+    reset_crm(db, shop)  # comandas, saldos e cobranças apontam para agendamentos e clientes
     appt_ids = select(Appointment.id).where(Appointment.shop_id == shop.id)
     db.execute(delete(Review).where(Review.appointment_id.in_(appt_ids)))
     db.execute(delete(Payment).where(Payment.appointment_id.in_(appt_ids)))
@@ -367,9 +369,13 @@ def summary(db: Session, shop: Shop) -> None:
     print(f"  Avaliações: {n_reviews} (nota média {float(avg or 0):.2f})")
     print(f"  Bloqueios: {n_blocks}")
     print(f"  Gastos: {n_expenses}")
+    from .seed_crm import summary_lines
+    for line in summary_lines(db, shop):
+        print(line)
 
 
 def main() -> None:
+    from .seed_crm import seed_crm
     parser = argparse.ArgumentParser(description="Gera dados de teste para a Barbearia Demo.")
     parser.add_argument("--reset", action="store_true", help="apaga os dados mock existentes antes de gerar")
     args = parser.parse_args()
@@ -410,6 +416,7 @@ def main() -> None:
         db.commit()
         create_access_demo(db, shop, barbers, services, today, now)
         seed_finance(db, shop, today)  # gastos de exemplo do mês (o --reset apaga os antigos)
+        seed_crm(db, shop, now_local())
         summary(db, shop)
     finally:
         db.close()

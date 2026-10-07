@@ -25,7 +25,8 @@ class ToolError(Exception):
 
 
 # Ferramentas que encerram a rodada: depois delas o código fala com o cliente, não o modelo
-TERMINAL = {"propose_booking", "propose_cancel", "propose_reschedule", "talk_to_human", "mark_off_topic"}
+TERMINAL = {"propose_booking", "propose_cancel", "propose_reschedule", "propose_package_purchase", "talk_to_human",
+            "mark_off_topic"}
 
 OFF_TOPIC_CATEGORIES = ["receita", "politica", "esporte", "noticias", "escola", "programacao", "piada_historia",
                         "conselho", "conversa_fiada", "sobre_a_ia", "roleplay", "manipulacao", "outro"]
@@ -66,6 +67,19 @@ SPECS = [
              "confirma com 1.",
              _obj({"appointment_id": {"type": "integer"}, "new_start": {"type": "string", "description": "AAAA-MM-DDTHH:MM"},
                    "professional_id": {"type": "integer"}}, ["appointment_id", "new_start"])),
+    ToolSpec("get_my_balance", "Pacotes (sessões restantes e validade) e assinatura (status e usos no mês) do "
+             "cliente desta conversa.", _obj({})),
+    ToolSpec("list_packages", "Pacotes à venda: id, serviço, número de sessões, preço e validade.", _obj({})),
+    ToolSpec("propose_package_purchase",
+             "Propõe a compra de um pacote via Pix. NÃO cobra nada: o sistema envia o resumo e o cliente confirma "
+             "com 1; só então o Pix é enviado.", _obj({"package_id": {"type": "integer"}}, ["package_id"])),
+    ToolSpec("join_waitlist",
+             "Coloca o cliente na lista de espera de um dia sem horário livre. Se abrir uma vaga, o sistema avisa o "
+             "cliente e reserva o horário por alguns minutos.",
+             _obj({"service_id": {"type": "integer"}, "date": {"type": "string", "description": "AAAA-MM-DD"},
+                   "professional_id": {"type": "integer"},
+                   "after_time": {"type": "string", "description": "HH:MM"},
+                   "before_time": {"type": "string", "description": "HH:MM"}}, ["service_id", "date"])),
     ToolSpec("set_customer_name", "Salva o nome do cliente, só quando ele mesmo informar.",
              _obj({"name": {"type": "string"}}, ["name"])),
     ToolSpec("send_pix", "Envia ao cliente o Pix (copia e cola) de um agendamento dele.",
@@ -182,7 +196,17 @@ def get_business_info(ctx: Ctx, args: dict) -> dict:
         "pix_online": pix_ready(shop),
         "observations": (shop.welcome_text or "")[:300],
         "cancel_rule": f"Cancelar ou remarcar pelo WhatsApp só até {shop.cancel_min_hours} h antes do horário.",
+        "deposit_rule": _deposit_rule(shop),
     }
+
+
+def _deposit_rule(shop) -> str:
+    if not pix_ready(shop) or shop.deposit_mode == "off":
+        return "Não cobra sinal (alguns serviços podem cobrar: o sistema avisa ao agendar)."
+    value = f"{shop.deposit_value:g}% do serviço" if shop.deposit_mode == "percent" else money(shop.deposit_value)
+    return (f"Cobra sinal de {value} via Pix para garantir o horário; sem o sinal em {shop.deposit_expire_minutes} "
+            f"min o horário é liberado. Cancelando com {shop.deposit_refund_hours} h ou mais de antecedência, o "
+            "sinal é devolvido; depois disso, fica com o estabelecimento. O sinal é descontado no atendimento.")
 
 
 def list_services(ctx: Ctx, args: dict) -> dict:
@@ -301,6 +325,53 @@ def send_pix(ctx: Ctx, args: dict) -> dict:
     return {"ok": True, "sent_to_customer": "Instruções e código Pix enviados em mensagens separadas."}
 
 
+def get_my_balance(ctx: Ctx, args: dict) -> dict:
+    from ..services import benefits
+    b = benefits.customer_balance(ctx.db, ctx.shop, cb.customer(ctx))
+    packages = [{"name": p["name"], "service": p["service_name"], "sessions_left": p["balance"],
+                 "sessions_total": p["sessions"], "valid_until": p["expires_at"].strftime("%d/%m/%Y")
+                 if p["expires_at"] else "sem validade", "state": p["state"]} for p in b["packages"]]
+    subs = [{"plan": x["plan_name"], "status": x["status"], "benefits_blocked": x["benefits_blocked"],
+             "this_period": [{"service": i["service_name"], "remaining": "sem limite" if i["limit"] is None
+                              else i["remaining"]} for i in x["items"]]}
+            for x in b["subscriptions"] if x["status"] != "cancelada"]
+    return {"packages": packages, "subscriptions": subs}
+
+
+def list_packages(ctx: Ctx, args: dict) -> dict:
+    plans = cb._plans_for_sale(ctx)
+    if not pix_ready(ctx.shop):
+        return {"packages": [], "message": "A compra de pacotes pelo WhatsApp não está disponível aqui."}
+    return {"packages": [{"id": p.id, "name": p.name, "service": p.service.name, "sessions": p.sessions,
+                          "price": money(p.price), "validity_days": p.validity_days or "sem validade"}
+                         for p in plans[:20]]}
+
+
+def propose_package_purchase(ctx: Ctx, args: dict) -> dict:
+    from ..models import PackagePlan
+    if not pix_ready(ctx.shop):
+        raise ToolError("A compra de pacotes pelo WhatsApp não está disponível aqui.")
+    plan = ctx.db.get(PackagePlan, _int(args, "package_id"))
+    if plan is None or plan.shop_id != ctx.shop.id or not plan.active:
+        raise ToolError("Pacote não encontrado. Use list_packages para ver os ids.")
+    cb.propose_package(ctx, plan)
+    return {"ok": True, "sent_to_customer": "Resumo com 1 - Confirmar e receber o Pix / 2 - Desistir."}
+
+
+def join_waitlist(ctx: Ctx, args: dict) -> dict:
+    from ..services import waitlist as wl
+    if _blocked(ctx):
+        return {"unavailable": cb.MSG_BLOCKED}
+    service = _service(ctx, _int(args, "service_id"))
+    barber = _pro(ctx, _int(args, "professional_id", False), service)
+    d = _date(args.get("date"), "date")
+    _window(ctx, d)
+    e = wl.join(ctx.db, ctx.shop, cb.customer(ctx), service, d, barber, _time(args.get("after_time"), "after_time"),
+                _time(args.get("before_time"), "before_time"), via="ai")
+    return {"ok": True, "day": day_label(d), "position": wl.position(ctx.db, e),
+            "hold_minutes": ctx.shop.waitlist_hold_minutes}
+
+
 def talk_to_human(ctx: Ctx, args: dict) -> dict:
     cb.talk_to_human(ctx)
     return {"ok": True}
@@ -315,6 +386,7 @@ def mark_off_topic(ctx: Ctx, args: dict) -> dict:
 HANDLERS = {f.__name__: f for f in (
     get_business_info, list_services, list_professionals, find_free_slots, get_my_appointments, propose_booking,
     propose_cancel, propose_reschedule, set_customer_name, send_pix, talk_to_human, mark_off_topic,
+    get_my_balance, list_packages, propose_package_purchase, join_waitlist,
 )}
 
 

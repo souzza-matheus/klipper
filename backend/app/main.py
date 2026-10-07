@@ -7,11 +7,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
 
 from .ai.usage import startup_notice
-from .api import access, admin, ai as ai_api, finance, webhook
+from .api import access, admin, ai as ai_api, catalog, finance, sales, team, webhook
+from .api import sync as sync_api
 from .config import settings
 from .jobs import start_scheduler
 from .security import (
-    BodySizeLimitMiddleware, SecurityHeadersMiddleware, check_production, install_log_redaction,
+    BodySizeLimitMiddleware, SecurityHeadersMiddleware, check_production, install_log_redaction, login_limiter,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI):
 def create_app(cfg=settings) -> FastAPI:
     check_production(cfg)  # DEV_MODE=false com segredos de exemplo ou CORS "*": não sobe
     install_log_redaction()
+    if cfg.redis_url:
+        login_limiter.use_redis(cfg.redis_url)
     docs = cfg.dev_mode  # documentação interativa só em desenvolvimento
     app = FastAPI(title="SyncServ", version="1.0.0", lifespan=lifespan, docs_url="/docs" if docs else None,
                   redoc_url="/redoc" if docs else None, openapi_url="/openapi.json" if docs else None)
@@ -58,6 +61,10 @@ def create_app(cfg=settings) -> FastAPI:
     app.include_router(finance.router, prefix="/api")
     app.include_router(access.router, prefix="/api")
     app.include_router(ai_api.router, prefix="/api")
+    app.include_router(team.router, prefix="/api")
+    app.include_router(catalog.router, prefix="/api")
+    app.include_router(sales.router, prefix="/api")
+    app.include_router(sync_api.router, prefix="/api")
     app.include_router(webhook.router)
 
     @app.get("/health")

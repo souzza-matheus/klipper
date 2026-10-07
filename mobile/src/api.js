@@ -125,6 +125,15 @@ export async function login(url, email, password) {
   return r;
 }
 
+// Renova o token (validade de 7 dias) ao abrir o app: quem usa sempre não precisa logar de novo
+export async function refreshSession() {
+  if (!token) return null;
+  const r = await request('POST', '/auth/refresh', {});
+  token = r.token;
+  await SecureStore.setItemAsync('token', String(r.token));
+  return r;
+}
+
 // Baixa um arquivo da API (com o login) para o cache do aparelho e devolve o caminho local
 export async function download(path, query, filename) {
   const dest = new File(Paths.cache, filename);

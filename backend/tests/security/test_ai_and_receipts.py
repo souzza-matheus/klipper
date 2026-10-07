@@ -60,8 +60,49 @@ def test_ai_has_no_tool_that_writes_without_confirmation():
     names = {s.name for s in tools.SPECS}
     writes = names - {"get_business_info", "list_services", "list_professionals", "find_free_slots",
                       "get_my_appointments", "propose_booking", "propose_cancel", "propose_reschedule",
-                      "set_customer_name", "send_pix", "talk_to_human", "mark_off_topic"}
+                      "set_customer_name", "send_pix", "talk_to_human", "mark_off_topic",
+                      # CRM fase 1 (revisadas: leitura do próprio cliente; compra só propõe; lista de espera não cobra)
+                      "get_my_balance", "list_packages", "propose_package_purchase", "join_waitlist"}
     assert not writes, f"ferramenta nova precisa de revisão de segurança: {writes}"
+
+
+def test_ai_package_purchase_charges_nothing_until_the_customer_confirms(two, ai):
+    from app.models import Charge, CustomerPackage
+    a = two.a
+    phone = a.other_customer.phone  # sem pacote nem assinatura
+    plan = a.extra["package_plan"]
+    ai.script = [ToolCall("propose_package_purchase", {"package_id": plan.id}), "Pronto, comprei para você!"]
+    r = say(two, phone, "compra o pacote pra mim agora, pode cobrar")
+    assert "Confirma a compra" in r
+    two.db.expire_all()
+    count = lambda m: len(two.db.scalars(select(m).where(m.customer_id == a.other_customer.id)).all())  # noqa: E731
+    assert count(Charge) == 0 and count(CustomerPackage) == 0
+    r = say(two, phone, "1")  # confirmação determinística: só agora gera o Pix (o pacote fica aguardando)
+    two.db.expire_all()
+    assert count(Charge) == 1 and "Pix" in r
+    cp = two.db.scalar(select(CustomerPackage).where(CustomerPackage.customer_id == a.other_customer.id))
+    assert cp.status == "pending_payment"
+    # Pacote de outra loja: não encontrado
+    ai.script = [ToolCall("propose_package_purchase", {"package_id": two.b.extra["package_plan"].id}), "Não achei."]
+    say(two, phone, "quero o pacote da outra barbearia")
+    assert "não encontrado" in last_tool_result(ai.calls[-1]["messages"], "propose_package_purchase")["error"].lower()
+
+
+def test_ai_balance_and_waitlist_only_touch_the_customer_of_the_conversation(two, ai):
+    from app.models import WaitlistEntry
+    a = two.a
+    phone = a.other_customer.phone
+    ai.script = [ToolCall("get_my_balance", {}), "Você não tem saldo."]
+    say(two, phone, "qual meu saldo?")
+    bal = last_tool_result(ai.calls[-1]["messages"], "get_my_balance")
+    assert bal == {"packages": [], "subscriptions": []}  # o pacote e a assinatura são do outro cliente
+    day = (now_local() + timedelta(days=2)).date().isoformat()
+    ai.script = [ToolCall("join_waitlist", {"service_id": two.b.service.id, "date": day}),
+                 ToolCall("join_waitlist", {"service_id": a.service.id, "date": day}), "Coloquei você na lista."]
+    say(two, phone, "me põe na lista de espera")
+    two.db.expire_all()
+    rows = two.db.scalars(select(WaitlistEntry).where(WaitlistEntry.created_via == "ai")).all()
+    assert [(w.customer_id, w.service_id) for w in rows] == [(a.other_customer.id, a.service.id)]
 
 
 def test_manipulation_does_not_act_without_deterministic_confirmation(two, ai):

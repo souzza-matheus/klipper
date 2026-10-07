@@ -63,12 +63,43 @@ BAD_BODIES = [
     ("PATCH", "/api/appointments/{aid}", {"price": "-1"}),
     ("PATCH", "/api/appointments/{aid}", {"status": "hackeado"}),
     ("POST", "/api/whatsapp/pairing-code", {"number": "9" * 40}),
+    # ---- CRM fase 1
+    ("PUT", "/api/shop", {"deposit_mode": "tudo"}),
+    ("PUT", "/api/shop", {"deposit_value": "-10"}),
+    ("PUT", "/api/shop", {"deposit_expire_minutes": 0}),
+    ("POST", "/api/users", {"name": "x", "email": "nao-e-email", "role": "reception"}),
+    ("POST", "/api/users", {"name": "x", "email": "a@b.com", "role": "admin"}),
+    ("POST", "/api/products", {"name": "x", "price": "-1"}),
+    ("POST", "/api/products", {"name": "x", "commission_pct": "500"}),
+    ("POST", "/api/products/{pid}/movements", {"delta": "1e9", "reason": "purchase"}),
+    ("POST", "/api/products/{pid}/movements", {"delta": "1", "reason": "sale"}),  # venda só pela comanda
+    ("POST", "/api/products/{pid}/movements", {"delta": "0", "reason": "adjust"}),
+    ("PUT", "/api/services/{sid}/consumption", [{"product_id": 1, "quantity": "-1"}]),
+    ("POST", "/api/package-plans", {"name": "x", "service_id": 1, "sessions": 0, "price": "10"}),
+    ("POST", "/api/package-plans", {"name": "x", "service_id": 1, "sessions": 4, "price": "0"}),
+    ("POST", "/api/subscription-plans", {"name": "x", "price": "10", "items": []}),
+    ("POST", "/api/subscription-plans", {"name": "x", "price": "10", "items": [{"service_id": 1,
+                                                                                  "limit_per_period": 0}]}),
+    ("POST", "/api/comandas/{coid}/items", {"kind": "gorjeta", "value": "1"}),
+    ("POST", "/api/comandas/{coid}/items", {"kind": "discount", "percent": "150"}),
+    ("POST", "/api/comandas/{coid}/items", {"kind": "discount", "value": "99999"}),
+    ("POST", "/api/comandas/{coid}/items", {"kind": "product", "product_id": "{pid}", "quantity": 0}),
+    ("POST", "/api/comandas/{coid}/items", {"kind": "tip", "value": "5"}),  # sem profissional
+    ("POST", "/api/comandas/{coid}/payments", {"method": "bitcoin", "amount": "1"}),
+    ("POST", "/api/comandas/{coid}/payments", {"method": "pix", "amount": "-1"}),
+    ("POST", "/api/waitlist", {"customer_phone": "1", "service_id": 1, "day": "2026-10-10"}),
+    ("POST", "/api/waitlist", {"customer_phone": "5531900000000", "service_id": 1, "day": "2020-01-01"}),
+    ("POST", "/api/auth/change-password", {"current_password": "demo123", "new_password": "curta"}),
 ]
 
 
 @pytest.mark.parametrize("method,path,body", BAD_BODIES)
 def test_invalid_input_is_rejected_without_500(two, method, path, body):
-    url = path.format(cid=two.a.customer.id, aid=two.a.appt.id)
+    ids = dict(cid=two.a.customer.id, aid=two.a.appt.id, pid=two.a.extra["product"].id, sid=two.a.service.id,
+               coid=two.a.extra["comanda"].id)
+    url = path.format(**ids)
+    if isinstance(body, dict) and body.get("product_id") == "{pid}":
+        body = {**body, "product_id": ids["pid"]}
     r = two.ca.request(method, url, json=body)
     assert r.status_code in (400, 404, 409, 413, 422), f"{method} {url}: {r.status_code} {r.text[:200]}"
 
@@ -91,6 +122,16 @@ BAD_QUERIES = [
     "/api/customers/99999999999999999999999",
     "/api/customers/-1",
     "/api/payments/abc/receipt",
+    "/api/comandas/99999999999999999999",
+    "/api/comandas?status=aberta",
+    "/api/comandas?day=2026-02-30",
+    "/api/products/-5/movements",
+    "/api/subscriptions?status=hackeada",
+    "/api/charges?status=x",
+    "/api/waitlist?day=ontem",
+    "/api/sync/pull?cursor=abc",
+    "/api/sync/pull?cursor=99999999999999999999999",
+    "/api/sync/pull?limit=100000",
 ]
 
 

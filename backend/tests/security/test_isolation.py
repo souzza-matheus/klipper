@@ -8,8 +8,9 @@ import pytest
 
 from app.main import app
 from app.models import (
-    Appointment, Barber, Block, CommissionRule, CommissionSettlement, Customer, CustomerConflict, Expense, Payment,
-    Service,
+    Appointment, Barber, Block, Charge, Comanda, ComandaItem, ComandaPayment, CommissionRule, CommissionSettlement,
+    Customer, CustomerConflict, CustomerPackage, Expense, PackagePlan, Payment, Product, Service, StockMovement,
+    Subscription, SubscriptionPlan, User, WaitlistEntry,
 )
 
 from .conftest import B_MARK, no_leak
@@ -54,7 +55,49 @@ ROUTE_CASES = {
     ("PUT", "/api/customer-conflicts/{conf_id}"): (lambda t: {"conf_id": t.b.conflict.id},
                                                    lambda t: {"min_gap_minutes": 0, "notes": "invadido"}),
     ("DELETE", "/api/customer-conflicts/{conf_id}"): (lambda t: {"conf_id": t.b.conflict.id}, None),
+    # ---- CRM fase 1
+    ("POST", "/api/appointments/{aid}/check-in"): (lambda t: {"aid": t.b.appt.id}, None),
+    ("POST", "/api/appointments/{aid}/deposit-refunded"): (lambda t: {"aid": t.b.appt.id}, None),
+    ("GET", "/api/customers/{cid}/balance"): (lambda t: {"cid": t.b.customer.id}, None),
+    ("POST", "/api/customer-packages/{cpid}/cancel"): (lambda t: {"cpid": X(t, "customer_package").id}, None),
+    ("PUT", "/api/products/{pid}"): (lambda t: {"pid": X(t, "product").id}, lambda t: {"name": "invadido"}),
+    ("DELETE", "/api/products/{pid}"): (lambda t: {"pid": X(t, "product").id}, None),
+    ("GET", "/api/products/{pid}/movements"): (lambda t: {"pid": X(t, "product").id}, None),
+    ("POST", "/api/products/{pid}/movements"): (lambda t: {"pid": X(t, "product").id},
+                                                lambda t: {"delta": "-5", "reason": "adjust"}),
+    ("GET", "/api/services/{sid}/consumption"): (lambda t: {"sid": t.b.service.id}, None),
+    ("PUT", "/api/services/{sid}/consumption"): (lambda t: {"sid": t.b.service.id}, lambda t: []),
+    ("PUT", "/api/package-plans/{pid}"): (lambda t: {"pid": X(t, "package_plan").id},
+                                          lambda t: {"name": "invadido", "service_id": t.b.service.id, "sessions": 2,
+                                                     "price": "1"}),
+    ("DELETE", "/api/package-plans/{pid}"): (lambda t: {"pid": X(t, "package_plan").id}, None),
+    ("PUT", "/api/subscription-plans/{pid}"): (lambda t: {"pid": X(t, "club").id},
+                                               lambda t: {"name": "invadido", "price": "1",
+                                                          "items": [{"service_id": t.b.service.id}]}),
+    ("DELETE", "/api/subscription-plans/{pid}"): (lambda t: {"pid": X(t, "club").id}, None),
+    ("POST", "/api/subscriptions/{sid}/cancel"): (lambda t: {"sid": X(t, "subscription").id}, None),
+    ("POST", "/api/charges/{chid}/confirm"): (lambda t: {"chid": X(t, "charge").id}, None),
+    ("POST", "/api/charges/{chid}/cancel"): (lambda t: {"chid": X(t, "charge").id}, None),
+    ("POST", "/api/charges/{chid}/resend"): (lambda t: {"chid": X(t, "charge").id}, None),
+    ("GET", "/api/comandas/{cid}"): (lambda t: {"cid": X(t, "comanda").id}, None),
+    ("POST", "/api/comandas/{cid}/items"): (lambda t: {"cid": X(t, "comanda").id},
+                                            lambda t: {"kind": "discount", "value": "1"}),
+    ("POST", "/api/comandas/{cid}/items/{iid}/reverse"): (lambda t: {"cid": X(t, "comanda").id,
+                                                                     "iid": X(t, "item").id}, None),
+    ("POST", "/api/comandas/{cid}/payments"): (lambda t: {"cid": X(t, "comanda").id},
+                                               lambda t: {"method": "pix", "amount": "1"}),
+    ("POST", "/api/comandas/{cid}/payments/{pid}/reverse"): (lambda t: {"cid": X(t, "comanda").id,
+                                                                        "pid": X(t, "comanda_payment").id}, None),
+    ("POST", "/api/comandas/{cid}/close"): (lambda t: {"cid": X(t, "comanda").id}, None),
+    ("POST", "/api/comandas/{cid}/cancel"): (lambda t: {"cid": X(t, "comanda").id}, None),
+    ("PUT", "/api/users/{uid}"): (lambda t: {"uid": X(t, "reception").id}, lambda t: {"role": "owner"}),
+    ("POST", "/api/users/{uid}/reset-password"): (lambda t: {"uid": X(t, "reception").id}, None),
+    ("DELETE", "/api/waitlist/{wid}"): (lambda t: {"wid": X(t, "wait").id}, None),
 }
+
+
+def X(t, key):  # noqa: N802 - dado do CRM da barbearia B
+    return t.b.extra[key]
 
 
 def all_routes() -> set[tuple[str, str]]:
@@ -93,6 +136,22 @@ def _snapshot(t):
         "settlement": db.get(CommissionSettlement, b.settlement.id) is not None,
         "expense": (db.get(Expense, b.expense.id).description, db.get(Expense, b.expense.id).paid_at),
         "conflict": (db.get(CustomerConflict, b.conflict.id).notes if db.get(CustomerConflict, b.conflict.id) else None),
+        "appt_crm": (db.get(Appointment, b.appt.id).checked_in_at, db.get(Appointment, b.appt.id).deposit_status),
+        "product": (db.get(Product, X(t, "product").id).name, db.get(Product, X(t, "product").id).active,
+                    db.get(Product, X(t, "product").id).deleted_at),
+        "movements": db.query(StockMovement).filter_by(shop_id=b.shop.id).count(),
+        "consumption": len(db.get(Service, b.service.id).consumption),
+        "package_plan": (db.get(PackagePlan, X(t, "package_plan").id).name,
+                         db.get(PackagePlan, X(t, "package_plan").id).active),
+        "customer_package": db.get(CustomerPackage, X(t, "customer_package").id).status,
+        "club": (db.get(SubscriptionPlan, X(t, "club").id).name, db.get(SubscriptionPlan, X(t, "club").id).active),
+        "subscription": db.get(Subscription, X(t, "subscription").id).status,
+        "charge": (db.get(Charge, X(t, "charge").id).status, db.get(Charge, X(t, "charge").id).sent_at),
+        "comanda": (db.get(Comanda, X(t, "comanda").id).status,
+                    db.query(ComandaItem).filter_by(comanda_id=X(t, "comanda").id).count(),
+                    db.query(ComandaPayment).filter_by(comanda_id=X(t, "comanda").id).count()),
+        "user": (db.get(User, X(t, "reception").id).role, db.get(User, X(t, "reception").id).password_hash),
+        "wait": db.get(WaitlistEntry, X(t, "wait").id).status,
     }
 
 
@@ -149,13 +208,40 @@ def cross_cases(t):
         ("GET", f"/api/appointments/month?year=2026&month=10&barber_id={b.barber.id}", None),
         ("GET", f"/api/customer-conflicts?customer_id={b.customer.id}", None),
         ("GET", f"/api/customer-conflicts/day?day={day}&customer_id={b.customer.id}", None),
+        # ---- CRM fase 1
+        ("POST", "/api/comandas", {"customer_id": b.customer.id}),
+        ("POST", "/api/comandas", {"appointment_id": b.appt.id}),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/items", {"kind": "product",
+                                                                  "product_id": b.extra["product"].id}),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/items", {"kind": "service", "service_id": b.service.id}),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/items", {"kind": "package",
+                                                                  "package_plan_id": b.extra["package_plan"].id}),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/items", {"kind": "tip", "value": "5",
+                                                                  "barber_id": b.barber.id}),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/items/{b.extra['item'].id}/reverse", None),
+        ("POST", f"/api/comandas/{a.extra['comanda'].id}/payments/{b.extra['comanda_payment'].id}/reverse", None),
+        ("POST", "/api/package-plans", {"name": "x", "service_id": b.service.id, "sessions": 2, "price": "10"}),
+        ("POST", "/api/subscription-plans", {"name": "x", "price": "10", "items": [{"service_id": b.service.id}]}),
+        ("POST", "/api/subscriptions", {"customer_id": b.customer.id, "plan_id": a.extra["club"].id}),
+        ("POST", "/api/subscriptions", {"customer_id": a.other_customer.id, "plan_id": b.extra["club"].id}),
+        ("PUT", f"/api/services/{a.service.id}/consumption", [{"product_id": b.extra["product"].id,
+                                                                "quantity": "1"}]),
+        ("POST", "/api/users", {"name": "x", "email": "novo-pro@exemplo.com", "role": "professional",
+                                "barber_id": b.barber.id}),
+        ("PUT", f"/api/users/{a.extra['pro'].id}", {"barber_id": b.barber.id}),
+        ("POST", "/api/waitlist", {"customer_id": b.customer.id, "service_id": a.service.id, "day": day}),
+        ("POST", "/api/waitlist", {"customer_id": a.customer.id, "service_id": b.service.id, "day": day}),
+        ("POST", "/api/waitlist", {"customer_id": a.customer.id, "service_id": a.service.id, "day": day,
+                                   "barber_id": b.barber.id}),
     ]
 
 
 def test_cannot_create_or_query_with_other_shop_ids(two):
     from sqlalchemy import func, select
     count = lambda m: two.db.scalar(select(func.count()).select_from(m))  # noqa: E731
-    before = {m: count(m) for m in (Appointment, Block, CommissionRule, CommissionSettlement, Expense, CustomerConflict)}
+    before = {m: count(m) for m in (Appointment, Block, CommissionRule, CommissionSettlement, Expense, CustomerConflict,
+                                    Comanda, ComandaItem, ComandaPayment, PackagePlan, SubscriptionPlan, Subscription,
+                                    User, WaitlistEntry, StockMovement)}
     for method, url, body in cross_cases(two):
         r = two.ca.request(method, url, json=body)
         assert r.status_code in (404, 422), f"{method} {url}: {r.status_code} {r.text[:200]}"
@@ -189,6 +275,10 @@ def list_urls(t):
         "/api/finance/daily?date_from=2026-09-01&date_to=2026-12-31",
         "/api/finance/export.csv?date_from=2026-01-01&date_to=2026-12-31", "/api/approvals",
         "/api/customer-conflicts", "/api/ai/settings", "/api/ai/usage",
+        "/api/users", "/api/products?include_inactive=true", "/api/products/low-stock", "/api/package-plans",
+        "/api/subscription-plans", "/api/subscriptions", "/api/subscriptions/report", "/api/charges",
+        "/api/charges?status=pending", "/api/comandas", "/api/comandas?status=open", "/api/waitlist",
+        "/api/waitlist?include_closed=true", "/api/sync/pull?cursor=0",
     ]
 
 

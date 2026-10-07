@@ -141,3 +141,100 @@ def test_passwords_are_bcrypt_and_never_returned(two):
         assert "password" not in body.lower() and "$2b$" not in body, url
     login = two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123"}).text
     assert "$2b$" not in login and "demo123" not in login
+
+
+def test_token_lifetime_is_short(two):
+    payload = jwt.decode(two.ca.headers["Authorization"][7:], settings.jwt_secret, algorithms=["HS256"])
+    days = (datetime.fromtimestamp(payload["exp"], timezone.utc) - datetime.now(timezone.utc)).days
+    assert days <= 7
+
+
+def test_refresh_gives_a_new_valid_token(two):
+    r = two.ca.post("/api/auth/refresh")
+    assert r.status_code == 200
+    assert two.anon.get("/api/me", headers={"Authorization": f"Bearer {r.json()['token']}"}).status_code == 200
+    assert two.anon.post("/api/auth/refresh").status_code == 401
+    expired = _token(exp=datetime.now(timezone.utc) - timedelta(minutes=1))
+    assert two.anon.post("/api/auth/refresh", headers={"Authorization": f"Bearer {expired}"}).status_code == 401
+
+
+def test_logout_all_revokes_every_issued_token(two):
+    old = two.ca.headers["Authorization"]
+    other_device = two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123"}).json()["token"]
+    assert two.ca.post("/api/auth/logout-all").status_code == 200
+    for token in (old, f"Bearer {other_device}"):
+        assert two.anon.get("/api/me", headers={"Authorization": token}).status_code == 401
+        assert two.anon.post("/api/auth/refresh", headers={"Authorization": token}).status_code == 401
+    # Login de novo funciona; a outra barbearia não foi afetada
+    assert two.anon.post("/api/auth/login", json={"email": "admin@demo.com", "password": "demo123"}).status_code == 200
+    assert two.cb.get("/api/me").status_code == 200
+
+
+class FakeRedis:
+    """O mínimo do cliente Redis usado pelo limitador (sem rede)."""
+
+    def __init__(self, down=False):
+        self.data, self.down = {}, down
+
+    def _check(self):
+        if self.down:
+            raise ConnectionError("redis fora do ar")
+
+    def pipeline(self):
+        outer = self
+
+        class P:
+            ops = []
+
+            def incr(self, k):
+                self.ops.append(("incr", k))
+
+            def expire(self, k, ttl, nx=False):
+                self.ops.append(("expire", k, ttl))
+
+            def execute(self):
+                outer._check()
+                out = []
+                for op in self.ops:
+                    if op[0] == "incr":
+                        outer.data[op[1]] = outer.data.get(op[1], 0) + 1
+                        out.append(outer.data[op[1]])
+                    else:
+                        out.append(True)
+                self.ops = []
+                return out
+        return P()
+
+    def set(self, k, v, ex=None):
+        self._check()
+        self.data[k] = v
+
+    def ttl(self, k):
+        self._check()
+        return 900 if k in self.data else -2
+
+    def delete(self, *keys):
+        self._check()
+        for k in keys:
+            self.data.pop(k, None)
+
+    def scan_iter(self, pattern):
+        self._check()
+        return [k for k in list(self.data) if k.startswith(pattern.rstrip("*"))]
+
+
+def test_login_limiter_works_with_redis_and_survives_redis_outage():
+    from app.security import LoginLimiter, _RedisStore
+    r = FakeRedis()
+    lim = LoginLimiter(max_per_email=3, store=_RedisStore(r))
+    for _ in range(3):
+        lim.failed("a@b.com", "1.1.1.1")
+    assert lim.retry_after("a@b.com", "9.9.9.9") > 0
+    assert any(k.startswith("syncserv:login:lock:email:") for k in r.data)  # contadores no Redis
+    # Outro processo (outro worker) enxerga o mesmo bloqueio
+    assert LoginLimiter(max_per_email=3, store=_RedisStore(r)).retry_after("a@b.com", "8.8.8.8") > 0
+    # Redis cai: continua bloqueando, em memória
+    down = LoginLimiter(max_per_email=2, store=_RedisStore(FakeRedis(down=True)))
+    down.failed("c@d.com", "1.1.1.1")
+    down.failed("c@d.com", "1.1.1.1")
+    assert down.retry_after("c@d.com", "1.1.1.1") > 0

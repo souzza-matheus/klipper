@@ -20,3 +20,5 @@ services:
       DEV_MODE: "false"
       # O Caddy fala com o backend pela ponte do Docker: confie no X-Forwarded-For só vindo dela
       FORWARDED_ALLOW_IPS: "${FORWARDED_ALLOW_IPS:-172.16.0.0/12}"
+      # Limite de tentativas de login compartilhado (Redis da rede interna, banco 2)
+      REDIS_URL: redis://redis:6379/2

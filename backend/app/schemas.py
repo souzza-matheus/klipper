@@ -40,6 +40,7 @@ class RegisterIn(BaseModel):
 
 
 NICHE = "^(barbershop|beauty|petshop|clinic|fitness)$"
+DEPOSIT_MODE = "^(off|fixed|percent)$"
 THEME_MODE = "^(auto|dark|light)$"
 CONFLICT_ACTION = "^(block|approval)$"
 
@@ -50,6 +51,14 @@ class TokenOut(BaseModel):
     shop_name: str
     niche: str = "barbershop"
     theme_mode: str = "auto"
+    role: str = "owner"
+    barber_id: int | None = None
+    first_login: bool = False  # convite com senha provisória: precisa trocar antes de usar
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str = Field(max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 # ---- shop
@@ -81,6 +90,11 @@ class ShopIn(BaseModel):
     conflict_default_gap_minutes: int | None = Field(None, ge=0, le=1440)
     niche: str | None = Field(None, pattern=NICHE)
     theme_mode: str | None = Field(None, pattern=THEME_MODE)
+    deposit_mode: str | None = Field(None, pattern=DEPOSIT_MODE)
+    deposit_value: Money | None = None
+    deposit_expire_minutes: int | None = Field(None, ge=5, le=1440)
+    deposit_refund_hours: int | None = Field(None, ge=0, le=720)
+    waitlist_hold_minutes: int | None = Field(None, ge=5, le=120)
 
 
 class ShopOut(ORM):
@@ -111,6 +125,11 @@ class ShopOut(ORM):
     niche: str
     theme_mode: str
     evolution_instance: str
+    deposit_mode: str = "off"
+    deposit_value: Decimal = Decimal(0)
+    deposit_expire_minutes: int = 30
+    deposit_refund_hours: int = 24
+    waitlist_hold_minutes: int = 10
 
 
 # ---- services
@@ -120,6 +139,8 @@ class ServiceIn(BaseModel):
     price: Money
     active: bool = True
     sort_order: int = Field(0, ge=-1000, le=1000)
+    deposit_mode: str = Field("", pattern="^(|off|fixed|percent)$")  # "" = regra do estabelecimento
+    deposit_value: Money = Decimal(0)
 
 
 class ServiceOut(ORM):
@@ -129,6 +150,9 @@ class ServiceOut(ORM):
     price: Decimal
     active: bool
     sort_order: int
+    deposit_mode: str = ""
+    deposit_value: Decimal = Decimal(0)
+    uuid: str | None = None
 
 
 # ---- barbers
@@ -199,6 +223,7 @@ class CustomerDetail(CustomerOut):
     total_spent: Decimal
     future_appointments: int  # agendamentos futuros ativos (inclui pedidos aguardando aprovação)
     appointments: list["AppointmentOut"]
+    balance: dict | None = None  # pacotes e assinaturas (não vai para o profissional)
 
 
 class CustomerAccessIn(BaseModel):
@@ -271,6 +296,8 @@ class AppointmentIn(BaseModel):
     start: datetime
     notes: Note = ""
     force: bool = False  # agenda mesmo com conflito entre clientes
+    use_balance: bool = True       # usa assinatura ou pacote do cliente, se cobrir o serviço
+    require_deposit: bool = False  # pede o sinal pelo WhatsApp (se o estabelecimento ou o serviço cobram)
 
 
 PAY_METHOD = "^(pix|dinheiro|debito|credito)$"
@@ -313,6 +340,13 @@ class AppointmentOut(ORM):
     approval_deadline: datetime | None = None  # só em pending_approval
     payment_id: int | None = None  # Pix gerado para o atendimento (para confirmar direto do card)
     customer_reported_paid: bool = False  # o cliente disse que pagou o Pix
+    uuid: str | None = None
+    version: int = 1
+    checked_in_at: datetime | None = None
+    deposit_amount: Decimal | None = None
+    deposit_status: str = "none"
+    customer_package_id: int | None = None
+    subscription_id: int | None = None
 
 
 # ---- payments / reviews
@@ -410,6 +444,8 @@ class BarberCommissionOut(BaseModel):
     received: Decimal  # repasses que recebe de outros barbeiros (padrinho)
     settled: Decimal
     open: Decimal
+    tips: Decimal = Decimal("0.00")                # gorjetas recebidas nas comandas
+    product_commission: Decimal = Decimal("0.00")  # comissão sobre produtos vendidos
 
 
 class CommissionReportOut(BaseModel):
@@ -597,3 +633,288 @@ class AgendaDayOut(BaseModel):
     now: datetime
     slot_step_minutes: int
     barbers: list[AgendaBarber]
+
+
+# ================================================================ CRM fase 1
+
+ROLE = "^(owner|reception|professional)$"
+Qty = Annotated[Decimal, Field(gt=-100000, lt=100000, decimal_places=3)]
+Percent = Annotated[Decimal, Field(gt=0, le=100, decimal_places=2)]
+
+
+# ---- equipe
+class UserInviteIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    role: str = Field(pattern=ROLE)
+    barber_id: Id | None = None  # obrigatório para profissional
+
+
+class UserUpdateIn(BaseModel):
+    name: Text(120) | None = Field(None, min_length=1)
+    role: str | None = Field(None, pattern=ROLE)
+    barber_id: Id | None = None
+    active: bool | None = None
+
+
+class UserOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    role_label: str
+    barber_id: int | None
+    barber_name: str | None
+    active: bool
+    first_login: bool
+    created_at: datetime | None
+
+
+class UserInviteOut(BaseModel):
+    user: UserOut
+    provisional_password: str  # aparece uma vez: o dono repassa à pessoa
+
+
+# ---- produtos e estoque
+class ProductIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    kind: str = Field("both", pattern="^(sale|internal|both)$")
+    unit: Text(10) = "un"
+    cost: Money = Decimal(0)
+    price: Money = Decimal(0)
+    min_stock: Annotated[Decimal, Field(ge=0, lt=100000, decimal_places=3)] = Decimal(0)
+    commission_pct: Percent | None = None
+    active: bool = True
+
+
+class ProductOut(BaseModel):
+    id: int
+    uuid: str
+    name: str
+    kind: str
+    unit: str
+    cost: Decimal | None  # só para o dono
+    price: Decimal
+    min_stock: Decimal
+    commission_pct: Decimal | None
+    active: bool
+    stock: Decimal
+    low_stock: bool
+
+
+class StockMoveIn(BaseModel):
+    delta: Qty
+    reason: str = Field(pattern="^(purchase|internal|adjust)$")
+    unit_cost: Money | None = None
+    notes: Text(200) = ""
+
+
+class StockMoveOut(BaseModel):
+    id: int
+    uuid: str
+    product_id: int
+    delta: Decimal
+    reason: str
+    unit_cost: Decimal | None
+    comanda_item_id: int | None
+    notes: str
+    created_at: datetime
+
+
+class ConsumptionIn(BaseModel):
+    product_id: Id
+    quantity: Annotated[Decimal, Field(gt=0, lt=100000, decimal_places=3)]
+
+
+# ---- pacotes
+class PackagePlanIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    service_id: Id
+    sessions: int = Field(ge=1, le=100)
+    price: PositiveMoney
+    validity_days: int = Field(90, ge=0, le=3650)  # 0 = sem validade
+    active: bool = True
+
+
+class PackagePlanOut(ORM):
+    id: int
+    uuid: str
+    name: str
+    service_id: int
+    sessions: int
+    price: Decimal
+    validity_days: int
+    active: bool
+
+
+# ---- assinatura
+class PlanItemIO(BaseModel):
+    service_id: Id
+    limit_per_period: int | None = Field(None, ge=1, le=100)
+
+
+class SubscriptionPlanIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    price: PositiveMoney
+    block_after_days: int = Field(5, ge=0, le=60)
+    active: bool = True
+    items: list[PlanItemIO] = Field(min_length=1, max_length=50)
+
+
+class SubscriptionPlanOut(BaseModel):
+    id: int
+    uuid: str
+    name: str
+    price: Decimal
+    block_after_days: int
+    active: bool
+    items: list[PlanItemIO]
+
+
+class SubscribeIn(BaseModel):
+    customer_id: Id
+    plan_id: Id
+    start: date | None = None
+    charge_now: bool = True  # gera e envia o Pix da primeira mensalidade
+
+
+class ChargeOut(BaseModel):
+    id: int
+    uuid: str
+    kind: str
+    customer_id: int
+    customer_name: str
+    subscription_id: int | None
+    customer_package_id: int | None
+    due_date: date
+    amount: Decimal
+    status: str
+    gateway: str
+    brcode: str
+    sent_at: datetime | None
+    customer_reported_at: datetime | None
+    confirmed_at: datetime | None
+
+
+# ---- comanda
+class ComandaIn(BaseModel):
+    customer_id: Id | None = None
+    appointment_id: Id | None = None
+
+
+class ComandaItemIn(BaseModel):
+    kind: str = Field(pattern="^(service|product|package|discount|tip)$")
+    service_id: Id | None = None
+    product_id: Id | None = None
+    package_plan_id: Id | None = None
+    barber_id: Id | None = None
+    quantity: int = Field(1, ge=1, le=999)
+    unit_price: Money | None = None  # sem valor = preço do cadastro
+    cover: str = Field("none", pattern="^(none|package|subscription)$")
+    value: PositiveMoney | None = None  # desconto em R$ ou gorjeta
+    percent: Percent | None = None      # desconto em %
+
+
+class ComandaPaymentIn(BaseModel):
+    method: str = Field(pattern=PAY_METHOD)
+    amount: PositiveMoney
+
+
+class ComandaItemOut(BaseModel):
+    id: int
+    uuid: str
+    kind: str
+    description: str
+    service_id: int | None
+    product_id: int | None
+    package_plan_id: int | None
+    barber_id: int | None
+    barber_name: str | None
+    quantity: int
+    unit_price: Decimal
+    amount: Decimal
+    percent: Decimal | None
+    covered_by: str
+    commission_base: Decimal
+    reverses_id: int | None
+    reversed: bool
+    created_at: datetime
+
+
+class ComandaPaymentOut(BaseModel):
+    id: int
+    uuid: str
+    method: str
+    amount: Decimal
+    from_deposit: bool
+    reverses_id: int | None
+    reversed: bool
+    created_at: datetime
+
+
+class ComandaOut(BaseModel):
+    id: int
+    uuid: str
+    version: int
+    status: str
+    customer_id: int | None
+    customer_name: str | None
+    appointment_id: int | None
+    opened_at: datetime
+    closed_at: datetime | None
+    notes: str
+    items: list[ComandaItemOut]
+    payments: list[ComandaPaymentOut]
+    subtotal: Decimal
+    discount: Decimal
+    tips: Decimal
+    due: Decimal
+    paid: Decimal
+    balance: Decimal
+    covered: Decimal
+
+
+# ---- lista de espera
+class WaitlistIn(BaseModel):
+    customer_id: Id | None = None
+    customer_phone: Phone = ""
+    customer_name: Text(120) = ""
+    service_id: Id
+    barber_id: Id | None = None
+    day: date
+    after_time: time | None = None
+    before_time: time | None = None
+
+
+class WaitlistOut(BaseModel):
+    id: int
+    uuid: str
+    customer_id: int
+    customer_name: str
+    customer_phone: str
+    service_id: int
+    service_name: str
+    barber_id: int | None
+    barber_name: str | None
+    day: date
+    after_time: time | None
+    before_time: time | None
+    status: str
+    position: int | None
+    offer_expires_at: datetime | None
+    created_at: datetime
+
+
+# ---- sincronização
+class SyncOp(BaseModel):
+    operation_id: str = Field(min_length=8, max_length=36, pattern=r"^[A-Za-z0-9-]+$")
+    entity: str = Field(max_length=30)
+    action: str = Field(max_length=20)
+    id: str | None = Field(None, max_length=36)  # uuid do registro
+    version: int | None = Field(None, ge=0)       # versão que o app conhecia
+    data: dict = Field(default_factory=dict)
+    base: dict = Field(default_factory=dict)      # valores originais dos campos alterados (merge campo a campo)
+
+
+class SyncPushIn(BaseModel):
+    operations: list[SyncOp] = Field(max_length=200)

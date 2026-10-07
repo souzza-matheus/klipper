@@ -10,5 +10,6 @@ bcrypt==4.2.1
 pyjwt==2.15.0
 apscheduler==3.11.0
 httpx==0.28.1
+redis==8.1.0  # limite de tentativas de login compartilhado entre workers
 google-genai>=2.28,<3  # agente de IA (Gemini); 3.x muda o function calling
 pytest==9.0.3

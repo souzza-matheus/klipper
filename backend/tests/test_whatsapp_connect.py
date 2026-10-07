@@ -11,7 +11,7 @@ from app.schemas import PairingCodeIn
 from app.services import whatsapp as wa
 
 QR = "data:image/png;base64,iVBORw0KGgo"
-SHOP = SimpleNamespace(evolution_instance="barbearia-demo")
+SHOP = SimpleNamespace(evolution_instance="barbearia-demo", webhook_secret="segredo-proprio-da-barbearia-0123456789")
 MISSING = (404, {"status": 404, "error": "Not Found",
                  "response": {"message": ['The "barbearia-demo" instance does not exist']}})
 
@@ -78,8 +78,8 @@ def test_instancia_inexistente_e_criada_com_webhook(evo):
     assert body["instanceName"] == "barbearia-demo" and body["qrcode"] is True
     assert body["webhook"]["enabled"] and body["webhook"]["url"].endswith("/webhook/evolution")
     # O secret vai no cabeçalho, nunca na URL (que aparece em logs)
-    assert body["webhook"]["headers"] == {"x-webhook-secret": settings.webhook_secret}
-    assert settings.webhook_secret not in body["webhook"]["url"]
+    assert body["webhook"]["headers"] == {"x-webhook-secret": SHOP.webhook_secret}  # o secret da própria barbearia
+    assert SHOP.webhook_secret not in body["webhook"]["url"]
 
 
 def test_criada_sem_qr_espera_o_connect(evo):

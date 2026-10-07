@@ -42,7 +42,8 @@ def check_password_or_dummy(pw: str, hashed: str | None) -> bool:
 
 def make_token(user: User) -> str:
     exp = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expire_hours)
-    return jwt.encode({"sub": str(user.id), "shop": user.shop_id, "exp": exp}, settings.jwt_secret, algorithm="HS256")
+    return jwt.encode({"sub": str(user.id), "shop": user.shop_id, "ver": user.token_version or 0, "exp": exp},
+                      settings.jwt_secret, algorithm="HS256")
 
 
 def current_user(cred: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
@@ -55,6 +56,7 @@ def current_user(cred: HTTPAuthorizationCredentials | None = Depends(bearer), db
     except (jwt.PyJWTError, KeyError, TypeError, ValueError):  # token inválido nunca vira erro 500
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sessão expirada, faça login de novo")
     user = db.get(User, user_id) if 0 < user_id < 2**31 else None
-    if user is None or payload.get("shop") not in (None, user.shop_id):
+    if user is None or not user.active or payload.get("shop") not in (None, user.shop_id) \
+            or payload.get("ver", 0) != (user.token_version or 0):  # revogado por "sair de todos os aparelhos"
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sessão expirada, faça login de novo")
     return user

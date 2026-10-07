@@ -1,12 +1,12 @@
 """Comissões e repasses entre barbeiros: regras vigentes, validação dos 100% e cálculo por período."""
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models import Appointment, ApptStatus, Barber, Beneficiary, CommissionRule, CommissionSettlement, Shop
+from ..models import Barber, Beneficiary, CommissionRule, CommissionSettlement, Shop
 
 CENT = Decimal("0.01")
 SHOP_LABEL = "Barbearia"
@@ -73,14 +73,12 @@ def beneficiary_name(btype: str, barber: Barber | None) -> str:
     return barber.name if barber else "?"
 
 
-def report(db: Session, shop: Shop, date_from: date, date_to: date) -> dict:
-    start = datetime.combine(date_from, datetime.min.time())
-    end = datetime.combine(date_to, datetime.min.time()) + timedelta(days=1)
+def report(db: Session, shop: Shop, date_from: date, date_to: date, only_barber_id: int | None = None) -> dict:
+    """Comissões do período. only_barber_id: visão do profissional (só a linha dele)."""
+    from .revenue import commission_lines, extras_by_barber
     barbers = {b.id: b for b in db.scalars(select(Barber).where(Barber.shop_id == shop.id))}
-    appts = db.scalars(select(Appointment).where(
-        Appointment.shop_id == shop.id, Appointment.status == ApptStatus.COMPLETED,
-        Appointment.start >= start, Appointment.start < end,
-    )).all()
+    appts = commission_lines(db, shop, date_from, date_to)
+    extras = extras_by_barber(db, shop, date_from, date_to)
     rules_by_barber: dict[int, list[CommissionRule]] = defaultdict(list)
     for r in db.scalars(select(CommissionRule).where(CommissionRule.shop_id == shop.id)):
         rules_by_barber[r.barber_id].append(r)
@@ -94,12 +92,12 @@ def report(db: Session, shop: Shop, date_from: date, date_to: date) -> dict:
     count: dict[int, int] = defaultdict(int)
     dues: dict[int, dict[BenefKey, dict]] = defaultdict(dict)
     for a in appts:
-        gross[a.barber_id] += a.price
-        count[a.barber_id] += 1
-        for k, r in effective_rules(rules_by_barber[a.barber_id], a.start.date(), a.service_id).items():
+        gross[a.barber_id] += a.base
+        count[a.barber_id] += 1 if a.base >= 0 else -1  # estorno desconta o atendimento
+        for k, r in effective_rules(rules_by_barber[a.barber_id], a.day, a.service_id).items():
             d = dues[a.barber_id].setdefault(k, {"base": Decimal(0), "amount": Decimal(0), "pcts": set()})
-            d["base"] += a.price
-            d["amount"] += a.price * r.percentage / 100
+            d["base"] += a.base
+            d["amount"] += a.base * r.percentage / 100
             d["pcts"].add(r.percentage)
 
     settled: dict[int, dict[BenefKey, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
@@ -114,7 +112,10 @@ def report(db: Session, shop: Shop, date_from: date, date_to: date) -> dict:
 
     rows = []
     for bid, b in sorted(barbers.items(), key=lambda x: x[1].name):
-        if not (count[bid] or dues[bid] or settled[bid] or received[bid]):
+        if only_barber_id is not None and bid != only_barber_id:
+            continue
+        ex = extras.get(bid, {"tips": Decimal("0.00"), "product_commission": Decimal("0.00")})
+        if not (count[bid] or dues[bid] or settled[bid] or received[bid] or any(ex.values())):
             continue
         keys = list(dues[bid]) + [k for k in settled[bid] if k not in dues[bid]]
         due_rows = []
@@ -134,6 +135,7 @@ def report(db: Session, shop: Shop, date_from: date, date_to: date) -> dict:
             "barber_id": bid, "barber_name": b.name, "gross": q2(gross[bid]), "appointments": count[bid],
             "dues": due_rows, "total_due": total_due, "net": q2(gross[bid]) - total_due,
             "received": received[bid], "settled": total_paid, "open": total_due - total_paid,
+            "tips": ex["tips"], "product_commission": ex["product_commission"],
         })
 
     return {

@@ -4,9 +4,13 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 
 from ..config import now_local
-from ..models import AccessStatus, Appointment, ApptStatus, Barber, ConflictAction, PayStatus, Review, Service
-from ..services import approvals
+from ..models import (
+    AccessStatus, Appointment, ApptStatus, Barber, Charge, ConflictAction, PackagePlan, PayStatus, Review, Service,
+    SubscriptionPlan,
+)
+from ..services import approvals, benefits, billing, deposits
 from ..services import scheduling as sch
+from ..services import waitlist as wl
 from ..services.fmt import WEEKDAYS_FULL, appt_summary, day_label, dt_label, money
 from ..services.notify import notify_staff
 from ..services.payments import get_or_create_pix, pix_messages, pix_ready
@@ -20,7 +24,7 @@ MSG_BLOCKED = "No momento não conseguimos agendar por aqui. Por favor, fale com
 # ---------------------------------------------------------------- entrada
 
 # Estados em que a resposta é sempre do fluxo atual (não passa pela IA)
-DETERMINISTIC_STATES = {"reminder", "survey_rating", "survey_comment", "book_name"}
+DETERMINISTIC_STATES = {"reminder", "survey_rating", "survey_comment", "book_name", wl.OFFER_STATE, "pkg_confirm"}
 HUMAN_WORDS = {"atendente", "humano", "falar com atendente", "falar com alguem", "pessoa"}
 CONFIRM_WORDS = {"1", "sim", "s", "confirmar", "confirmo", "confirma", "pode", "ok", "isso", "fechado", "beleza"}
 OTHER_WORDS = {"2", "outro", "outra", "outro horario", "escolher outro"}
@@ -98,6 +102,7 @@ def show_menu(ctx: Ctx) -> None:
         "*5* - Horário de funcionamento e endereço",
         "*6* - Pagar agendamento via Pix" if pix_ready(ctx.shop) else None,
         "*7* - Falar com a barbearia",
+        "*8* - Pacotes e assinatura" if has_plans(ctx) else None,
     ]
     ctx.say("\n".join(lines) + "\n\n" + "\n".join(o for o in options if o) + "\n\nResponda com o número da opção.")
     ctx.reset()
@@ -107,11 +112,13 @@ def st_menu(ctx: Ctx) -> None:
     t = ctx.low
     actions = {
         "1": start_booking, "2": my_appointments, "3": info_services, "4": info_barbers,
-        "5": info_hours, "6": pay_menu, "7": talk_to_human,
+        "5": info_hours, "6": pay_menu, "7": talk_to_human, "8": balance_menu,
     }
     if t in ("agendar", "marcar", "horario"):
         t = "1"
-    if t == "6" and not pix_ready(ctx.shop):
+    if t in ("pacote", "pacotes", "assinatura", "saldo"):
+        t = "8"
+    if (t == "6" and not pix_ready(ctx.shop)) or (t == "8" and not has_plans(ctx)):
         t = ""
     fn = actions.get(t)
     if fn:
@@ -197,24 +204,42 @@ def _barber(ctx: Ctx) -> Barber | None:
     return ctx.db.get(Barber, bid) if bid else None
 
 
-def ask_day(ctx: Ctx, prefix: str = "") -> None:
+def ask_day(ctx: Ctx, prefix: str = "", waitlist_day: date | None = None) -> None:
+    """waitlist_day: o dia escolhido não tinha horário; a última opção é entrar na lista de espera dele."""
     days = sch.open_days(ctx.db, ctx.shop, _service(ctx), _barber(ctx))
-    if not days:
+    if not days and waitlist_day is None:
         ctx.say("Não encontrei dias com atendimento nos próximos dias. Fale com a barbearia (opção 7).")
         ctx.reset()
         return
     lines = [f"*{i}* - {day_label(d)}" for i, d in enumerate(days, 1)]
-    ctx.go("book_day", days=[d.isoformat() for d in days])
+    offer_wl = waitlist_day is not None and not ctx.get("reschedule_of")
+    if offer_wl:
+        lines.append(f"*{len(days) + 1}* - Entrar na lista de espera de {day_label(waitlist_day).lower()}")
+    ctx.go("book_day", days=[d.isoformat() for d in days], wl_day=waitlist_day.isoformat() if offer_wl else None)
     ctx.say((prefix + "\n\n" if prefix else "") + "Para qual dia?\n\n" + "\n".join(lines))
 
 
 def st_book_day(ctx: Ctx) -> None:
     days = ctx.get("days", [])
-    i = pick(ctx.text, len(days))
+    wl_day = ctx.get("wl_day")
+    n = len(days) + (1 if wl_day else 0)
+    i = pick(ctx.text, n)
     if i is None:
-        ctx.say(f"Responda com um número de 1 a {len(days)}, ou *menu* para voltar.")
+        ctx.say(f"Responda com um número de 1 a {n}, ou *menu* para voltar.")
+        return
+    if wl_day and i == len(days):
+        join_waitlist(ctx, date.fromisoformat(wl_day))
         return
     show_times(ctx, date.fromisoformat(days[i]))
+
+
+def join_waitlist(ctx: Ctx, day: date) -> None:
+    e = wl.join(ctx.db, ctx.shop, customer(ctx), _service(ctx), day, _barber(ctx))
+    pos = wl.position(ctx.db, e)
+    ctx.say(f"📝 Pronto! Você está na lista de espera de *{day_label(day).lower()}* para {e.service.name} "
+            f"(posição {pos}). Se abrir um horário, te aviso por aqui e ele fica reservado para você por "
+            f"{ctx.shop.waitlist_hold_minutes} minutos." + FOOTER)
+    ctx.reset()
 
 
 def bookable_slots(ctx: Ctx, service: Service, barber: Barber | None, day: date,
@@ -242,7 +267,7 @@ def bookable_slots(ctx: Ctx, service: Service, barber: Barber | None, day: date,
 def show_times(ctx: Ctx, day: date, prefix: str = "") -> None:
     slots = bookable_slots(ctx, _service(ctx), _barber(ctx), day, ctx.get("reschedule_of"))
     if not slots:
-        ask_day(ctx, prefix=f"Não há horários livres em {day_label(day).lower()}. 😕")
+        ask_day(ctx, prefix=f"Não há horários livres em {day_label(day).lower()}. 😕", waitlist_day=day)
         return
     slots = slots[:40]
     cells = [f"*{i}* - {s:%H:%M}" for i, (s, _) in enumerate(slots, 1)]
@@ -346,8 +371,27 @@ def _do_book(ctx: Ctx) -> None:
         ctx.reset()
         return
 
+    finish_booking(ctx, appt)
+
+
+def finish_booking(ctx: Ctx, appt: Appointment) -> None:
+    """Agendamento novo e já gravado: usa o saldo do cliente, pede o sinal (se o estabelecimento cobra) ou oferece
+    o Pix antecipado, e avisa a equipe."""
+    db, shop, c = ctx.db, ctx.shop, appt.customer
+    paid_with = benefits.apply_on_booking(db, shop, appt)
+    amount = deposits.needs_deposit(shop, appt)
+    if amount:
+        pay = deposits.request_deposit(db, shop, appt, amount)
+        ctx.say(*deposits.deposit_messages(shop, appt, pay))
+        notify_staff(db, shop, f"📌 *Agendamento aguardando sinal*\n{c.name} ({c.phone})\n{appt_summary(appt)}",
+                     appt.barber)
+        ctx.reset()
+        return
     notify_staff(db, shop, f"🆕 *Novo agendamento*\n{c.name} ({c.phone})\n{appt_summary(appt)}", appt.barber)
-    if pix_ready(shop):
+    if paid_with:
+        ctx.say(f"✅ Agendado!\n\n{appt_summary(appt)}\n\n{paid_with}\n\nTe mando um lembrete antes do horário.")
+        ctx.reset()
+    elif pix_ready(shop):
         ctx.go("book_pay", appt_id=appt.id)
         ctx.say(f"✅ Agendado!\n\n{appt_summary(appt)}\n\nQuer adiantar o pagamento?\n\n"
                 "*1* - Pagar agora via Pix\n*2* - Pagar na barbearia")
@@ -385,6 +429,9 @@ def send_pix(ctx: Ctx, appt: Appointment) -> None:
     if appt.payment_status == PayStatus.PAID:
         ctx.say("Esse agendamento já está pago. ✅")
         return
+    if appt.customer_package_id or appt.subscription_id:
+        ctx.say("Esse horário já está coberto pelo seu pacote ou assinatura. ✅")
+        return
     pay = get_or_create_pix(ctx.db, ctx.shop, appt)
     ctx.say(*pix_messages(ctx.shop, appt, pay))
 
@@ -402,6 +449,10 @@ def my_appointments(ctx: Ctx) -> None:
         paid = " (pago ✅)" if a.payment_status == PayStatus.PAID else ""
         if a.status == ApptStatus.PENDING_APPROVAL:
             paid = " (aguardando confirmação ⏳)"
+        elif a.status == ApptStatus.AWAITING_DEPOSIT:
+            paid = " (aguardando o sinal 📌)"
+        elif a.status == ApptStatus.HELD:
+            paid = " (reservado da lista de espera ⏳)"
         lines.append(f"*{i}* - {dt_label(a.start)} | {a.service.name} com {a.barber.name}{paid}")
     ctx.go("my_pick", appt_ids=[a.id for a in appts])
     ctx.say("Seus próximos agendamentos:\n\n" + "\n".join(lines) + "\n\nResponda com o número para cancelar, remarcar ou pagar.")
@@ -575,12 +626,20 @@ def _looks_like_paid(ctx: Ctx) -> bool:
 
 def _report_paid(ctx: Ctx) -> bool:
     c = customer(ctx)
-    pending = [a for a in sch.upcoming_for_customer(ctx.db, ctx.shop, c) if a.payment_status == PayStatus.PENDING]
-    if not pending:
+    pending = [a for a in sch.upcoming_for_customer(ctx.db, ctx.shop, c)
+               if a.payment and a.payment.status == PayStatus.PENDING]
+    charges = list(ctx.db.scalars(select(Charge).where(Charge.shop_id == ctx.shop.id, Charge.customer_id == c.id,
+                                                       Charge.status == PayStatus.PENDING)))
+    if not pending and not charges:
         return False
+    now = now_local()
     for a in pending:
-        a.payment.customer_reported_at = now_local()
-    resumo = "\n\n".join(appt_summary(a) for a in pending)
+        a.payment.customer_reported_at = now
+    for ch in charges:
+        ch.customer_reported_at = now
+    parts = [("Sinal: " if a.payment.kind == "deposit" else "") + appt_summary(a) for a in pending]
+    parts += [f"{'Mensalidade' if ch.kind == 'subscription' else 'Pacote'}: {money(ch.amount)}" for ch in charges]
+    resumo = "\n\n".join(parts)
     notify_staff(
         ctx.db, ctx.shop,
         f"💸 *Cliente informou pagamento via Pix*\n{c.name} ({c.phone})\n\n{resumo}\n\n"
@@ -741,8 +800,130 @@ def st_ai_confirm(ctx: Ctx) -> None:
         ctx.say("Responda *1* para confirmar, *2* para escolher outro ou *3* para desistir.")
 
 
+# ---------------------------------------------------------------- lista de espera: horário oferecido
+
+def st_wl_offer(ctx: Ctx) -> None:
+    entry_id = ctx.get("wl_entry_id")
+    t = ctx.low
+    if t in CONFIRM_WORDS or t in ("quero",):
+        appt = wl.accept(ctx.db, ctx.shop, entry_id, ctx.phone)
+        ctx.reset()
+        if appt is None:
+            ctx.say("Esse horário não está mais reservado para você (o prazo acabou). Se quiser, mande *1* para "
+                    "ver outros horários.")
+            return
+        finish_booking(ctx, appt)
+    elif t in GIVE_UP_WORDS or t == "2":
+        wl.decline(ctx.db, ctx.shop, entry_id, ctx.phone)
+        ctx.reset()
+        ctx.say("Tudo bem, liberei o horário e tirei você da lista. Quando quiser, é só chamar! 👋")
+    else:
+        ctx.say("Responda *1* para ficar com o horário ou *2* para recusar.")
+
+
+# ---------------------------------------------------------------- pacotes e assinatura
+
+def _plans_for_sale(ctx: Ctx) -> list[PackagePlan]:
+    return list(ctx.db.scalars(select(PackagePlan).where(PackagePlan.shop_id == ctx.shop.id,
+                                                         PackagePlan.active.is_(True)).order_by(PackagePlan.price)))
+
+
+def has_plans(ctx: Ctx) -> bool:
+    if ctx.db.scalar(select(PackagePlan.id).where(PackagePlan.shop_id == ctx.shop.id,
+                                                  PackagePlan.active.is_(True)).limit(1)):
+        return True
+    if ctx.db.scalar(select(SubscriptionPlan.id).where(SubscriptionPlan.shop_id == ctx.shop.id,
+                                                       SubscriptionPlan.active.is_(True)).limit(1)):
+        return True
+    b = benefits.customer_balance(ctx.db, ctx.shop, customer(ctx))
+    return bool(b["packages"] or b["subscriptions"])
+
+
+def balance_text(ctx: Ctx) -> str:
+    b = benefits.customer_balance(ctx.db, ctx.shop, customer(ctx))
+    lines = []
+    for p in b["packages"]:
+        if p["state"] == "ativo":
+            until = f", vale até {p['expires_at']:%d/%m/%Y}" if p["expires_at"] else ""
+            lines.append(f"• Pacote *{p['name']}*: {p['balance']} de {p['sessions']} sessões{until}")
+        elif p["state"] == "aguardando_pagamento":
+            lines.append(f"• Pacote *{p['name']}*: aguardando a confirmação do Pix")
+    for sub in b["subscriptions"]:
+        if sub["status"] == "cancelada":
+            continue
+        uses = "; ".join(f"{i['service_name']}: {'à vontade' if i['limit'] is None else str(i['remaining']) + ' de ' + str(i['limit'])}"
+                         for i in sub["items"])
+        state = "em dia ✅" if sub["status"] == "ativa" else (
+            "atrasada ⚠️ (benefícios bloqueados até o pagamento)" if sub["benefits_blocked"] else "atrasada ⚠️")
+        lines.append(f"• Assinatura *{sub['plan_name']}* ({state})\n  Neste mês: {uses}")
+    return "\n".join(lines)
+
+
+def balance_menu(ctx: Ctx) -> None:
+    text = balance_text(ctx)
+    head = "💳 *Seus pacotes e assinatura*\n\n" + (text or "Você ainda não tem pacote nem assinatura.")
+    plans = _plans_for_sale(ctx) if pix_ready(ctx.shop) else []
+    if not plans:
+        ctx.say(head + FOOTER)
+        ctx.reset()
+        return
+    lines = [f"*{i}* - {p.name}: {p.sessions}x {p.service.name} por {money(p.price)}"
+             + (f" (validade {p.validity_days} dias)" if p.validity_days else "") for i, p in enumerate(plans, 1)]
+    ctx.go("pkg_pick", plan_ids=[p.id for p in plans])
+    ctx.say(head + "\n\n🛍️ *Pacotes à venda* (pagamento via Pix):\n" + "\n".join(lines)
+            + "\n\nResponda com o número do pacote para comprar, ou *menu* para voltar.")
+
+
+def st_pkg_pick(ctx: Ctx) -> None:
+    ids = ctx.get("plan_ids", [])
+    i = pick(ctx.text, len(ids))
+    if i is None:
+        st_menu(ctx)
+        return
+    plan = ctx.db.get(PackagePlan, ids[i])
+    propose_package(ctx, plan)
+
+
+def propose_package(ctx: Ctx, plan: PackagePlan) -> None:
+    """Resumo da compra com confirmação: nada é cobrado até o cliente responder 1 (vale para o menu e para a IA)."""
+    ctx.reset()
+    ctx.go("pkg_confirm", plan_id=plan.id)
+    validity = f"\n📆 Validade: {plan.validity_days} dias a partir do pagamento" if plan.validity_days else ""
+    ctx.say(f"Confirma a compra?\n\n🛍️ *{plan.name}*: {plan.sessions}x {plan.service.name}\n"
+            f"💰 {money(plan.price)} via Pix{validity}\n\n*1* - Confirmar e receber o Pix\n*2* - Desistir")
+
+
+def st_pkg_confirm(ctx: Ctx) -> None:
+    plan = ctx.db.get(PackagePlan, ctx.get("plan_id") or 0)
+    t = ctx.low
+    if plan is None or plan.shop_id != ctx.shop.id or not plan.active:
+        ctx.reset()
+        show_menu(ctx)
+        return
+    if t in CONFIRM_WORDS:
+        ctx.reset()
+        try:
+            ch = billing.buy_package(ctx.db, ctx.shop, customer(ctx), plan)
+        except billing.BillingError as e:
+            ctx.say(str(e) + FOOTER)
+            return
+        ctx.say(*billing.charge_messages(ctx.shop, ch))
+        ch.sent_at = now_local()
+        c = customer(ctx)
+        notify_staff(ctx.db, ctx.shop, f"🛍️ *Pacote pedido pelo WhatsApp*\n{c.name} ({c.phone})\n{plan.name} - "
+                                       f"{money(plan.price)}\nConfirme o Pix no app (Cobranças) quando cair.")
+    elif t in GIVE_UP_WORDS or t == "2":
+        ctx.reset()
+        ctx.say("Tudo bem, não comprei nada. Quando quiser é só chamar! 👋")
+    else:
+        ctx.say("Responda *1* para confirmar a compra ou *2* para desistir.")
+
+
 STATES = {
     "ai_confirm": st_ai_confirm,
+    wl.OFFER_STATE: st_wl_offer,
+    "pkg_pick": st_pkg_pick,
+    "pkg_confirm": st_pkg_confirm,
     "menu": st_menu,
     "book_service": st_book_service,
     "book_barber": st_book_barber,

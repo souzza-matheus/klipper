@@ -12,7 +12,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { api, clearSession, loadSession, saveAppearance, setUnauthorizedHandler } from './src/api';
+import { api, clearSession, loadSession, refreshSession, saveAppearance, setUnauthorizedHandler } from './src/api';
 import { LogoVertical } from './src/brand/Logo';
 import { BRAND_THEME } from './src/theme';
 import { ThemeProvider, useTheme } from './src/ThemeProvider';
@@ -236,6 +236,7 @@ export default function App() {
   const token = session?.token;
   useEffect(() => {
     if (!token) return;
+    refreshSession().catch(() => {}); // renova a validade do token
     api.get('/me').then((me) => setAppearance(me.niche, me.theme_mode, me.shop_name)).catch(() => {});
   }, [token, setAppearance]);
 

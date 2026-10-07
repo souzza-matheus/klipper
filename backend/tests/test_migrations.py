@@ -6,7 +6,7 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import ForeignKey, MetaData, Table, UniqueConstraint, create_engine, inspect
 
 from app.db import Base
 
@@ -41,16 +41,50 @@ NEW_COLUMNS = [
     ("payments", "receipt_mime"), ("payments", "receipt_data"), ("payments", "receipt_at"),
     ("shops", "ai_enabled"), ("shops", "ai_audio_enabled"), ("shops", "ai_monthly_limit"),
     ("shops", "ai_allow_free_tier"), ("shops", "ai_limit_warned_month"),
+    ("shops", "webhook_secret"), ("users", "token_version"),
+    # 0008: CRM fase 1
+    ("users", "role"), ("users", "active"), ("users", "must_change_password"), ("users", "created_at"),
+    ("shops", "deposit_mode"), ("shops", "deposit_value"), ("shops", "deposit_expire_minutes"),
+    ("shops", "deposit_refund_hours"), ("shops", "waitlist_hold_minutes"), ("shops", "sync_seq"),
+    ("services", "deposit_mode"), ("services", "deposit_value"), ("payments", "kind"),
+    ("appointments", "checked_in_at"), ("appointments", "deposit_amount"), ("appointments", "deposit_status"),
 ]
+# 0008: tabelas que ganharam as colunas da sincronização (uuid único, sync_seq indexado)
+SYNC_TABLES = ("services", "barbers", "blocks", "customers", "appointments")
+SYNC_COLUMNS = ("uuid", "updated_at", "deleted_at", "version", "sync_seq")
+NEW_TABLES = ("expenses", "customer_conflicts", "conversation_messages", "ai_usage", "products", "service_products",
+              "stock_movements", "package_plans", "customer_packages", "package_uses", "subscription_plans",
+              "subscription_plan_items", "subscriptions", "subscription_uses", "charges", "comandas",
+              "comanda_items", "comanda_payments", "waitlist_entries", "sync_operations")
+
+
+def _old_metadata() -> MetaData:
+    """Esquema "antigo": sem as tabelas novas e, nas que existiam, sem as colunas da sincronização (e sem as
+    referências do agendamento para pacote e assinatura e do usuário para o profissional)."""
+    md = MetaData()
+    for name, t in Base.metadata.tables.items():
+        if name in NEW_TABLES:
+            continue
+        drop = set(SYNC_COLUMNS) if name in SYNC_TABLES else set()
+        drop |= {"appointments": {"customer_package_id", "subscription_id"}, "users": {"barber_id"}}.get(name, set())
+        cols = []
+        for c in t.columns:
+            if c.name not in drop:
+                col = c._copy()
+                for fk in c.foreign_keys:  # _copy() não leva as chaves estrangeiras
+                    col.append_foreign_key(ForeignKey(fk.target_fullname, ondelete=fk.ondelete))
+                cols.append(col)
+        uniques = [UniqueConstraint(*[c.name for c in u.columns]) for u in t.constraints
+                   if isinstance(u, UniqueConstraint) and len(u.columns) > 1]
+        Table(name, md, *cols, *uniques)
+    return md
 
 
 def test_upgrade_database_created_without_alembic(tmp_path):
     """Banco antigo (create_all, sem as colunas novas e sem as tabelas novas): o upgrade completa o que falta."""
     url = f"sqlite:///{tmp_path / 'antigo.db'}"
     engine = create_engine(url)
-    old_tables = [t for name, t in Base.metadata.tables.items()
-                  if name not in ("expenses", "customer_conflicts", "conversation_messages", "ai_usage")]
-    Base.metadata.create_all(engine, tables=old_tables)
+    _old_metadata().create_all(engine)
     with engine.begin() as conn:
         for table, col in NEW_COLUMNS:
             conn.exec_driver_sql(f"ALTER TABLE {table} DROP COLUMN {col}")
@@ -70,4 +104,10 @@ def test_upgrade_database_created_without_alembic(tmp_path):
     with create_engine(url).connect() as conn:
         assert conn.exec_driver_sql("SELECT approval_expire_hours, conflict_default_gap_minutes FROM shops").one() == (12, 240)
         assert conn.exec_driver_sql("SELECT niche, theme_mode FROM shops").one() == ("barbershop", "auto")
+        # Cada barbearia antiga ganha um secret de webhook próprio
+        assert len(conn.exec_driver_sql("SELECT webhook_secret FROM shops").scalar()) >= 32
         assert conn.exec_driver_sql("SELECT access_status, access_reason FROM customers").one() == ("normal", "")
+        # Sincronização: cada linha antiga ganha um uuid e um sync_seq; a loja guarda o último
+        uid, seq, version = conn.exec_driver_sql("SELECT uuid, sync_seq, version FROM customers").one()
+        assert len(uid) == 36 and seq == 1 and version == 1
+        assert conn.exec_driver_sql("SELECT sync_seq, deposit_mode FROM shops").one() == (1, "off")

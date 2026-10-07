@@ -19,27 +19,49 @@ def upsert(instance, phone, text):
         "message": {"conversation": text}}}
 
 
-@pytest.mark.parametrize("query,headers", [
-    ("", {}),
-    ("?secret=errado", {}),
-    ("?secret=", {}),
-    ("?secret[]=x", {}),
-    ("?SECRET={s}", {}),
-    ("", {"x-webhook-secret": "errado"}),
-    ("?secret={s}x", {}),
-    ("?secret= {s}", {}),
+def shop_secret(two, world="a"):
+    return getattr(two, world).shop.webhook_secret
+
+
+@pytest.mark.parametrize("case", [
+    "sem cabeçalho", "cabeçalho errado", "cabeçalho vazio", "secret certo na URL (não aceito mais)",
+    "secret global quando a barbearia tem o seu", "secret da outra barbearia", "secret com espaço",
+    "secret com sufixo",
 ])
-def test_webhook_rejects_missing_or_wrong_secret(two, query, headers):
-    r = two.anon.post(WEBHOOK + query.format(s=settings.webhook_secret), headers=headers,
-                      json=upsert("barbearia-demo", STRANGER, "oi"))
-    assert r.status_code == 403
+def test_webhook_rejects_missing_or_wrong_secret(two, case):
+    a_secret, b_secret = shop_secret(two), shop_secret(two, "b")
+    url, headers = WEBHOOK, {}
+    if case == "cabeçalho errado":
+        headers = {"x-webhook-secret": "errado"}
+    elif case == "cabeçalho vazio":
+        headers = {"x-webhook-secret": ""}
+    elif case.startswith("secret certo na URL"):
+        url = f"{WEBHOOK}?secret={a_secret}"
+    elif case.startswith("secret global"):
+        headers = {"x-webhook-secret": settings.webhook_secret}
+    elif case == "secret da outra barbearia":
+        headers = {"x-webhook-secret": b_secret}
+    elif case == "secret com espaço":
+        headers = {"x-webhook-secret": f" {a_secret}"}
+    elif case == "secret com sufixo":
+        headers = {"x-webhook-secret": a_secret + "x"}
+    r = two.anon.post(url, headers=headers, json=upsert("barbearia-demo", STRANGER, "oi"))
+    assert r.status_code == 403, case
     assert not two.db.scalar(select(Conversation).where(Conversation.phone == STRANGER))
 
 
-def test_webhook_accepts_secret_in_header_or_query(two):
-    body = upsert("barbearia-demo", STRANGER, "oi")
-    assert two.anon.post(WEBHOOK, headers={"x-webhook-secret": settings.webhook_secret}, json=body).status_code == 200
-    assert two.anon.post(f"{WEBHOOK}?secret={settings.webhook_secret}", json=body).status_code == 200
+def test_webhook_accepts_only_the_shop_secret_in_the_header(two):
+    assert two.anon.post(WEBHOOK, headers={"x-webhook-secret": shop_secret(two)},
+                         json=upsert("barbearia-demo", STRANGER, "oi")).status_code == 200
+    assert two.anon.post(WEBHOOK, headers={"x-webhook-secret": shop_secret(two, "b")},
+                         json=upsert("bravo-zzb", STRANGER, "oi")).status_code == 200
+    convs = two.db.scalars(select(Conversation).where(Conversation.phone == STRANGER)).all()
+    assert sorted(c.shop_id for c in convs) == sorted([two.a.shop.id, two.b.shop.id])
+
+
+def test_each_shop_has_its_own_strong_secret(two):
+    a, b = shop_secret(two), shop_secret(two, "b")
+    assert len(a) >= 32 and len(b) >= 32 and a != b and settings.webhook_secret not in (a, b)
 
 
 def test_secret_comparison_is_constant_time():
@@ -62,15 +84,15 @@ def test_secret_comparison_is_constant_time():
     json.dumps({"a": [[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]}).encode(),
 ])
 def test_malformed_payloads_never_crash(two, raw):
-    r = two.anon.post(f"{WEBHOOK}?secret={settings.webhook_secret}", content=raw,
-                      headers={"content-type": "application/json"})
-    assert r.status_code == 200, r.text
+    secret = shop_secret(two) if b"barbearia-demo" in raw else settings.webhook_secret
+    r = two.anon.post(WEBHOOK, content=raw, headers={"content-type": "application/json", "x-webhook-secret": secret})
+    assert r.status_code in (200, 400), r.text  # JSON inválido: 400; tipos inesperados: ignorado
 
 
 def test_giant_payload_is_refused_before_reading(two):
     big = b'{"x":"' + b"a" * (settings.max_body_bytes + 10) + b'"}'
-    r = two.anon.post(f"{WEBHOOK}?secret={settings.webhook_secret}", content=big,
-                      headers={"content-type": "application/json"})
+    r = two.anon.post(WEBHOOK, content=big, headers={"content-type": "application/json",
+                                                     "x-webhook-secret": settings.webhook_secret})
     assert r.status_code == 413
 
 

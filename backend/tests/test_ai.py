@@ -455,7 +455,8 @@ def test_settings_and_usage_endpoints(env, fake, api, monkeypatch):
 
 def test_dev_simulate_uses_ai(env, fake, api):
     fake.script = ["Oi! Quer marcar um horário?"]
-    r = api.post("/dev/simulate", json={"phone": "31977776666", "text": "oi, boa tarde"})
+    r = api.post("/dev/simulate", json={"phone": "31977776666", "text": "oi, boa tarde"},
+                 headers={"x-setup-token": settings.setup_token})
     assert r.json()["replies"] == ["Oi! Quer marcar um horário?"]
 
 

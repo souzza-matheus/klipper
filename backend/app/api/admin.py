@@ -13,9 +13,11 @@ from ..security import login_limiter, same_secret
 from ..config import now_local, settings
 from ..db import get_db
 from ..models import (
-    Appointment, ApptStatus, Barber, Block, Customer, PayStatus, Payment, Review, Service, Shop, User,
-    WorkingHour,
+    Appointment, ApptStatus, Barber, Block, Customer, DepositStatus, PayStatus, Payment, Review, Role, Service, Shop,
+    User, WorkingHour,
 )
+from ..permissions import is_pro, own_barber_id, owner_shop, served_by, staff_shop, team_user
+from ..sync_events import soft_delete
 from ..services import scheduling as sch
 from ..services import whatsapp as wa
 from ..services.approvals import approval_deadline
@@ -26,8 +28,8 @@ from ..services.pix import valid_pix_key
 router = APIRouter()
 
 
-def shop_of(user: User = Depends(current_user)) -> Shop:
-    return user.shop
+# Padrão: só o dono. Rotas da recepção e do profissional usam staff_shop/team_user (app/permissions.py).
+shop_of = owner_shop
 
 
 def _phone_or_422(raw: str, label: str = "Telefone") -> str:
@@ -66,6 +68,8 @@ def login(body: S.LoginIn, request: Request, db: Session = Depends(get_db)):
     email, ip = body.email.lower(), _client_ip(request)
     _throttle(email, ip)
     user = db.scalar(select(User).where(User.email == email))
+    if user is not None and not user.active:
+        user = None  # login desativado: mesma resposta de senha errada
     if not check_password_or_dummy(body.password, user.password_hash if user else None):
         login_limiter.failed(email, ip)
         raise HTTPException(401, "E-mail ou senha incorretos")  # mesma mensagem para e-mail ou senha errados
@@ -76,7 +80,8 @@ def login(body: S.LoginIn, request: Request, db: Session = Depends(get_db)):
 def _token_out(user: User) -> S.TokenOut:
     shop = user.shop
     return S.TokenOut(token=make_token(user), user_name=user.name, shop_name=shop.name, niche=shop.niche,
-                      theme_mode=shop.theme_mode)
+                      theme_mode=shop.theme_mode, role=user.role, barber_id=user.barber_id,
+                      first_login=user.must_change_password)
 
 
 @router.post("/auth/register", response_model=S.TokenOut, tags=["auth"])
@@ -98,8 +103,41 @@ def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)
     shop = Shop(name=body.shop_name, owner_phone=wa.normalize_phone(body.owner_phone), evolution_instance=instance)
     db.add(shop)
     db.flush()
-    user = User(shop_id=shop.id, name=body.owner_name, email=body.email.lower(), password_hash=hash_password(body.password))
+    user = User(shop_id=shop.id, name=body.owner_name, email=body.email.lower(),
+                password_hash=hash_password(body.password), role=Role.OWNER)
     db.add(user)
+    db.commit()
+    return _token_out(user)
+
+
+@router.post("/auth/refresh", response_model=S.TokenOut, tags=["auth"])
+def refresh(user: User = Depends(current_user)):
+    """Token novo (validade renovada) para quem ainda tem um token válido. O app chama ao abrir."""
+    return _token_out(user)
+
+
+@router.post("/auth/logout-all", tags=["auth"])
+def logout_all(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Sai de todos os aparelhos: os tokens já emitidos para este usuário deixam de valer."""
+    user.token_version = (user.token_version or 0) + 1
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/auth/change-password", response_model=S.TokenOut, tags=["auth"])
+def change_password(body: S.ChangePasswordIn, request: Request, user: User = Depends(current_user),
+                    db: Session = Depends(get_db)):
+    """Troca a senha (obrigatório no primeiro acesso de quem foi convidado). Os outros aparelhos saem."""
+    ip = _client_ip(request)
+    _throttle(user.email, ip)
+    if not check_password_or_dummy(body.current_password, user.password_hash):
+        login_limiter.failed(user.email, ip)
+        raise HTTPException(401, "Senha atual incorreta")
+    if body.new_password == body.current_password:
+        raise HTTPException(422, "A nova senha precisa ser diferente da atual.")
+    user.password_hash = hash_password(body.new_password)
+    user.must_change_password = False
+    user.token_version = (user.token_version or 0) + 1
     db.commit()
     return _token_out(user)
 
@@ -107,14 +145,16 @@ def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)
 @router.get("/me", tags=["auth"])
 def me(user: User = Depends(current_user)):
     return {"name": user.name, "email": user.email, "shop_id": user.shop_id, "shop_name": user.shop.name,
-            "niche": user.shop.niche, "theme_mode": user.shop.theme_mode}
+            "niche": user.shop.niche, "theme_mode": user.shop.theme_mode, "role": user.role,
+            "role_label": Role.LABELS.get(user.role, user.role), "barber_id": user.barber_id,
+            "first_login": user.must_change_password}
 
 
 # ---------------------------------------------------------------- barbearia
 
 @router.get("/shop", response_model=S.ShopOut, tags=["shop"])
-def get_shop(shop: Shop = Depends(shop_of)):
-    return shop
+def get_shop(user: User = Depends(team_user)):
+    return user.shop
 
 
 @router.put("/shop", response_model=S.ShopOut, tags=["shop"])
@@ -172,7 +212,8 @@ def whatsapp_disconnect(shop: Shop = Depends(shop_of)):
 # ---------------------------------------------------------------- serviços
 
 @router.get("/services", response_model=list[S.ServiceOut], tags=["services"])
-def list_services(shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_services(user: User = Depends(team_user), db: Session = Depends(get_db)):
+    shop = user.shop
     return db.scalars(select(Service).where(Service.shop_id == shop.id).order_by(Service.sort_order, Service.name)).all()
 
 
@@ -197,10 +238,9 @@ def update_service(sid: int, body: S.ServiceIn, shop: Shop = Depends(shop_of), d
 def delete_service(sid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     svc = _own(db, Service, sid, shop)
     used = db.scalar(select(func.count()).select_from(Appointment).where(Appointment.service_id == sid))
-    if used:
-        svc.active = False  # mantém o histórico
-    else:
-        db.delete(svc)
+    svc.active = False  # mantém o histórico
+    if not used:
+        soft_delete(svc)  # some das listas; vira exclusão no sync do app
     db.commit()
     return {"ok": True, "deactivated": bool(used)}
 
@@ -224,7 +264,8 @@ def _apply_barber(db: Session, shop: Shop, b: Barber, body: S.BarberIn) -> None:
 
 
 @router.get("/barbers", response_model=list[S.BarberOut], tags=["barbers"])
-def list_barbers(shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_barbers(user: User = Depends(team_user), db: Session = Depends(get_db)):
+    shop = user.shop
     return [_barber_out(b) for b in db.scalars(select(Barber).where(Barber.shop_id == shop.id).order_by(Barber.name))]
 
 
@@ -249,10 +290,9 @@ def update_barber(bid: int, body: S.BarberIn, shop: Shop = Depends(shop_of), db:
 def delete_barber(bid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
     b = _own(db, Barber, bid, shop)
     used = db.scalar(select(func.count()).select_from(Appointment).where(Appointment.barber_id == bid))
-    if used:
-        b.active = False
-    else:
-        db.delete(b)
+    b.active = False
+    if not used:
+        soft_delete(b)
     db.commit()
     return {"ok": True, "deactivated": bool(used)}
 
@@ -260,13 +300,16 @@ def delete_barber(bid: int, shop: Shop = Depends(shop_of), db: Session = Depends
 # ---------------------------------------------------------------- bloqueios
 
 @router.get("/blocks", response_model=list[S.BlockOut], tags=["blocks"])
-def list_blocks(date_from: date | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_blocks(date_from: date | None = None, user: User = Depends(team_user), db: Session = Depends(get_db)):
     start = datetime.combine(date_from or now_local().date(), datetime.min.time())
-    return db.scalars(select(Block).where(Block.shop_id == shop.id, Block.end >= start).order_by(Block.start)).all()
+    q = select(Block).where(Block.shop_id == user.shop_id, Block.end >= start)
+    if is_pro(user):
+        q = q.where(or_(Block.barber_id == own_barber_id(user), Block.barber_id.is_(None)))
+    return db.scalars(q.order_by(Block.start)).all()
 
 
 @router.post("/blocks", response_model=S.BlockOut, tags=["blocks"])
-def create_block(body: S.BlockIn, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def create_block(body: S.BlockIn, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     if body.end <= body.start:
         raise HTTPException(422, "O fim precisa ser depois do início")
     if body.barber_id:
@@ -279,8 +322,13 @@ def create_block(body: S.BlockIn, shop: Shop = Depends(shop_of), db: Session = D
 
 
 @router.delete("/blocks/{bid}", tags=["blocks"])
-def delete_block(bid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
-    db.delete(_own(db, Block, bid, shop))
+def delete_block(bid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
+    blk = _own(db, Block, bid, shop)
+    soft_delete(blk)
+    if blk.end > now_local():
+        from ..services import waitlist
+        db.flush()
+        waitlist.on_slot_freed(db, shop, blk.barber_id, blk.start, blk.end)
     db.commit()
     return {"ok": True}
 
@@ -298,6 +346,8 @@ def appt_out(a: Appointment) -> S.AppointmentOut:
         customer_access_status=a.customer.access_status, approval_deadline=deadline,
         payment_id=a.payment.id if a.payment else None,
         customer_reported_paid=bool(a.payment and a.payment.customer_reported_at),
+        uuid=a.uuid, version=a.version, checked_in_at=a.checked_in_at, deposit_amount=a.deposit_amount,
+        deposit_status=a.deposit_status, customer_package_id=a.customer_package_id, subscription_id=a.subscription_id,
     )
 
 
@@ -328,7 +378,9 @@ def _gap_label(minutes: int) -> str:
 
 @router.get("/appointments", response_model=list[S.AppointmentOut], tags=["appointments"])
 def list_appointments(date_from: date, date_to: date | None = None, barber_id: S.QId | None = None,
-                      include_cancelled: bool = False, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                      include_cancelled: bool = False, user: User = Depends(team_user), db: Session = Depends(get_db)):
+    shop = user.shop
+    barber_id = own_barber_id(user) or barber_id  # profissional: só a própria agenda
     start = datetime.combine(date_from, datetime.min.time())
     end = datetime.combine(date_to or date_from, datetime.min.time()) + timedelta(days=1)
     q = select(Appointment).where(Appointment.shop_id == shop.id, Appointment.start >= start, Appointment.start < end)
@@ -340,10 +392,13 @@ def list_appointments(date_from: date, date_to: date | None = None, barber_id: S
 
 
 @router.get("/agenda/day", response_model=S.AgendaDayOut, tags=["appointments"])
-def agenda_day(day: date, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def agenda_day(day: date, user: User = Depends(team_user), db: Session = Depends(get_db)):
     """Tudo o que a agenda do dia precisa em uma resposta: expediente, bloqueios, agendamentos e horários livres
-    de cada profissional ativo (ou com agendamento no dia)."""
+    de cada profissional ativo (ou com agendamento no dia). O profissional vê só a própria coluna."""
+    shop = user.shop
     d = sch.day_agenda(db, shop, day)
+    if is_pro(user):
+        d.barbers = [b for b in d.barbers if b.barber.id == own_barber_id(user)]
     return S.AgendaDayOut(day=day, now=d.now, slot_step_minutes=shop.slot_step_minutes, barbers=[
         S.AgendaBarber(
             id=b.barber.id, name=b.barber.name,
@@ -358,16 +413,19 @@ def agenda_day(day: date, shop: Shop = Depends(shop_of), db: Session = Depends(g
 
 @router.get("/appointments/month", response_model=S.MonthOut, tags=["appointments"])
 def appointments_month(year: int = Query(ge=2000, le=2100), month: int = Query(ge=1, le=12),
-                       barber_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                       barber_id: S.QId | None = None, user: User = Depends(team_user),
+                       db: Session = Depends(get_db)):
     """Visão do mês para o calendário: por dia, total, cancelados, faturamento previsto, ocupação e bloqueio."""
-    if barber_id:
+    shop = user.shop
+    barber_id = own_barber_id(user) or barber_id
+    if barber_id and barber_id > 0:
         _own(db, Barber, barber_id, shop)
     return S.MonthOut(year=year, month=month, days=sch.month_overview(db, shop, year, month, barber_id))
 
 
 @router.get("/availability", tags=["appointments"])
 def availability(service_id: S.QId, day: date, barber_id: S.QId | None = None, customer_id: S.QId | None = None,
-                 shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                 shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     """Com customer_id, esconde os horários que ficam perto demais de clientes em conflito com ele."""
     svc = _own(db, Service, service_id, shop)
     customer = _own(db, Customer, customer_id, shop) if customer_id else None
@@ -380,7 +438,7 @@ def availability(service_id: S.QId, day: date, barber_id: S.QId | None = None, c
 
 
 @router.post("/appointments", response_model=S.AppointmentOut, tags=["appointments"])
-def create_appt(body: S.AppointmentIn, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def create_appt(body: S.AppointmentIn, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     barber = _own(db, Barber, body.barber_id, shop)
     svc = _own(db, Service, body.service_id, shop)
     phone = wa.normalize_phone(body.customer_phone)
@@ -396,15 +454,46 @@ def create_appt(body: S.AppointmentIn, shop: Shop = Depends(shop_of), db: Sessio
         raise err
     except sch.SchedulingError as e:
         raise HTTPException(409, str(e))
-    wa.send_text(db, shop, phone, f"✅ Seu horário na *{shop.name}* foi agendado:\n\n{appt_summary(a)}\n\n"
-                                  "Te mando um lembrete antes. Para cancelar ou remarcar, mande *menu*.")
+    notify_new_appointment(db, shop, a, use_balance=body.use_balance, require_deposit=body.require_deposit)
     db.commit()
     return appt_out(a)
 
 
+def notify_new_appointment(db: Session, shop: Shop, a: Appointment, use_balance: bool = True,
+                           require_deposit: bool = False) -> None:
+    """Depois de criar pelo app (ou pelo sync): usa o saldo do cliente, pede o sinal se o dono quis e avisa o
+    cliente no WhatsApp."""
+    from ..services import benefits, deposits
+    extra = benefits.apply_on_booking(db, shop, a) if use_balance else ""
+    amount = deposits.needs_deposit(shop, a) if require_deposit else 0
+    if amount:
+        pay = deposits.request_deposit(db, shop, a, amount)
+        for m in deposits.deposit_messages(shop, a, pay):
+            wa.send_text(db, shop, a.customer.phone, m)
+        return
+    wa.send_text(db, shop, a.customer.phone, f"✅ Seu horário na *{shop.name}* foi agendado:\n\n{appt_summary(a)}\n\n"
+                 + (extra + "\n\n" if extra else "")
+                 + "Te mando um lembrete antes. Para cancelar ou remarcar, mande *menu*.")
+
+
 @router.patch("/appointments/{aid}", response_model=S.AppointmentOut, tags=["appointments"])
-def patch_appt(aid: int, body: S.AppointmentPatch, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def patch_appt(aid: int, body: S.AppointmentPatch, user: User = Depends(team_user), db: Session = Depends(get_db)):
+    shop = user.shop
     a = _own(db, Appointment, aid, shop)
+    if is_pro(user):
+        # Profissional: só os próprios atendimentos, só presença/conclusão/falta e observação
+        if a.barber_id != own_barber_id(user):
+            raise HTTPException(404, "Não encontrado")
+        if body.price is not None or body.payment_method is not None or \
+                body.status not in (None, ApptStatus.CONFIRMED, ApptStatus.COMPLETED, ApptStatus.NO_SHOW):
+            raise HTTPException(403, "Seu perfil não tem acesso a esta função.")
+    apply_patch(db, shop, a, body)
+    db.commit()
+    return appt_out(a)
+
+
+def apply_patch(db: Session, shop: Shop, a: Appointment, body: S.AppointmentPatch) -> None:
+    from ..services import deposits
     if body.notes is not None:
         a.notes = body.notes
     if body.price is not None:
@@ -421,13 +510,13 @@ def patch_appt(aid: int, body: S.AppointmentPatch, shop: Shop = Depends(shop_of)
                              f"❌ Seu horário na *{shop.name}* foi cancelado:\n\n{appt_summary(a)}\n\n"
                              "Para marcar outro, mande *menu*.")
         else:
+            if body.status == ApptStatus.NO_SHOW:
+                deposits.on_no_show(a)
             a.status = body.status
-    db.commit()
-    return appt_out(a)
 
 
 @router.post("/appointments/{aid}/reschedule", response_model=S.AppointmentOut, tags=["appointments"])
-def reschedule(aid: int, body: S.RescheduleIn, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def reschedule(aid: int, body: S.RescheduleIn, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     a = _own(db, Appointment, aid, shop)
     barber = _own(db, Barber, body.barber_id, shop) if body.barber_id else None
     try:
@@ -443,7 +532,7 @@ def reschedule(aid: int, body: S.RescheduleIn, shop: Shop = Depends(shop_of), db
 
 
 @router.post("/appointments/{aid}/send-pix", tags=["appointments"])
-def send_pix(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def send_pix(aid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     from ..services.payments import get_or_create_pix, pix_messages, pix_ready
     a = _own(db, Appointment, aid, shop)
     if not pix_ready(shop):
@@ -457,13 +546,40 @@ def send_pix(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_
     return {"ok": True, "brcode": pay.brcode}
 
 
+@router.post("/appointments/{aid}/check-in", response_model=S.AppointmentOut, tags=["appointments"])
+def check_in(aid: int, user: User = Depends(team_user), db: Session = Depends(get_db)):
+    """Cliente chegou. Recepção (qualquer agendamento) ou o próprio profissional."""
+    a = _own(db, Appointment, aid, user.shop)
+    if is_pro(user) and a.barber_id != own_barber_id(user):
+        raise HTTPException(404, "Não encontrado")
+    if a.status not in ApptStatus.ACTIVE:
+        raise HTTPException(409, "Só dá para fazer check-in de um agendamento confirmado.")
+    a.checked_in_at = a.checked_in_at or now_local()
+    a.status = ApptStatus.CONFIRMED
+    db.commit()
+    return appt_out(a)
+
+
+@router.post("/appointments/{aid}/deposit-refunded", response_model=S.AppointmentOut, tags=["appointments"])
+def deposit_refunded(aid: int, shop: Shop = Depends(owner_shop), db: Session = Depends(get_db)):
+    """O dono devolveu o sinal (cancelamento no prazo)."""
+    a = _own(db, Appointment, aid, shop)
+    if a.deposit_status != DepositStatus.REFUND_DUE:
+        raise HTTPException(409, "Esse sinal não está marcado para devolução.")
+    a.deposit_status = DepositStatus.REFUNDED
+    db.commit()
+    return appt_out(a)
+
+
 # ---------------------------------------------------------------- clientes
 
 @router.get("/customers", response_model=list[S.CustomerOut], tags=["customers"])
 def list_customers(q: str = Query("", max_length=100), access_status: str | None = Query(None, pattern=S.ACCESS_STATUS),
                    limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=100_000),
-                   shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
-    query = select(Customer).where(Customer.shop_id == shop.id)
+                   user: User = Depends(team_user), db: Session = Depends(get_db)):
+    query = select(Customer).where(Customer.shop_id == user.shop_id)
+    if is_pro(user):  # profissional: só quem ele já atendeu
+        query = query.where(served_by(own_barber_id(user)))
     if access_status:
         query = query.where(Customer.access_status == access_status)
     if q:
@@ -476,9 +592,15 @@ def list_customers(q: str = Query("", max_length=100), access_status: str | None
 
 
 @router.get("/customers/{cid}", response_model=S.CustomerDetail, tags=["customers"])
-def get_customer(cid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
-    c = _own(db, Customer, cid, shop)
-    appts = db.scalars(select(Appointment).where(Appointment.customer_id == c.id).order_by(Appointment.start.desc())).all()
+def get_customer(cid: int, user: User = Depends(team_user), db: Session = Depends(get_db)):
+    from ..services.benefits import customer_balance
+    c = _own(db, Customer, cid, user.shop)
+    q = select(Appointment).where(Appointment.customer_id == c.id)
+    if is_pro(user):
+        q = q.where(Appointment.barber_id == own_barber_id(user))
+    appts = db.scalars(q.order_by(Appointment.start.desc())).all()
+    if is_pro(user) and not appts:
+        raise HTTPException(404, "Não encontrado")
     done = [a for a in appts if a.status == ApptStatus.COMPLETED]
     now = now_local()
     return S.CustomerDetail(
@@ -487,11 +609,12 @@ def get_customer(cid: int, shop: Shop = Depends(shop_of), db: Session = Depends(
         total_spent=sum((a.price for a in done), Decimal(0)),
         future_appointments=sum(1 for a in appts if a.start >= now and a.status in ApptStatus.OCCUPYING),
         appointments=[appt_out(a) for a in appts[:50]],
+        balance=customer_balance(db, user.shop, c) if not is_pro(user) else None,
     )
 
 
 @router.put("/customers/{cid}", response_model=S.CustomerOut, tags=["customers"])
-def update_customer(cid: int, body: S.CustomerIn, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def update_customer(cid: int, body: S.CustomerIn, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     c = _own(db, Customer, cid, shop)
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(c, k, v)
@@ -511,7 +634,7 @@ def pay_out(p: Payment) -> S.PaymentOut:
 
 
 @router.get("/payments", response_model=list[S.PaymentOut], tags=["payments"])
-def list_payments(status: str | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_payments(status: str | None = None, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     """Pendentes vêm primeiro os que o cliente disse que pagou, depois pelo horário do atendimento."""
     q = select(Payment).join(Appointment).where(Payment.shop_id == shop.id)
     if status:
@@ -524,20 +647,25 @@ def list_payments(status: str | None = None, shop: Shop = Depends(shop_of), db: 
 
 
 @router.post("/payments/{pid}/confirm", response_model=S.PaymentOut, tags=["payments"])
-def confirm(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def confirm(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     p = _own(db, Payment, pid, shop)
     if p.status == PayStatus.PAID:
         return pay_out(p)
-    confirm_payment(db, p)
+    deposit_ok = confirm_payment(db, p)
     a = p.appointment
-    wa.send_text(db, shop, a.customer.phone,
-                 f"✅ Recebemos o seu Pix de {money(p.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈")
+    if p.kind == "deposit":
+        msg = (f"✅ Recebemos o sinal de {money(p.amount)}! Seu horário de {dt_label(a.start)} está confirmado. "
+               "O valor do sinal é descontado no atendimento." if deposit_ok else
+               f"✅ Recebemos o sinal de {money(p.amount)} do horário de {dt_label(a.start)}.")
+    else:
+        msg = f"✅ Recebemos o seu Pix de {money(p.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈"
+    wa.send_text(db, shop, a.customer.phone, msg)
     db.commit()
     return pay_out(p)
 
 
 @router.post("/payments/{pid}/reject", response_model=S.PaymentOut, tags=["payments"])
-def reject(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def reject(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     """O Pix não caiu: marca como expirado e avisa o cliente com uma mensagem neutra. O horário continua marcado."""
     p = _own(db, Payment, pid, shop)
     if p.status != PayStatus.PENDING:
@@ -553,7 +681,7 @@ def reject(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db
 
 
 @router.get("/payments/{pid}/receipt", tags=["payments"])
-def payment_receipt(pid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def payment_receipt(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     """Comprovante que o cliente mandou no WhatsApp (imagem ou PDF)."""
     p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid)) \
         if 0 < pid <= MAX_ID else None
@@ -572,8 +700,9 @@ def payment_receipt(pid: int, shop: Shop = Depends(shop_of), db: Session = Depen
 # ---------------------------------------------------------------- avaliações e relatórios
 
 @router.get("/reviews", response_model=list[S.ReviewOut], tags=["reviews"])
-def list_reviews(barber_id: S.QId | None = None, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
-    q = select(Review).join(Appointment).where(Review.shop_id == shop.id)
+def list_reviews(barber_id: S.QId | None = None, user: User = Depends(team_user), db: Session = Depends(get_db)):
+    barber_id = own_barber_id(user) or barber_id
+    q = select(Review).join(Appointment).where(Review.shop_id == user.shop_id)
     if barber_id:
         q = q.where(Appointment.barber_id == barber_id)
     out = []

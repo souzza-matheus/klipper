@@ -15,6 +15,8 @@ from ..services import expenses as exp
 from ..services import reports
 from ..services import whatsapp as wa
 from ..services.fmt import money
+from ..models import User
+from ..permissions import own_barber_id, owner_or_pro_user
 from .admin import _own, shop_of
 
 router = APIRouter()
@@ -109,10 +111,12 @@ def delete_rule(rid: int, shop: Shop = Depends(shop_of), db: Session = Depends(g
 # ---------------------------------------------------------------- repasses e acertos
 
 @router.get("/finance/commissions", response_model=S.CommissionReportOut, tags=["finance"])
-def commissions(date_from: date, date_to: date, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def commissions(date_from: date, date_to: date, user: User = Depends(owner_or_pro_user),
+                db: Session = Depends(get_db)):
+    """Dono: todos os profissionais. Profissional: só a própria linha. Recepção: sem acesso."""
     if date_to < date_from:
         raise HTTPException(422, "A data final precisa ser depois da inicial")
-    return com.report(db, shop, date_from, date_to)
+    return com.report(db, user.shop, date_from, date_to, only_barber_id=own_barber_id(user))
 
 
 def settlement_out(st: CommissionSettlement, shop: Shop) -> S.SettlementOut:

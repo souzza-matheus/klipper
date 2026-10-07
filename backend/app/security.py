@@ -5,7 +5,6 @@ import logging
 import re
 import threading
 import time
-from collections import deque
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -21,48 +20,114 @@ def same_secret(given: str | None, expected: str) -> bool:
 
 # ---------------------------------------------------------------- força bruta no login
 
-class LoginLimiter:
-    """Bloqueio temporário depois de muitas senhas erradas, por e-mail e por IP (em memória: a API roda com um
-    worker só; com vários workers, trocar por Redis). O login certo zera as falhas do e-mail."""
+class _MemoryStore:
+    """Contadores com validade, em memória (um processo)."""
 
-    def __init__(self, max_per_email: int = 5, max_per_ip: int = 20, window: int = 900, lock: int = 900):
-        self.max_per_email, self.max_per_ip, self.window, self.lock = max_per_email, max_per_ip, window, lock
-        self._fails: dict[str, deque] = {}
-        self._locked: dict[str, float] = {}
+    def __init__(self):
+        self._data: dict[str, tuple[int, float]] = {}
         self._mx = threading.Lock()
+
+    def _live(self, key: str):
+        v = self._data.get(key)
+        if v and v[1] <= time.monotonic():
+            self._data.pop(key, None)
+            return None
+        return v
+
+    def incr(self, key: str, ttl: int) -> int:
+        with self._mx:
+            v = self._live(key)
+            n = (v[0] if v else 0) + 1
+            self._data[key] = (n, v[1] if v else time.monotonic() + ttl)
+            return n
+
+    def set(self, key: str, ttl: int) -> None:
+        with self._mx:
+            self._data[key] = (1, time.monotonic() + ttl)
+
+    def ttl(self, key: str) -> int:
+        with self._mx:
+            v = self._live(key)
+            return int(v[1] - time.monotonic()) + 1 if v else 0
+
+    def delete(self, *keys: str) -> None:
+        with self._mx:
+            for k in keys:
+                self._data.pop(k, None)
+
+    def clear(self) -> None:
+        with self._mx:
+            self._data.clear()
+
+
+class _RedisStore:
+    """Mesmos contadores no Redis: valem para todos os workers e sobrevivem a reinícios."""
+
+    def __init__(self, client, prefix: str = "syncserv:login:"):
+        self.r, self.p = client, prefix
+
+    def incr(self, key: str, ttl: int) -> int:
+        pipe = self.r.pipeline()
+        pipe.incr(self.p + key)
+        pipe.expire(self.p + key, ttl, nx=True)
+        return int(pipe.execute()[0])
+
+    def set(self, key: str, ttl: int) -> None:
+        self.r.set(self.p + key, 1, ex=ttl)
+
+    def ttl(self, key: str) -> int:
+        return max(0, int(self.r.ttl(self.p + key)))
+
+    def delete(self, *keys: str) -> None:
+        self.r.delete(*[self.p + k for k in keys])
+
+    def clear(self) -> None:
+        for k in self.r.scan_iter(self.p + "*"):
+            self.r.delete(k)
+
+
+class LoginLimiter:
+    """Bloqueio temporário depois de muitas senhas erradas, por e-mail e por IP. Com REDIS_URL, os contadores ficam
+    no Redis (vários workers); sem ele, ou se o Redis falhar, em memória. O login certo zera as falhas do e-mail."""
+
+    def __init__(self, max_per_email: int = 5, max_per_ip: int = 20, window: int = 900, lock: int = 900,
+                 store=None):
+        self.max_per_email, self.max_per_ip, self.window, self.lock = max_per_email, max_per_ip, window, lock
+        self.store = store or _MemoryStore()
+        self._fallback = _MemoryStore()
+
+    def use_redis(self, url: str) -> None:
+        import redis
+        self.store = _RedisStore(redis.Redis.from_url(url, socket_timeout=2, socket_connect_timeout=2))
+
+    def _do(self, fn, *args):
+        try:
+            return fn(self.store, *args)
+        except Exception:  # Redis fora do ar: continua protegendo em memória
+            log.warning("Limitador de login: Redis indisponível, usando memória")
+            return fn(self._fallback, *args)
 
     def _keys(self, email: str, ip: str) -> list[tuple[str, int]]:
         return [(f"email:{email.lower().strip()}", self.max_per_email), (f"ip:{ip}", self.max_per_ip)]
 
     def retry_after(self, email: str, ip: str) -> int:
         """Segundos até poder tentar de novo (0 = liberado)."""
-        now = time.monotonic()
-        with self._mx:
-            waits = [int(self._locked[k] - now) + 1 for k, _ in self._keys(email, ip)
-                     if self._locked.get(k, 0) > now]
-        return max(waits, default=0)
+        return max((self._do(lambda st, k: st.ttl(k), f"lock:{k}") for k, _ in self._keys(email, ip)), default=0)
 
     def failed(self, email: str, ip: str) -> None:
-        now = time.monotonic()
-        with self._mx:
-            for key, limit in self._keys(email, ip):
-                q = self._fails.setdefault(key, deque())
-                q.append(now)
-                while q and q[0] < now - self.window:
-                    q.popleft()
-                if len(q) >= limit:
-                    self._locked[key] = now + self.lock
-                    q.clear()
-                    log.warning("Login bloqueado temporariamente para %s", key.split(":")[0])
+        for key, limit in self._keys(email, ip):
+            n = self._do(lambda st, k: st.incr(k, self.window), f"fail:{key}")
+            if n >= limit:
+                self._do(lambda st, k: st.set(k, self.lock), f"lock:{key}")
+                self._do(lambda st, k: st.delete(k), f"fail:{key}")
+                log.warning("Login bloqueado temporariamente para %s", key.split(":")[0])
 
     def succeeded(self, email: str, ip: str) -> None:
-        with self._mx:
-            self._fails.pop(f"email:{email.lower().strip()}", None)
+        self._do(lambda st, k: st.delete(k), f"fail:email:{email.lower().strip()}")
 
     def reset(self) -> None:
-        with self._mx:
-            self._fails.clear()
-            self._locked.clear()
+        self._do(lambda st: st.clear())
+        self._fallback.clear()
 
 
 login_limiter = LoginLimiter()

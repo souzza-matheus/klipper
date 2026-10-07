@@ -23,8 +23,33 @@ def prod_settings(**over) -> Settings:
 
 def test_dev_routes_are_404_in_production(two, monkeypatch):
     monkeypatch.setattr(settings, "dev_mode", False)
-    assert two.anon.post("/dev/simulate", json={"phone": "31999990000", "text": "painel"}).status_code == 404
-    assert two.anon.post("/dev/run-jobs").status_code == 404
+    h = {"x-setup-token": settings.setup_token}
+    assert two.anon.post("/dev/simulate", json={"phone": "31999990000", "text": "painel"}, headers=h).status_code == 404
+    assert two.anon.post("/dev/run-jobs", headers=h).status_code == 404
+
+
+def test_dev_routes_need_setup_token_even_in_development(two):
+    owner = two.a.shop.owner_phone
+    for headers in ({}, {"x-setup-token": "errado"}, {"x-setup-token": ""}):
+        r = two.anon.post("/dev/simulate", json={"phone": owner, "text": "painel"}, headers=headers)
+        assert r.status_code == 403 and "Painel" not in r.text
+        assert two.anon.post("/dev/run-jobs", headers=headers).status_code == 403
+    ok = two.anon.post("/dev/simulate", json={"phone": owner, "text": "painel"},
+                       headers={"x-setup-token": settings.setup_token})
+    assert ok.status_code == 200 and any("Painel" in r for r in ok.json()["replies"])
+
+
+def test_full_customer_phone_never_reaches_the_logs(two, monkeypatch, caplog):
+    import httpx as _httpx
+    monkeypatch.setattr(settings, "evolution_url", "http://evolution:8080")
+    monkeypatch.setattr(_httpx, "post", lambda *a, **k: (_ for _ in ()).throw(_httpx.ConnectError("recusada")))
+    caplog.set_level(logging.DEBUG)
+    phone = "5531987654321"
+    two.anon.post("/webhook/evolution", headers={"x-webhook-secret": two.a.shop.webhook_secret}, json={
+        "event": "messages.upsert", "instance": "barbearia-demo",
+        "data": {"key": {"remoteJid": f"{phone}@s.whatsapp.net"}, "message": {"conversation": "oi"}}})
+    assert "Falha ao enviar mensagem" in caplog.text  # o envio falhou e foi para o log...
+    assert phone not in caplog.text and "...4321" in caplog.text  # ...só com os 4 últimos dígitos
 
 
 def test_docs_and_openapi_are_off_in_production():
@@ -103,7 +128,11 @@ def test_secrets_never_reach_the_logs(two, monkeypatch, caplog):
                                        "email": "z@exemplo.com", "password": s["password"]})
     c.post("/api/whatsapp/connect")
     c.get("/api/whatsapp/status")
-    c.post(f"/webhook/evolution?secret={s['webhook']}", json={
+    from app.models import Shop
+    from sqlalchemy import select as _select
+    shop = two.db.scalar(_select(Shop).where(Shop.evolution_instance == "barbearia-demo"))
+    s["shop_webhook"] = shop.webhook_secret
+    c.post("/webhook/evolution", headers={"x-webhook-secret": shop.webhook_secret}, json={
         "event": "messages.upsert", "instance": "barbearia-demo",
         "data": {"key": {"remoteJid": "5531955554444@s.whatsapp.net"}, "message": {"conversation": "oi"}}})
     # Linha de acesso do uvicorn com o secret na URL (instâncias antigas): o filtro apaga o valor

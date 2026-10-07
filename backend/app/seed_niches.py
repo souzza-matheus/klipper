@@ -22,6 +22,7 @@ from .models import (
     AccessStatus, Appointment, ApptStatus, Barber, ConflictAction, CustomerConflict, Service, Shop, User, WorkingHour,
 )
 from .seed import seed, seed_finance
+from .seed_crm import seed_crm
 from .seed_mock import (
     _book, _future_weekdays, apply_statuses, create_appointments, create_blocks, create_customers, create_payments,
     create_reviews, reset_mock, set_payment_methods, summary,
@@ -205,11 +206,12 @@ def main() -> None:
             db.commit()
             access_demo(db, shop, p, customers, barbers, services, weights, today, now)
             seed_finance(db, shop, today, p["one_off"], p["extras"])
+            seed_crm(db, shop, now_local(), "." + p["email"].split("@", 1)[0], random.Random(200 + i))
             summary(db, shop)
     finally:
         db.close()
 
-    print("\nLogins (senha demo123):")
+    print("\nLogins (senha demo123). Equipe: recepcao[.empresa]@demo.com e profissional[.empresa]@demo.com, ex.: recepcao.salao@demo.com:")
     print("  barbershop  admin@demo.com")
     for p in PROFILES:
         print(f"  {p['niche']:<11} {p['email']}")

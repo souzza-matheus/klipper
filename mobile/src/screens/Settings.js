@@ -39,6 +39,10 @@ export function MoreScreen({ navigation, onLogout, shopName }) {
         ))}
       </Group>
       <Button title="Sair" kind="ghost" icon="log-out-outline" onPress={() => confirm('Sair do app?', '', onLogout, 'Sair', true)} />
+      <Button title="Sair de todos os aparelhos" kind="danger" icon="phone-portrait-outline"
+              onPress={() => confirm('Sair de todos os aparelhos?',
+                'Use se perdeu um celular ou alguém viu sua senha. Todos os aparelhos (inclusive este) vão precisar entrar de novo.',
+                () => run(() => api.post('/auth/logout-all')).then((r) => { if (r) onLogout(); }), 'Sair de todos', true)} />
     </Screen>
   );
 }

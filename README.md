@@ -48,6 +48,17 @@ O motivo é interno (só o dono vê, no app e na busca de cliente do bot). Nenhu
 - No app, o novo agendamento mostra um aviso discreto quando o cliente tem conflito com alguém agendado no dia e esconde os horários próximos (com a opção "Mostrar todos"). Se o horário violar a regra, o app mostra o nome e o horário do outro cliente e a distância exigida, e permite **Agendar mesmo assim**. O mesmo vale ao remarcar.
 - Nenhuma mensagem para cliente menciona o outro cliente ou a existência do conflito.
 
+**CRM (fase 1, backend; telas na próxima etapa).** Plano completo e decisões em [ROADMAP-CRM.md](ROADMAP-CRM.md).
+
+- **Equipe e permissões:** dono, recepção e profissional, com convite por senha provisória (trocada no primeiro acesso). A recepção agenda, faz check-in, fecha comandas e confirma Pix, sem o financeiro completo; o profissional vê só a própria agenda, os clientes que atendeu e as próprias comissões. Toda rota da API checa o papel.
+- **Comanda:** serviços, produtos, venda de pacote, desconto em R$ ou %, gorjeta para o profissional e pagamento dividido (Pix, dinheiro, débito, crédito), com saldo de pacote ou assinatura. Lançamentos imutáveis: corrigir é estornar (lançamento negativo). Fechada, entra no financeiro e nas comissões e conclui o atendimento.
+- **Produtos e estoque:** venda e uso interno, custo, preço, mínimo e comissão opcional. O saldo é a soma das movimentações (nunca sobrescrito); a venda e o consumo do serviço baixam o estoque; estoque baixo aparece no app e no resumo diário.
+- **Pacotes:** N sessões de um serviço com validade; usados ao agendar ou na comanda; cancelamento devolve a sessão; comissão pelo valor proporcional da sessão. O cliente compra pelo WhatsApp (opção 8) e o pacote vale depois que o Pix é confirmado.
+- **Clube de assinatura:** planos mensais com serviços e limites por período, cobrança por Pix no WhatsApp no vencimento (confirmação manual; gateway plugável), status ativa/atrasada/cancelada, benefícios bloqueados depois de X dias de atraso e relatório com MRR.
+- **Sinal contra faltas:** por estabelecimento e por serviço (desligado, fixo ou %). O horário fica "aguardando sinal" e é liberado se o Pix não for confirmado a tempo; regra de devolução configurável.
+- **Lista de espera:** o bot oferece quando o dia está cheio; quando um horário abre, a primeira pessoa da fila é avisada e a vaga fica reservada por 10 minutos.
+- **Sincronização offline (base):** ids públicos (UUID), versão e exclusões como tombstone; `GET /api/sync/pull` e `POST /api/sync/push` com idempotência e regras de conflito (o app offline vem na Etapa 3).
+
 **Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave do próprio negócio. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp). Se o cliente manda a imagem ou o PDF do comprovante no WhatsApp, o backend baixa o arquivo pela Evolution API (`POST /chat/getBase64FromMediaMessage/{instância}`, até 5 MB, só imagem ou PDF) e guarda junto do Pix pendente; o app mostra o comprovante na lista. **Recusar** um Pix (o dinheiro não caiu) marca como expirado e avisa o cliente com uma mensagem neutra; o horário continua marcado.
 
 ## Testar em 2 minutos (sem WhatsApp)
@@ -61,7 +72,7 @@ python -m app.seed                       # cria a "Barbearia Demo"
 uvicorn app.main:app --reload
 ```
 
-Sem `EVOLUTION_URL`, o sistema roda em **modo simulação**: as mensagens aparecem no terminal. Converse com o bot pela documentação interativa em http://localhost:8000/docs, rota `POST /dev/simulate`:
+Sem `EVOLUTION_URL`, o sistema roda em **modo simulação**: as mensagens aparecem no terminal. Converse com o bot pela documentação interativa em http://localhost:8000/docs, rota `POST /dev/simulate` (as rotas `/dev/*` exigem o cabeçalho `X-Setup-Token` com o `SETUP_TOKEN` do `.env`; no `/docs` ele aparece como campo da rota):
 
 ```json
 { "phone": "31977776666", "text": "oi" }
@@ -69,7 +80,8 @@ Sem `EVOLUTION_URL`, o sistema roda em **modo simulação**: as mensagens aparec
 
 - Número de cliente: qualquer um.
 - Número do dono da demo: `31999990000`. Barbeiros: `31988880001` (João) e `31988880002` (Pedro).
-- `POST /dev/run-jobs` roda na hora os lembretes, pesquisas e expiração de Pix.
+- `POST /dev/run-jobs` roda na hora os lembretes, pesquisas e expiração de Pix (também com `X-Setup-Token`).
+- Pelo terminal: `curl -X POST localhost:8000/dev/simulate -H "X-Setup-Token: $SETUP_TOKEN" -H "Content-Type: application/json" -d '{"phone":"31977776666","text":"oi"}'`.
 - Login do app: `admin@demo.com` / `demo123`.
 
 ### Dados de teste (mock)
@@ -106,9 +118,11 @@ Cria quatro empresas, além da Barbearia Demo, cada uma com serviços, profissio
 | clinic | Clínica Vida Plena | `clinica@demo.com` |
 | fitness | Estúdio Movimento Pilates & Funcional | `estudio@demo.com` |
 
+Cada empresa também tem os dados do CRM: produtos (um abaixo do mínimo), um pacote, o "Clube Mensal" com 3 assinantes (um atrasado), comandas fechadas e um cliente na lista de espera. Equipe de exemplo (senha `demo123`): `recepcao@demo.com` e `profissional@demo.com` na Barbearia Demo; nas outras, `recepcao.<login>@demo.com` e `profissional.<login>@demo.com` (ex.: `recepcao.salao@demo.com`). O `seed_mock` faz o mesmo na Barbearia Demo.
+
 Essas quatro não têm WhatsApp do dono nem dos profissionais, e a instância delas (`salao-demo`, `petshop-demo`, `clinica-demo`, `estudio-demo`) não existe na Evolution: nenhuma mensagem sai delas.
 
-Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês, cliente bloqueado e em aprovação, conflitos entre clientes e migrações).
+Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês, cliente bloqueado e em aprovação, conflitos entre clientes, migrações, comanda, estoque, pacotes, assinatura, sinal, lista de espera, papéis e sincronização). Rode um `pytest` por vez: os testes usam o mesmo arquivo SQLite.
 
 ## Banco de dados e migrações (Alembic)
 
@@ -120,6 +134,7 @@ alembic upgrade head                                   # aplica as migrações p
 alembic revision --autogenerate -m "o que mudou"      # depois de alterar app/models.py
 ```
 
+- `0008` (CRM fase 1) adiciona os papéis dos usuários (quem já existia vira dono), as colunas da sincronização (`uuid`, `updated_at`, `deleted_at`, `version`, `sync_seq`, preenchidas para as linhas existentes) e as tabelas de comanda, estoque, pacotes, assinaturas, cobranças, lista de espera e operações do sync.
 - `0004` adiciona o segmento e o modo do tema do negócio (`shops.niche`, padrão `barbershop`, e `shops.theme_mode`, padrão `auto`), a ação de conflito (`customer_conflicts.conflict_action`, padrão `block`) e o comprovante do Pix (`payments.receipt_mime`, `receipt_data`, `receipt_at`).
 - `0001` representa o esquema de antes do Alembic, `0002` adiciona a forma de pagamento nos atendimentos e a tabela de gastos e `0003` adiciona o acesso do cliente (`access_status`, `access_reason`, `access_changed_at`), o início do pedido para aprovar nos agendamentos (`approval_requested_at`), as configurações `approval_expire_hours` e `conflict_default_gap_minutes` e a tabela `customer_conflicts`. Clientes que já existiam ficam com acesso "normal".
 - Bancos criados pela versão antiga (`create_all`) também funcionam: as migrações só criam as tabelas e colunas que faltam e depois passam a controlar o banco normalmente. Não é preciso apagar nada.
@@ -185,6 +200,33 @@ Todas as rotas exigem login e enxergam só a barbearia do usuário. Valores em r
 
 Os agendamentos (`AppointmentOut`) trazem `payment_id` e `customer_reported_paid`, para o app confirmar o Pix direto do card.
 
+## API do CRM (fase 1)
+
+Papéis: **D** = dono, **R** = recepção, **P** = profissional. Sem papel permitido, a rota responde 403.
+
+| Rota | Quem | O que faz |
+| --- | --- | --- |
+| `GET/POST /api/users`, `PUT /api/users/{id}`, `POST /api/users/{id}/reset-password` | D | equipe; o convite devolve `provisional_password` (uma vez) |
+| `POST /api/auth/change-password` | todos | troca a senha (obrigatória no primeiro acesso) e devolve um token novo |
+| `POST /api/appointments/{id}/check-in` | D R P (P: só os próprios) | cliente chegou |
+| `POST /api/appointments/{id}/deposit-refunded` | D | sinal devolvido |
+| `GET/POST /api/comandas`, `GET /api/comandas/{id}`, `POST .../items`, `.../payments`, `.../close`, `.../cancel` | D R | comanda; item: `kind` = `service`, `product`, `package`, `discount` (`value` ou `percent`), `tip` (`value` + `barber_id`); `cover` = `none`, `package`, `subscription` |
+| `POST /api/comandas/{id}/items/{item}/reverse`, `.../payments/{pag}/reverse` | D R (comanda fechada: D) | estorno |
+| `GET/POST /api/products`, `PUT/DELETE /api/products/{id}`, `GET /api/products/low-stock` | leitura D R (custo só D); cadastro D | produtos com `stock` e `low_stock` |
+| `GET/POST /api/products/{id}/movements` | D (R: só `internal`) | movimentação: `purchase`, `internal`, `adjust` |
+| `GET/PUT /api/services/{id}/consumption` | leitura D R; alteração D | o que cada serviço consome |
+| `GET/POST /api/package-plans`, `PUT/DELETE .../{id}` | leitura D R; cadastro D | pacotes à venda |
+| `GET /api/customers/{id}/balance` | D R | saldo de pacotes e assinaturas |
+| `GET/POST /api/subscription-plans`, `PUT/DELETE .../{id}` | leitura D R; cadastro D | planos do clube |
+| `GET/POST /api/subscriptions`, `POST /api/subscriptions/{id}/cancel` | D R | assinantes |
+| `GET /api/subscriptions/report` | D | ativas, atrasadas, canceladas e MRR |
+| `GET /api/charges`, `POST /api/charges/{id}/confirm`, `.../resend` (D R), `.../cancel` (D) | | cobranças de mensalidade e de pacote |
+| `GET/POST /api/waitlist`, `DELETE /api/waitlist/{id}` | D R | lista de espera |
+| `GET /api/sync/pull?cursor=&limit=`, `POST /api/sync/push` | todos (filtrado por papel) | sincronização do app offline |
+| `PUT /api/shop` | D | `deposit_mode`, `deposit_value`, `deposit_expire_minutes`, `deposit_refund_hours`, `waitlist_hold_minutes` |
+
+Mudam também: `GET /api/finance/commissions` (D e P, este só com a própria linha; ganhou `tips` e `product_commission`), `GET /api/finance/summary` e o CSV (incluem comandas, pacotes, mensalidades e sinais retidos; gorjeta não é faturamento) e `POST /api/appointments` (`use_balance`, `require_deposit`).
+
 ## WhatsApp de verdade no seu PC (Docker + Evolution API)
 
 Roda tudo localmente (Postgres, Redis, Evolution API v2.3.7 e backend) para testar com um WhatsApp real. Use um **número de teste** (chip da barbearia ou um chip só para isso), nunca o seu número pessoal.
@@ -218,7 +260,7 @@ Precisa de Docker com o plugin `docker compose` v2 e o usuário no grupo `docker
 Como as peças se falam (rede interna do Docker):
 
 - Backend → Evolution: `http://evolution:8080` (header `apikey` = `EVOLUTION_API_KEY`).
-- Evolution → backend: webhook `http://backend:8000/webhook/evolution?secret=WEBHOOK_SECRET`, evento `MESSAGES_UPSERT`, registrado automaticamente quando a instância é criada pelo `qr`.
+- Evolution → backend: webhook `http://backend:8000/webhook/evolution` com o cabeçalho `X-Webhook-Secret`, evento `MESSAGES_UPSERT`, registrado automaticamente quando a instância é criada pelo `qr`. Cada barbearia tem o próprio secret (`shops.webhook_secret`, gerado no cadastro); o `WEBHOOK_SECRET` do `.env` só vale para barbearias sem secret próprio. O secret nunca vai na URL (que aparece em logs).
 - No seu PC o backend fica em `localhost:${BACKEND_PORT}` (padrão 8002); dentro do Docker ele continua em `backend:8000`. No app, use `http://IP_DO_PC:8002` no login.
 - A porta 8080 da Evolution só fica aberta em `127.0.0.1` (manager em http://localhost:8080/manager, com a `EVOLUTION_API_KEY`).
 
@@ -317,15 +359,17 @@ Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/doc
 ## Colocar no ar (VPS)
 
 1. VPS com Docker (2 vCPU e 4 GB bastam para várias barbearias) e um domínio apontando para ela (ex.: `api.suabarbearia.com.br`).
-2. Crie o `.env` como no passo 1 acima, com `DEV_MODE=false` e `EVOLUTION_PUBLIC_URL=https://api.suabarbearia.com.br` (o domínio, não `localhost`).
-3. `docker compose up -d --build --wait`. O backend aplica as migrações (`alembic upgrade head`) toda vez que sobe.
+2. Crie o `.env` como no passo 1 acima, com `DEV_MODE=false` e `EVOLUTION_PUBLIC_URL=https://api.suabarbearia.com.br` (o domínio, não `localhost`). Com `DEV_MODE=false` a API **não sobe** com segredos de exemplo: `JWT_SECRET` com 32+ caracteres e `WEBHOOK_SECRET` e `SETUP_TOKEN` com 16+ (o `openssl rand -hex 24` do passo 1 gera 48).
+3. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait`. O arquivo de produção publica só o backend, em `127.0.0.1` (o Caddy faz o HTTPS na frente), tira as portas do Postgres e da Evolution, fixa `DEV_MODE=false` e liga o Redis no limite de tentativas de login (`REDIS_URL`). O backend aplica as migrações (`alembic upgrade head`) toda vez que sobe. Ver também o checklist de produção em `SECURITY-REPORT.md`.
 4. HTTPS com o Caddy na frente do backend, na porta `BACKEND_PORT` (padrão 8002; certificado automático). `/etc/caddy/Caddyfile`:
    ```
    api.suabarbearia.com.br {
        reverse_proxy localhost:8002
    }
    ```
-   No firewall, libere só 22, 80 e 443. A porta 8080 da Evolution já fica presa ao `127.0.0.1` no `docker-compose.yml`: não a exponha na internet (para usar o manager, faça um túnel: `ssh -L 8080:localhost:8080 usuario@vps`). Se quiser, prenda também o backend ao `127.0.0.1` (`"127.0.0.1:${BACKEND_PORT:-8002}:8000"`), já que o Caddy roda na própria VPS.
+   No firewall, libere só 22, 80 e 443. Com o `docker-compose.prod.yml`, a Evolution fica sem porta publicada: para usar o manager, suba temporariamente só com o `docker-compose.yml` (porta em `127.0.0.1:8080`) e faça um túnel (`ssh -L 8080:localhost:8080 usuario@vps`).
+
+**Sessões:** o token do app vale 7 dias e é renovado sozinho a cada abertura (`POST /api/auth/refresh`). Em Mais > **Sair de todos os aparelhos** (`POST /api/auth/logout-all`) o dono invalida todos os tokens emitidos (celular perdido, senha vista por alguém). Depois de 5 senhas erradas no mesmo e-mail (ou 20 no mesmo IP), o login fica bloqueado por 15 minutos.
 5. Cadastre a barbearia (uma vez por cliente):
    ```bash
    curl -X POST https://api.suabarbearia.com.br/api/auth/register -H "Content-Type: application/json" -d '{

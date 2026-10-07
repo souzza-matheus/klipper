@@ -15,6 +15,7 @@ from ..services import approvals
 from ..services import scheduling as sch
 from ..services import whatsapp as wa
 from ..services.fmt import appt_summary
+from ..permissions import staff_shop
 from .admin import _own, appt_out, conflict_hit_out, shop_of
 
 router = APIRouter()
@@ -50,7 +51,7 @@ def set_access(cid: int, body: S.CustomerAccessIn, shop: Shop = Depends(shop_of)
 # ---------------------------------------------------------------- pedidos para aprovar
 
 @router.get("/approvals", response_model=list[S.AppointmentOut], tags=["approvals"])
-def list_approvals(shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def list_approvals(shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     return [appt_out(a) for a in approvals.pending_approvals(db, shop)]
 
 
@@ -62,7 +63,7 @@ def _pending(db: Session, aid: int, shop: Shop) -> Appointment:
 
 
 @router.post("/appointments/{aid}/approve", response_model=S.AppointmentOut, tags=["approvals"])
-def approve(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def approve(aid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     a = _pending(db, aid, shop)
     approvals.approve(db, shop, a)
     db.commit()
@@ -70,7 +71,7 @@ def approve(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_d
 
 
 @router.post("/appointments/{aid}/refuse", response_model=S.AppointmentOut, tags=["approvals"])
-def refuse(aid: int, shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+def refuse(aid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     a = _pending(db, aid, shop)
     approvals.refuse(db, shop, a)
     db.commit()
@@ -104,7 +105,7 @@ def list_conflicts(customer_id: S.QId | None = None, shop: Shop = Depends(shop_o
 
 @router.get("/customer-conflicts/day", response_model=list[S.ConflictHitOut], tags=["conflicts"])
 def conflicts_on_day(day: date, customer_id: S.QId | None = None, customer_phone: str = "",
-                     shop: Shop = Depends(shop_of), db: Session = Depends(get_db)):
+                     shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
     """Clientes em conflito com este cliente que têm horário no dia (aviso na tela de agendamento)."""
     if customer_id:
         c = _own(db, Customer, customer_id, shop)

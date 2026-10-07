@@ -99,10 +99,45 @@ def build_world(db, shop: Shop, tag: str, email: str, password: str, phone_prefi
     conflict = CustomerConflict(shop_id=shop.id, customer_a_id=a, customer_b_id=b, notes=f"Briga {tag}")
     db.add_all([review, expense, rule, settlement, block, conflict])
     db.commit()
+    extra = {"second_barber": second, **build_crm(db, shop, tag, barber, service, customer, a1)}
     return World(shop=shop, user_email=email, password=password, barber=barber, service=service, customer=customer,
                  other_customer=other, appt=a1, pending_appt=pending, done_appt=done, payment=pay, review=review,
-                 expense=expense, rule=rule, settlement=settlement, block=block, conflict=conflict,
-                 extra={"second_barber": second})
+                 expense=expense, rule=rule, settlement=settlement, block=block, conflict=conflict, extra=extra)
+
+
+def build_crm(db, shop: Shop, tag: str, barber: Barber, service: Service, customer: Customer, appt) -> dict:
+    """CRM da loja: um login de cada papel, produto, pacote vendido, plano e assinatura com cobrança, comanda aberta
+    com item e pagamento, e lista de espera."""
+    from app.models import Charge, PackagePlan, Product, Role, StockReason, SubscriptionPlan, SubscriptionPlanItem
+    from app.services import benefits, billing, comandas as cs, stock, waitlist
+    slug = tag.lower()
+    reception = User(shop_id=shop.id, name=f"Recepção {tag}", email=f"recepcao@{slug}.com.br",
+                     password_hash=hash_password("senha-recepcao-1"), role=Role.RECEPTION)
+    pro = User(shop_id=shop.id, name=f"Pro {tag}", email=f"pro@{slug}.com.br",
+               password_hash=hash_password("senha-pro-1"), role=Role.PROFESSIONAL, barber_id=barber.id)
+    db.add_all([reception, pro])
+    product = Product(shop_id=shop.id, name=f"Pomada {tag}", price=Decimal("40"), cost=Decimal("15"),
+                      min_stock=Decimal("2"))
+    plan = PackagePlan(shop_id=shop.id, name=f"Pacote {tag}", service_id=service.id, sessions=4, price=Decimal("160"),
+                       validity_days=60)
+    club = SubscriptionPlan(shop_id=shop.id, name=f"Clube {tag}", price=Decimal("90"))
+    club.items = [SubscriptionPlanItem(service_id=service.id, limit_per_period=2)]
+    db.add_all([product, plan, club])
+    db.flush()
+    stock.move(db, shop, product, Decimal(10), StockReason.PURCHASE)
+    cp = benefits.sell_package(db, shop, customer, plan)
+    sub = billing.subscribe(db, shop, customer, club, charge_now=True)
+    charge = db.scalar(select(Charge).where(Charge.subscription_id == sub.id))
+    owner = db.scalar(select(User).where(User.shop_id == shop.id, User.role == Role.OWNER))
+    comanda = cs.open_comanda(db, shop, owner, appointment=appt)
+    item = cs.add_product(db, shop, owner, comanda, product, 1, barber)
+    cpay = cs.add_payment(db, shop, owner, comanda, "dinheiro", Decimal("10"))
+    wait = waitlist.join(db, shop, customer, service, _future_weekday(6), via="app")
+    db.commit()
+    return {"reception": reception, "pro": pro, "reception_password": "senha-recepcao-1",
+            "pro_password": "senha-pro-1", "product": product, "package_plan": plan, "customer_package": cp,
+            "club": club, "subscription": sub, "charge": charge, "comanda": comanda, "item": item,
+            "comanda_payment": cpay, "wait": wait}
 
 
 @dataclass
