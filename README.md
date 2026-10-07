@@ -7,6 +7,7 @@ barberbot/
 ├── backend/            API em Python (FastAPI), bots, Pix, rotinas automáticas
 ├── mobile/             App admin em React Native (Expo)
 ├── branding/           kit de logo SyncServ (syncserv-logo-kit) e arquivos da futura landing page (web-publico)
+├── landing/            landing page de vendas (site estático; ver landing/README.md)
 ├── docker-compose.yml  Postgres + Redis + Evolution API + backend
 ├── scripts/whatsapp.sh atalhos do Docker e do WhatsApp (up, qr, status...)
 └── .env.example

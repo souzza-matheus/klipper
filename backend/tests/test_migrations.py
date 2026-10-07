@@ -39,6 +39,8 @@ NEW_COLUMNS = [
     ("shops", "approval_expire_hours"), ("shops", "conflict_default_gap_minutes"),
     ("shops", "niche"), ("shops", "theme_mode"),
     ("payments", "receipt_mime"), ("payments", "receipt_data"), ("payments", "receipt_at"),
+    ("shops", "ai_enabled"), ("shops", "ai_audio_enabled"), ("shops", "ai_monthly_limit"),
+    ("shops", "ai_allow_free_tier"), ("shops", "ai_limit_warned_month"),
 ]
 
 
@@ -46,7 +48,8 @@ def test_upgrade_database_created_without_alembic(tmp_path):
     """Banco antigo (create_all, sem as colunas novas e sem as tabelas novas): o upgrade completa o que falta."""
     url = f"sqlite:///{tmp_path / 'antigo.db'}"
     engine = create_engine(url)
-    old_tables = [t for name, t in Base.metadata.tables.items() if name not in ("expenses", "customer_conflicts")]
+    old_tables = [t for name, t in Base.metadata.tables.items()
+                  if name not in ("expenses", "customer_conflicts", "conversation_messages", "ai_usage")]
     Base.metadata.create_all(engine, tables=old_tables)
     with engine.begin() as conn:
         for table, col in NEW_COLUMNS:

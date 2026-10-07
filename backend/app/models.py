@@ -119,6 +119,14 @@ class Shop(Base):
     niche: Mapped[str] = mapped_column(String(20), default=Niche.BARBERSHOP)
     theme_mode: Mapped[str] = mapped_column(String(10), default=ThemeMode.AUTO)
 
+    # Atendimento com IA (ver app/ai)
+    ai_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    ai_audio_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    ai_monthly_limit: Mapped[int] = mapped_column(Integer, default=3000)  # chamadas ao modelo por mês
+    # Pode usar a IA quando o servidor está no plano gratuito do provedor (só a demo, com dados fictícios)
+    ai_allow_free_tier: Mapped[bool] = mapped_column(Boolean, default=False)
+    ai_limit_warned_month: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "2026-10": aviso já enviado
+
     # WhatsApp (Evolution API)
     evolution_instance: Mapped[str] = mapped_column(String(60), unique=True)
 
@@ -315,6 +323,37 @@ class Conversation(Base):
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     paused_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+
+class ConversationMessage(Base):
+    """Histórico da conversa do cliente usado como contexto pela IA (apagado depois de 30 dias).
+    role: user | assistant. channel: ai (respondida pela IA) | menu (fluxo numerado)."""
+    __tablename__ = "conversation_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    phone: Mapped[str] = mapped_column(String(20), index=True)
+    role: Mapped[str] = mapped_column(String(10))
+    channel: Mapped[str] = mapped_column(String(10), default="menu")
+    text: Mapped[str] = mapped_column(Text, default="")
+    tool_calls: Mapped[list | None] = mapped_column(JSON, nullable=True)  # [{"name", "args", "ok"}] resumidas
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
+
+
+class AIUsage(Base):
+    """Cada chamada ao modelo de IA: para o limite mensal e o acompanhamento de custo."""
+    __tablename__ = "ai_usage"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    phone: Mapped[str] = mapped_column(String(20), default="")
+    model: Mapped[str] = mapped_column(String(60))
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    error: Mapped[str] = mapped_column(String(200), default="")
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
 
 
 class OutboxMessage(Base):

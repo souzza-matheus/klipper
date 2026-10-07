@@ -180,27 +180,30 @@ def st_book_day(ctx: Ctx) -> None:
     show_times(ctx, date.fromisoformat(days[i]))
 
 
-def show_times(ctx: Ctx, day: date, prefix: str = "") -> None:
-    service, barber = _service(ctx), _barber(ctx)
-    ignore = ctx.get("reschedule_of")
+def bookable_slots(ctx: Ctx, service: Service, barber: Barber | None, day: date,
+                   ignore_appt_id: int | None = None) -> list[tuple[datetime, int]]:
+    """Horários que este cliente pode pedir pelo WhatsApp: (início, id do barbeiro). Usado pelo menu e pela IA.
+    Com o cliente, some também o que fica perto demais de alguém em conflito com ele (sem explicar o motivo).
+    Conflitos "approval" não escondem o horário: viram pedido para o dono aprovar."""
     c = customer(ctx)
-    # Com o cliente, some também o que fica perto demais de alguém em conflito com ele (sem explicar o motivo)
-    # Conflitos "approval" não escondem o horário: viram pedido para o dono aprovar
     if barber:
-        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore, customer=c,
-                                                        only_blocking=True)]
+        slots = [(s, barber.id) for s in sch.free_slots(ctx.db, ctx.shop, service, barber, day, ignore_appt_id,
+                                                        customer=c, only_blocking=True)]
     else:
         slots = [(s, b.id) for s, b in sch.free_slots_any(ctx.db, ctx.shop, service, day, customer=c,
                                                           only_blocking=True)]
     earliest = now_local() + approvals.APPROVAL_MIN_LEAD  # o dono precisa de tempo para responder antes de expirar
     if c.access_status == AccessStatus.APPROVAL:
-        slots = [x for x in slots if x[0] >= earliest]
-    else:
-        duration = timedelta(minutes=service.duration_minutes)
-        needs_ok = [(ws, we) for ws, we, hit in sch.conflict_windows(ctx.db, ctx.shop, c, day)
-                    if hit.conflict.conflict_action == ConflictAction.APPROVAL]
-        slots = [x for x in slots
-                 if x[0] >= earliest or not any(x[0] < we and x[0] + duration > ws for ws, we in needs_ok)]
+        return [x for x in slots if x[0] >= earliest]
+    duration = timedelta(minutes=service.duration_minutes)
+    needs_ok = [(ws, we) for ws, we, hit in sch.conflict_windows(ctx.db, ctx.shop, c, day)
+                if hit.conflict.conflict_action == ConflictAction.APPROVAL]
+    return [x for x in slots
+            if x[0] >= earliest or not any(x[0] < we and x[0] + duration > ws for ws, we in needs_ok)]
+
+
+def show_times(ctx: Ctx, day: date, prefix: str = "") -> None:
+    slots = bookable_slots(ctx, _service(ctx), _barber(ctx), day, ctx.get("reschedule_of"))
     if not slots:
         ask_day(ctx, prefix=f"Não há horários livres em {day_label(day).lower()}. 😕")
         return
