@@ -16,45 +16,45 @@ const NICHES = {
     symbol: "barbearia", accent: "#F59E0B", accentText: "#F59E0B",
     customer: "cliente", pro: "barbeiro", pros: "Nossos barbeiros", name: "Carlos",
     services: [["Corte", 30, 40], ["Barba", 30, 30], ["Corte + Barba", 60, 65]],
-    team: ["João", "Pedro"],
-    agenda: [["09:00", "Rafael Souza", "Corte", "paid"], ["10:00", "Lucas Lima", "Corte + Barba"],
-      ["11:30", "Bruno Alves", "Barba", "pend"], ["14:00", "Diego Rocha", "Corte"]],
+    team: ["João", "Pedro"], product: ["Pomada modeladora", 35],
+    agenda: [["09:00", "Rafael Souza", "Corte", "in"], ["10:00", "Lucas Lima", "Corte + Barba", "paid"],
+      ["11:30", "Bruno Alves", "Barba", "pend"], ["14:00", "Diego Rocha", "Corte", "pkg"]],
   },
   beauty: {
     label: "Salão de beleza", business: "Seu Salão", welcome: "ao Seu Salão", place: "no salão",
     symbol: "beleza", accent: "#EC4899", accentText: "#F472B6",
     customer: "cliente", pro: "profissional", pros: "Nossas profissionais", name: "Mariana",
     services: [["Escova", 45, 60], ["Corte feminino", 60, 90], ["Manicure e pedicure", 60, 55], ["Design de sobrancelha", 30, 40]],
-    team: ["Ana Paula", "Carla", "Juliana"],
-    agenda: [["09:00", "Beatriz Gomes", "Escova", "paid"], ["10:00", "Camila Rocha", "Corte feminino"],
-      ["13:30", "Larissa Dias", "Manicure e pedicure", "pend"], ["15:00", "Renata Lopes", "Design de sobrancelha"]],
+    team: ["Ana Paula", "Carla", "Juliana"], product: ["Máscara de hidratação", 48],
+    agenda: [["09:00", "Beatriz Gomes", "Escova", "in"], ["10:00", "Camila Rocha", "Corte feminino", "paid"],
+      ["13:30", "Larissa Dias", "Manicure e pedicure", "pend"], ["15:00", "Renata Lopes", "Design de sobrancelha", "pkg"]],
   },
   petshop: {
     label: "Pet shop", business: "Seu Pet Shop", welcome: "ao Seu Pet Shop", place: "no pet shop",
     symbol: "pet", accent: "#06B6D4", accentText: "#22D3EE",
     customer: "tutor", pro: "profissional", pros: "Nossa equipe", name: "Fernanda",
     services: [["Banho porte pequeno", 60, 50], ["Banho e tosa", 90, 85], ["Tosa higiênica", 45, 40], ["Consulta veterinária", 30, 150]],
-    team: ["Marcos", "Dra. Paula"],
-    agenda: [["08:30", "Thor (Fernanda)", "Banho e tosa", "paid"], ["10:00", "Mel (Patrícia)", "Banho porte pequeno"],
-      ["11:00", "Bob (André)", "Consulta veterinária", "pend"], ["14:00", "Luna (Carlos)", "Tosa higiênica"]],
+    team: ["Marcos", "Dra. Paula"], product: ["Shampoo neutro", 32],
+    agenda: [["08:30", "Thor (Fernanda)", "Banho e tosa", "in"], ["10:00", "Mel (Patrícia)", "Banho porte pequeno", "paid"],
+      ["11:00", "Bob (André)", "Consulta veterinária", "pend"], ["14:00", "Luna (Carlos)", "Tosa higiênica", "pkg"]],
   },
   clinic: {
     label: "Clínica", business: "Sua Clínica", welcome: "à Sua Clínica", place: "na clínica",
     symbol: "saude", accent: "#0284C7", accentText: "#38BDF8",
     customer: "paciente", pro: "profissional", pros: "Nossos profissionais", name: "Helena",
     services: [["Consulta clínica geral", 30, 200], ["Retorno", 20, 80], ["Fisioterapia", 50, 120], ["Nutrição", 45, 180]],
-    team: ["Dr. Ricardo", "Dra. Fernanda"],
-    agenda: [["08:00", "Paulo Mendes", "Consulta clínica geral", "paid"], ["09:00", "Sabrina Nunes", "Fisioterapia"],
-      ["10:30", "José Freitas", "Retorno", "pend"], ["14:00", "Vanessa Lima", "Nutrição"]],
+    team: ["Dr. Ricardo", "Dra. Fernanda"], product: ["Faixa elástica", 40],
+    agenda: [["08:00", "Paulo Mendes", "Consulta clínica geral", "in"], ["09:00", "Sabrina Nunes", "Fisioterapia", "pkg"],
+      ["10:30", "José Freitas", "Retorno", "pend"], ["14:00", "Vanessa Lima", "Nutrição", "paid"]],
   },
   fitness: {
     label: "Estúdio fitness", business: "Seu Estúdio", welcome: "ao Seu Estúdio", place: "no estúdio",
     symbol: "fitness", accent: "#84CC16", accentText: "#A3E635",
     customer: "aluno", pro: "professor", pros: "Nossos professores", name: "Gabriel",
     services: [["Aula de pilates", 50, 70], ["Treino funcional", 50, 60], ["Personal training", 60, 120], ["Avaliação física", 40, 90]],
-    team: ["Bruno", "Camila"],
-    agenda: [["06:00", "Igor Santos", "Treino funcional", "paid"], ["07:00", "Júlia Alves", "Aula de pilates"],
-      ["08:00", "Rafael Costa", "Personal training", "pend"], ["18:00", "Natália Reis", "Aula de pilates"]],
+    team: ["Bruno", "Camila"], product: ["Garrafa de água", 25],
+    agenda: [["06:00", "Igor Santos", "Treino funcional", "in"], ["07:00", "Júlia Alves", "Aula de pilates", "pkg"],
+      ["08:00", "Rafael Costa", "Personal training", "pend"], ["18:00", "Natália Reis", "Aula de pilates", "paid"]],
   },
 };
 
@@ -149,21 +149,69 @@ function renderMocks() {
     stats.appendChild(s);
   });
   const title = Object.assign(document.createElement("div"), { className: "m-title", textContent: "Agenda de hoje" });
-  const rows = n.agenda.map(([time, who, what, tag]) => {
-    const row = document.createElement("div");
-    row.className = "m-appt";
-    const info = document.createElement("div");
-    info.append(Object.assign(document.createElement("b"), { textContent: who }),
-      Object.assign(document.createElement("span"), { textContent: what }));
-    if (tag) {
-      info.appendChild(Object.assign(document.createElement("small"), {
-        className: `m-tag m-tag--${tag}`, textContent: tag === "paid" ? "Pix pago" : "Pix pendente",
-      }));
-    }
-    row.append(Object.assign(document.createElement("time"), { textContent: time }), info);
+  app.replaceChildren(stats, title, ...n.agenda.map((a) => apptRow(a)));
+  renderComanda();
+  renderWeb();
+}
+
+// Selos com os mesmos nomes do app
+const TAGS = { in: "Chegou", paid: "Sinal pago", pend: "Aguardando sinal", pkg: "Pacote", sync: "A confirmar" };
+const el = (tag, className, textContent) => Object.assign(document.createElement(tag), { className, textContent });
+
+function apptRow([time, who, what, tag], short = false) {
+  const row = el("div", "m-appt");
+  const info = el("div", "");
+  info.append(el("b", "", who), el("span", "", what));
+  if (tag && !short) info.appendChild(el("small", `m-tag m-tag--${tag}`, TAGS[tag]));
+  row.append(el("time", "", time), info);
+  return row;
+}
+
+// Comanda no celular (sem internet): serviço do agendamento, produto, desconto, gorjeta e pagamento dividido
+function renderComanda() {
+  const n = N();
+  const [, who, what] = n.agenda[1];
+  const service = n.services.find((s) => s[0] === what) || n.services[0];
+  const [product, pPrice] = n.product;
+  const discount = 5;
+  const tip = 10;
+  const total = service[2] + pPrice - discount + tip;
+  const pix = Math.round(total / 2);
+  const line = (title, sub, value, opts = {}) => {
+    const row = el("div", `m-line${opts.minus ? " m-line--minus" : ""}`);
+    const info = el("div", "");
+    info.append(el("b", "", title), el("span", "", sub));
+    if (opts.tag) info.appendChild(el("small", `m-tag m-tag--${opts.tag}`, TAGS[opts.tag]));
+    row.append(info, el("strong", "", (opts.minus ? "− " : "") + money(value)));
     return row;
+  };
+  const sum = el("div", "m-sum");
+  [["Total", money(total)], ["Pix", money(pix)], ["Dinheiro", money(total - pix)], ["Falta", money(0)]].forEach(([l, v]) => {
+    const d = el("div", "");
+    d.append(el("span", "", l), el("span", "", v));
+    sum.appendChild(d);
   });
-  app.replaceChildren(stats, title, ...rows);
+  $$(".js-comanda-who").forEach((x) => { x.textContent = who; });
+  $(".js-mock-comanda").replaceChildren(
+    line(service[0], `${n.team[0]} · ${service[1]} min`, service[2]),
+    line(product, "Produto · 1 un.", pPrice, { tag: "sync" }),
+    line("Desconto", "na conta", discount, { minus: true }),
+    line("Gorjeta", `para ${n.team[0]}`, tip),
+    sum,
+    el("div", "m-btn", "Fechar comanda"),
+  );
+}
+
+// Versão web: agenda de cada profissional lado a lado
+function renderWeb() {
+  const n = N();
+  const cols = n.team.map((pro, i) => {
+    const col = el("div", "w-col");
+    col.appendChild(el("b", "", pro));
+    n.agenda.filter((_, j) => j % n.team.length === i).forEach((a) => col.appendChild(apptRow(a)));
+    return col;
+  });
+  $(".js-mock-web").replaceChildren(...cols);
 }
 
 // ---------------------------------------------------------------- simulador do robô

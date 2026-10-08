@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SyncServ | Agendamento pelo WhatsApp com Pix e lembretes automáticos</title>
-  <meta name="description" content="Robô de agendamento pelo WhatsApp para barbearias, salões, pet shops, clínicas e estúdios. Agenda 24 horas, lembra o horário, recebe Pix direto na sua conta e organiza tudo em um app. Teste 7 dias grátis.">
+  <title>SyncServ | Agendamento pelo WhatsApp, comanda, caixa e estoque</title>
+  <meta name="description" content="Robô de agendamento pelo WhatsApp e sistema de gestão para barbearias, salões, pet shops, clínicas e estúdios: agenda 24 horas, Pix na sua conta, comanda e caixa, estoque, pacotes, assinaturas, app que funciona sem internet e versão web. Teste 7 dias grátis.">
   <link rel="canonical" href="https://[DOMINIO]/">
   <meta name="theme-color" content="#0F172A">
   <meta name="robots" content="index, follow">
@@ -46,10 +46,10 @@
     "@type": "SoftwareApplication",
     "name": "SyncServ",
     "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Android, iOS",
+    "operatingSystem": "Android, iOS, Web",
     "url": "https://[DOMINIO]/",
     "image": "https://[DOMINIO]/assets/og-image-1200x630.png",
-    "description": "Agendamento pelo WhatsApp para barbearias, salões de beleza, pet shops, clínicas e estúdios: robô que agenda 24 horas, lembretes, Pix direto na conta do negócio e app de gestão.",
+    "description": "Agendamento pelo WhatsApp para barbearias, salões de beleza, pet shops, clínicas e estúdios: robô que agenda 24 horas, lembretes, Pix direto na conta do negócio, comanda e caixa, estoque, pacotes, clube de assinatura, sinal contra faltas, lista de espera, equipe com permissões, app que funciona sem internet e versão web.",
     "inLanguage": "pt-BR"
   }
   </script>
@@ -83,6 +83,15 @@
       <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
       <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+      <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+      <symbol id="i-box" viewBox="0 0 24 24"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 4.5-9 4.5-9-4.5z"/><path d="M3 12l9 4.5 9-4.5M3 16.5L12 21l9-4.5"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h12M16 3l3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H5M8 21l-3-3 3-3"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+      <symbol id="i-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0M15 10h3M15 13.5h3"/></symbol>
+      <symbol id="i-offline" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M9 16a4.5 4.5 0 0 1 6 0"/><circle cx="12" cy="19.5" r=".8"/><path d="M3 3l18 18"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></symbol>
     </defs>
   </svg>
 
@@ -100,6 +109,7 @@
       <nav id="menu" class="nav" aria-label="Seções da página">
         <a href="#como-funciona">Como funciona</a>
         <a href="#recursos">Recursos</a>
+        <a href="#gestao">Gestão</a>
         <a href="#precos">Preços</a>
         <a href="#duvidas">Dúvidas</a>
         <a class="btn btn--cta btn--sm js-cta" href="https://wa.me/[NUMERO]" data-msg="trial">Testar grátis</a>
@@ -114,7 +124,7 @@
         <div class="hero__text">
           <p class="badge">Agendamento pelo WhatsApp</p>
           <h1 id="hero-title">Sua agenda cheia e seu <span class="hl">WhatsApp no automático.</span></h1>
-          <p class="lead">O robô atende seus clientes 24 horas por dia, agenda, lembra o horário e recebe o Pix direto na sua conta. Tudo organizado em um app.</p>
+          <p class="lead">O robô atende seus clientes 24 horas por dia, agenda, lembra o horário e recebe o Pix direto na sua conta. Agenda, comanda, caixa e estoque ficam no app do celular, que funciona até sem internet, e na versão web para o computador da recepção.</p>
           <div class="actions">
             <a class="btn btn--cta js-cta" href="https://wa.me/[NUMERO]" data-msg="trial">Testar 7 dias grátis no WhatsApp</a>
             <a class="btn btn--ghost" href="#demo">
@@ -146,7 +156,7 @@
         </div>
 
         <!-- Celulares em HTML/CSS: conversa do cliente e app do dono (o conteúdo muda com o nicho) -->
-        <div class="phones" role="img" aria-label="Exemplo: à esquerda, um cliente agendando pelo WhatsApp; à direita, a agenda do dia no app do dono.">
+        <div class="phones" role="img" aria-label="Exemplo: à esquerda, um cliente agendando pelo WhatsApp; à direita, a agenda do dia no app, com quem já chegou, sinal pago, sinal pendente e pacote.">
           <div class="phone phone--chat" aria-hidden="true">
             <div class="phone__bar">
               <img class="js-niche-symbol" src="assets/nichos/barbearia.svg" alt="" width="26" height="26">
@@ -266,8 +276,112 @@
       </div>
     </section>
 
-    <!-- 6. Comparativo -->
-    <section class="section section--alt" aria-labelledby="compare-title">
+    <!-- 6. Gestão: do agendamento ao caixa (mockups em HTML/CSS; main.js preenche com o nicho escolhido) -->
+    <section class="section section--alt" id="gestao" aria-labelledby="gestao-title">
+      <div class="wrap">
+        <h2 id="gestao-title">Do agendamento ao caixa, no celular e no computador</h2>
+        <p class="muted intro">O mesmo sistema no app do celular, que continua funcionando sem internet, e na versão web, para o computador da recepção. Cada pessoa da equipe entra com o próprio login.</p>
+
+        <div class="showcase">
+          <figure class="showcase__item showcase__item--phone">
+            <div class="phone phone--comanda" role="img" aria-label="Exemplo: comanda aberta no app do celular, sem conexão, com serviço, produto, desconto, gorjeta e pagamento dividido em Pix e dinheiro.">
+              <div aria-hidden="true">
+                <div class="phone__bar phone__bar--app">
+                  <img class="js-niche-symbol" src="assets/nichos/barbearia.svg" alt="" width="26" height="26">
+                  <div><strong>Comanda</strong><small class="js-comanda-who">Lucas Lima</small></div>
+                </div>
+                <p class="m-offline">Sem conexão: suas alterações serão sincronizadas <b>(1 pendente)</b></p>
+                <div class="phone__app js-mock-comanda"></div>
+              </div>
+            </div>
+            <figcaption class="small muted">App do celular: comanda sem internet. O item com o selo "A confirmar" vai para o servidor quando a conexão voltar.</figcaption>
+          </figure>
+
+          <figure class="showcase__item showcase__item--web">
+            <div class="browser" role="img" aria-label="Exemplo: versão web no navegador do computador, com o menu lateral e a agenda dos profissionais lado a lado.">
+              <div aria-hidden="true">
+                <div class="browser__bar">
+                  <span class="browser__dots"><i></i><i></i><i></i></span>
+                  <span class="browser__url">SyncServ · versão web</span>
+                </div>
+                <div class="browser__body">
+                  <nav class="w-side">
+                    <img src="assets/syncserv-logo.svg" alt="" width="96" height="32">
+                    <span class="w-item"><svg class="ic ic--xs"><use href="#i-clock"/></svg>Hoje</span>
+                    <span class="w-item is-on"><svg class="ic ic--xs"><use href="#i-calendar"/></svg>Agenda</span>
+                    <span class="w-item"><svg class="ic ic--xs"><use href="#i-receipt"/></svg>Caixa</span>
+                    <span class="w-item"><svg class="ic ic--xs"><use href="#i-users"/></svg>Clientes</span>
+                    <span class="w-item"><svg class="ic ic--xs"><use href="#i-chart"/></svg>Finanças</span>
+                    <span class="w-group">Gestão</span>
+                    <span class="w-item w-item--sm"><svg class="ic ic--xs"><use href="#i-box"/></svg>Produtos e estoque</span>
+                    <span class="w-item w-item--sm"><svg class="ic ic--xs"><use href="#i-layers"/></svg>Pacotes</span>
+                    <span class="w-item w-item--sm"><svg class="ic ic--xs"><use href="#i-repeat"/></svg>Clube de assinatura</span>
+                    <span class="w-item w-item--sm"><svg class="ic ic--xs"><use href="#i-list"/></svg>Lista de espera</span>
+                    <span class="w-item w-item--sm"><svg class="ic ic--xs"><use href="#i-id"/></svg>Equipe e permissões</span>
+                  </nav>
+                  <div class="w-main">
+                    <div class="w-head"><b>Agenda de hoje</b><span class="w-key">N</span><small>novo agendamento</small></div>
+                    <div class="w-cols js-mock-web"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <figcaption class="small muted">Versão web: menu lateral, agenda por <span class="js-pro">profissional</span> lado a lado e atalhos de teclado.</figcaption>
+          </figure>
+        </div>
+
+        <ul class="features features--crm">
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-receipt"/></svg>
+            <h3>Comanda e caixa</h3>
+            <p class="muted">Serviços, produtos, desconto e gorjeta na mesma conta. Pagamento dividido em Pix, dinheiro, débito e crédito, e o sinal já pago entra sozinho. Fechou, vai para o financeiro e para as comissões.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-box"/></svg>
+            <h3>Estoque</h3>
+            <p class="muted">A venda na comanda e o consumo de cada serviço dão baixa sozinhos. Entradas, usos e ajustes ficam no histórico, e o estoque baixo aparece no app e no resumo do dia no seu WhatsApp.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-layers"/></svg>
+            <h3>Pacotes</h3>
+            <p class="muted">Venda sessões de um serviço com preço e validade. O saldo é usado ao agendar, inclusive pelo robô, e o <span class="js-customer">cliente</span> consulta quanto falta pelo WhatsApp.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-repeat"/></svg>
+            <h3>Clube de assinatura</h3>
+            <p class="muted">Planos mensais com serviços incluídos, com ou sem limite. No vencimento, o robô manda a cobrança com o Pix da sua chave e você confirma o recebimento no app. Relatório de assinantes e da receita mensal.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-lock"/></svg>
+            <h3>Sinal contra faltas</h3>
+            <p class="muted">Peça um Pix antecipado por serviço, em valor fixo ou porcentagem. Sem pagamento no prazo, o horário é liberado. Cancelou com antecedência, o sinal é devolvido; faltou, fica com você.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-list"/></svg>
+            <h3>Lista de espera</h3>
+            <p class="muted">Dia cheio? O robô oferece a lista de espera. Quando um horário abre, a primeira pessoa da fila que cabe nele é avisada pelo WhatsApp e a vaga fica reservada para ela por alguns minutos.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-id"/></svg>
+            <h3>Equipe com permissões</h3>
+            <p class="muted">Cada pessoa com o seu login. A recepção cuida da agenda, do caixa e dos clientes, sem o financeiro completo. O <span class="js-pro">profissional</span> vê só a própria agenda e as próprias comissões.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-offline"/></svg>
+            <h3>App que funciona sem internet</h3>
+            <p class="muted">No celular, agenda, comanda, estoque e lista de espera continuam funcionando sem conexão e sincronizam sozinhos quando a internet volta. Se o horário foi ocupado nesse meio tempo, o app avisa.</p>
+          </li>
+          <li class="card">
+            <svg class="ic ic--lg" aria-hidden="true"><use href="#i-monitor"/></svg>
+            <h3>Versão web para a recepção</h3>
+            <p class="muted">No computador, pelo navegador: menu lateral, agenda dos profissionais lado a lado, tabelas com busca e atalhos de teclado. A versão web funciona com internet.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 7. Comparativo -->
+    <section class="section" aria-labelledby="compare-title">
       <div class="wrap">
         <h2 id="compare-title">Sem SyncServ x Com SyncServ</h2>
         <div class="compare">
@@ -283,15 +397,39 @@
               </tr>
               <tr>
                 <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Faltas sem aviso e horário perdido</td>
-                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Lembrete antes do horário, com confirmação ou cancelamento</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Lembrete com confirmação de presença e, se você quiser, sinal por Pix para segurar o horário</td>
+              </tr>
+              <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Horário cancelado fica vago</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Lista de espera: a primeira pessoa da fila é avisada pelo WhatsApp</td>
               </tr>
               <tr>
                 <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Conferir comprovante de Pix no meio do atendimento</td>
                 <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Lista de Pix para confirmar no app, quando der</td>
               </tr>
               <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Conta do atendimento feita na calculadora e anotada no caderno</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Comanda com serviços, produtos, desconto, gorjeta e pagamento dividido</td>
+              </tr>
+              <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Estoque contado no olho, descoberto quando acaba</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Baixa sozinha na venda e no serviço, com alerta de estoque baixo</td>
+              </tr>
+              <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Pacotes e mensalidades controlados de cabeça</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Saldo de pacotes e assinaturas no app, com cobrança da assinatura pelo WhatsApp</td>
+              </tr>
+              <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Uma senha para todo mundo, que vê tudo</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Login para cada pessoa: recepção e profissional veem só o que precisam</td>
+              </tr>
+              <tr>
+                <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Internet caiu, a agenda parou</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>O app do celular continua funcionando e sincroniza quando a internet volta</td>
+              </tr>
+              <tr>
                 <td><svg class="ic ic--sm ic--no" aria-hidden="true"><use href="#i-x"/></svg>Agenda no caderno ou espalhada em conversas</td>
-                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>App com agenda, clientes, Pix e financeiro</td>
+                <td><svg class="ic ic--sm ic--yes" aria-hidden="true"><use href="#i-check"/></svg>Agenda, clientes, caixa e financeiro no celular e no computador</td>
               </tr>
             </tbody>
           </table>
@@ -299,8 +437,8 @@
       </div>
     </section>
 
-    <!-- 7. Calculadora -->
-    <section class="section" id="calculadora" aria-labelledby="calc-title">
+    <!-- 8. Calculadora -->
+    <section class="section section--alt" id="calculadora" aria-labelledby="calc-title">
       <div class="wrap calc">
         <div>
           <h2 id="calc-title">Quanto as faltas e os horários vagos custam por mês?</h2>
@@ -336,8 +474,8 @@
       </div>
     </section>
 
-    <!-- 8. Preços -->
-    <section class="section section--alt" id="precos" aria-labelledby="price-title">
+    <!-- 9. Preços -->
+    <section class="section" id="precos" aria-labelledby="price-title">
       <div class="wrap">
         <h2 id="price-title">Preços</h2>
         <div class="plans">
@@ -351,7 +489,12 @@
               <li>Lembretes com confirmação de presença</li>
               <li>Avisos e resumo do dia no seu WhatsApp</li>
               <li>Pesquisa de satisfação</li>
-              <li>App com agenda, clientes, bloqueios, relatórios e financeiro</li>
+              <li>Comanda e caixa com pagamento dividido</li>
+              <li>Produtos e estoque com alerta de estoque baixo</li>
+              <li>Pacotes e clube de assinatura</li>
+              <li>Sinal contra faltas e lista de espera</li>
+              <li>App no celular que funciona sem internet e versão web para o computador</li>
+              <li>Agenda, clientes, bloqueios, relatórios e financeiro</li>
               <li>Aprovação manual e bloqueio de clientes</li>
             </ul>
             <a class="btn btn--cta btn--block js-cta" href="https://wa.me/[NUMERO]" data-msg="trial" data-plan="Individual">Testar 7 dias grátis</a>
@@ -365,9 +508,10 @@
               <li>Tudo do plano Individual</li>
               <li>Até 6 profissionais, cada um com o seu expediente</li>
               <li>Cliente escolhe o profissional ou "tanto faz"</li>
-              <li>Agenda dos profissionais lado a lado no app</li>
+              <li>Agenda dos profissionais lado a lado no app e no computador</li>
+              <li>Login para a recepção e para cada profissional, com permissões por papel</li>
               <li>Cada profissional recebe os avisos da própria agenda</li>
-              <li>Comissões e repasses por profissional</li>
+              <li>Comissões e repasses por profissional, com gorjeta e venda de produtos</li>
             </ul>
             <a class="btn btn--cta btn--block js-cta" href="https://wa.me/[NUMERO]" data-msg="trial" data-plan="Equipe">Testar 7 dias grátis</a>
           </article>
@@ -376,7 +520,7 @@
       </div>
     </section>
 
-    <!-- 9. Depoimentos: OCULTO até existirem depoimentos reais (com autorização de quem falou).
+    <!-- 10. Depoimentos: OCULTO até existirem depoimentos reais (com autorização de quem falou).
          Não publicar depoimentos, nomes, fotos ou logos inventados.
     <section class="section" id="depoimentos" aria-labelledby="testi-title">
       <div class="wrap">
@@ -399,8 +543,8 @@
     </section>
     -->
 
-    <!-- 10. Perguntas frequentes -->
-    <section class="section" id="duvidas" aria-labelledby="faq-title">
+    <!-- 11. Perguntas frequentes -->
+    <section class="section section--alt" id="duvidas" aria-labelledby="faq-title">
       <div class="wrap faq">
         <h2 id="faq-title">Perguntas frequentes</h2>
         <details>
@@ -424,8 +568,24 @@
           <p>Sim. No plano Equipe, até 6 profissionais, cada um com o seu expediente e os serviços que faz. O cliente escolhe com quem quer ser atendido ou o primeiro disponível, e cada profissional recebe os avisos da própria agenda.</p>
         </details>
         <details>
+          <summary>Funciona sem internet?</summary>
+          <p>O app do celular, sim. Agenda, comanda, estoque, lista de espera e bloqueios continuam funcionando sem conexão, e o app mostra o que ainda falta enviar. Quando a internet volta, tudo é sincronizado sozinho. Se alguém ocupou o mesmo horário nesse meio tempo, o app avisa em "Precisa da sua atenção", e a mensagem de WhatsApp para o cliente só sai depois que o servidor aceita o agendamento. Pix, financeiro, relatórios e configurações precisam de internet. O atendimento pelo WhatsApp não depende do seu celular nem da sua conexão: ele roda no servidor do SyncServ, que fica sempre online.</p>
+        </details>
+        <details>
+          <summary>Posso usar no computador?</summary>
+          <p>Sim. A versão web abre no navegador do computador da recepção, com menu lateral, agenda dos profissionais lado a lado, tabelas com busca e atalhos de teclado (N para novo agendamento, C para abrir comanda, B para buscar cliente). Ela precisa de internet e não guarda os dados dos clientes no computador.</p>
+        </details>
+        <details>
+          <summary>Cada profissional tem seu acesso?</summary>
+          <p>Sim. Você convida cada pessoa como recepção ou profissional; ela entra com uma senha provisória e troca no primeiro acesso. O profissional vê só a própria agenda, os clientes que atendeu e as próprias comissões. A recepção cuida da agenda, do caixa e dos clientes, mas não vê o financeiro completo nem o custo dos produtos. Desativar alguém encerra o acesso na hora.</p>
+        </details>
+        <details>
+          <summary>Como funcionam pacotes e assinaturas?</summary>
+          <p>Pacote: você vende um número de sessões de um serviço, com preço e validade. Cada atendimento usa uma sessão; cancelamento devolve a sessão e falta não devolve. Assinatura: plano mensal com serviços incluídos, com ou sem limite por mês. No vencimento, o robô manda a cobrança com o Pix da sua chave pelo WhatsApp e você confirma o recebimento no app; se o pagamento atrasar além do prazo que você definir, os benefícios ficam suspensos até ele chegar. O cliente consulta o saldo pelo WhatsApp.</p>
+        </details>
+        <details>
           <summary>Meus dados e os dos meus clientes ficam seguros?</summary>
-          <p>Os dados são usados só para o agendamento e o atendimento do seu negócio, seguindo a LGPD (Lei Geral de Proteção de Dados). Veja os detalhes na <a href="privacidade.html">Política de Privacidade</a>.</p>
+          <p>Os dados são usados só para o agendamento e o atendimento do seu negócio, seguindo a LGPD (Lei Geral de Proteção de Dados). Cada pessoa da equipe vê só o que o papel dela permite. No celular, a cópia usada sem internet fica criptografada e é apagada ao sair da conta. Veja os detalhes na <a href="privacidade.html">Política de Privacidade</a>.</p>
         </details>
         <details>
           <summary>Quanto tempo leva para começar?</summary>
@@ -434,7 +594,7 @@
       </div>
     </section>
 
-    <!-- 11. Chamada final -->
+    <!-- 12. Chamada final -->
     <section class="section final" aria-labelledby="final-title">
       <div class="wrap center">
         <h2 id="final-title">Comece hoje e deixe o WhatsApp trabalhar por você</h2>
@@ -444,12 +604,12 @@
     </section>
   </main>
 
-  <!-- 12. Rodapé -->
+  <!-- 13. Rodapé -->
   <footer class="footer">
     <div class="wrap footer__grid">
       <div>
         <img src="assets/syncserv-logo.svg" alt="SyncServ" width="130" height="44" loading="lazy">
-        <p class="muted small">Agendamento pelo WhatsApp para barbearias, salões, pet shops, clínicas e estúdios.</p>
+        <p class="muted small">Agendamento pelo WhatsApp e gestão (comanda, caixa e estoque) para barbearias, salões, pet shops, clínicas e estúdios.</p>
       </div>
       <nav aria-label="Links legais">
         <ul class="footer__links">

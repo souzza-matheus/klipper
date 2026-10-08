@@ -6,7 +6,8 @@ Site estático de vendas (HTML, CSS e JavaScript puro, sem framework e sem build
 landing/
 ├── index.html         página de vendas
 ├── styles.css         estilos (mobile first)
-├── main.js            configuração (número, preços), seletor de nicho, simulador do robô, calculadora, menu
+├── main.js            configuração (número, preços), seletor de nicho, simulador do robô, mockups, calculadora, menu
+├── tests/landing_e2e.py  teste no Chromium (Playwright) em 375, 768 e 1440 px
 ├── privacidade.html   Política de Privacidade (MODELO, revisar com advogado)
 ├── termos.html        Termos de Uso (MODELO, revisar com advogado)
 ├── site.webmanifest, robots.txt, sitemap.xml, favicon.ico
@@ -80,6 +81,20 @@ syncserv.com.br, www.syncserv.com.br {
 
 `sudo systemctl reload caddy`. O certificado HTTPS sai sozinho. Se mudar `styles.css` ou `main.js` com frequência, reduza o `max-age` ou acrescente `?v=2` no `<link>`/`<script>` a cada versão.
 
+## Testar
+
+```bash
+python3 landing/tests/landing_e2e.py              # da raiz do repositório
+python3 landing/tests/landing_e2e.py /tmp/prints  # também salva capturas de cada largura
+```
+
+Precisa do Playwright para Python (`pip install playwright && playwright install chromium`). O teste serve a pasta num
+servidor local descartável e bloqueia qualquer pedido para fora (Google Fonts, wa.me). Em 375, 768 e 1440 px confere:
+sem rolagem lateral, os 9 cards da gestão, os mockups (comanda no celular e versão web com menu lateral) e a troca de
+nicho neles, o comparativo, os planos com os marcadores de preço, as perguntas novas abrindo, o menu do celular, links
+internos, imagens, um h1 só, nenhum erro no console, nada de "Pix automático" nem depoimentos, e a política de
+privacidade com o banco criptografado do celular.
+
 ## Desempenho e acessibilidade
 
 Lighthouse no celular (com `[DOMINIO]` preenchido): 100 em desempenho, acessibilidade, boas práticas e SEO. Com os marcadores ainda no lugar, o SEO cai para 85 porque o canonical e o `robots.txt` apontam para `[DOMINIO]`, que não é uma URL válida.
@@ -92,5 +107,15 @@ Lighthouse no celular (com `[DOMINIO]` preenchido): 100 em desempenho, acessibil
 ## O que a página promete (e de onde vem)
 
 Os recursos descritos são os que o sistema tem hoje (ver o `README.md` da raiz): agendamento, cancelamento e remarcação 24 horas pelo WhatsApp, Pix pela chave do negócio com confirmação manual no app ou no WhatsApp, lembrete com confirmação de presença, avisos e resumo diário para o dono, pesquisa de satisfação de 1 a 5, app com agenda (dia, profissionais e mês), clientes, equipe, bloqueios, avaliações, relatórios, financeiro com comissões e controle de clientes (aprovação manual, bloqueio). O simulador segue o fluxo real do bot (menu, serviço, profissional, dia, horário, confirmação, oferta de Pix, "paguei", confirmação do Pix e lembrete).
+
+A seção **Gestão** (CRM) cita só o que foi implementado e testado nas etapas do `ROADMAP-CRM.md`: comanda e caixa
+(pagamento dividido, desconto, gorjeta, sinal entrando sozinho), estoque (baixa na venda e no serviço, alerta no app e
+no resumo diário), pacotes, clube de assinatura (cobrança com o Pix da chave do negócio pelo WhatsApp e **confirmação
+manual**; não existe Pix automático), sinal contra faltas, lista de espera, equipe com papéis (dono, recepção,
+profissional), app do celular sem internet (SQLCipher, sincronização, "Precisa da sua atenção") e versão web (menu
+lateral, agenda por profissional, atalhos N, C e B; só online). Os mockups usam os mesmos rótulos do app ("Chegou",
+"Sinal pago", "Aguardando sinal", "Pacote", "A confirmar", "Falta", "Fechar comanda") com nomes e valores fictícios.
+Os limites dos planos (1 profissional no Individual, até 6 no Equipe, logins da equipe no Equipe) são decisão
+comercial: o sistema ainda não os aplica.
 
 Atenção: as **mensagens do bot** ainda usam "barbeiro" e "barbearia" para todos os segmentos (o vocabulário por segmento hoje só existe no app). O simulador mostra os termos de cada nicho ("profissional", "tutor", "paciente", "aluno"); ajuste o bot antes de vender para os outros segmentos.

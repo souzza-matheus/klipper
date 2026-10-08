@@ -55,10 +55,12 @@
       <li>Pagamentos via Pix: o código gerado, o aviso de "paguei" e o comprovante (imagem ou PDF) que o cliente enviar, para o negócio conferir e confirmar. O dinheiro vai direto para a conta do negócio; o SyncServ não recebe nem guarda dados bancários do cliente.</li>
       <li>Avaliações (nota e comentário).</li>
       <li>Observações internas registradas pelo negócio, como preferências, restrição de agendamento (aprovação manual ou bloqueio) e motivo. Essas informações só aparecem para o negócio e nunca são mostradas ao cliente pelo robô.</li>
+      <li>Atendimentos e compras no negócio: comandas (serviços, produtos, descontos, gorjetas e formas de pagamento), pacotes, assinaturas com as cobranças e a lista de espera: fechar a conta, controlar saldos e avisar quando um horário abrir.</li>
     </ul>
     <h3>Dos negócios assinantes</h3>
     <ul>
       <li>Nome, e-mail, telefone, senha (guardada de forma cifrada) e dados do negócio (endereço, chave Pix, equipe, serviços, horários): prestar o serviço e cobrar a assinatura.</li>
+      <li>Logins da equipe (nome, e-mail, papel de dono, recepção ou profissional): dar a cada pessoa acesso só ao que o papel permite.</li>
       <li>Registros técnicos de acesso: segurança e prevenção de fraudes.</li>
     </ul>
     <h3>Bases legais</h3>
@@ -79,7 +81,15 @@
     <p>Encarregado pelo tratamento de dados (DPO): [NOME], [EMAIL DO ENCARREGADO].</p>
 
     <h2>7. Segurança</h2>
-    <p>Usamos conexões cifradas (HTTPS), senhas cifradas, acesso restrito por login e separação dos dados de cada negócio. Nenhum sistema é totalmente imune a incidentes; se houver um incidente relevante, avisaremos os afetados e a ANPD, conforme a lei.</p>
+    <p>Usamos conexões cifradas (HTTPS), senhas cifradas, acesso restrito por login e por papel (dono, recepção e profissional) e separação dos dados de cada negócio. Nenhum sistema é totalmente imune a incidentes; se houver um incidente relevante, avisaremos os afetados e a ANPD, conforme a lei.</p>
+    <h3>Dados guardados no celular (modo sem internet)</h3>
+    <ul>
+      <li>Para funcionar sem internet, o aplicativo do celular guarda no aparelho uma cópia dos dados que a pessoa logada pode ver: agenda de 30 dias para trás a 60 dias à frente, clientes, comandas dos últimos 30 dias, produtos, serviços e lista de espera. O profissional recebe só a própria agenda e os clientes que atendeu.</li>
+      <li>Essa cópia fica em um banco de dados <strong>criptografado</strong>, com uma chave aleatória gerada no próprio aparelho e guardada no cofre de chaves do sistema (Android Keystore ou iOS Keychain).</li>
+      <li>A cópia e a chave são <strong>apagadas do aparelho</strong> ao sair da conta, quando outra pessoa entra no mesmo aparelho e quando o acesso é revogado (por exemplo, ao desativar o login de alguém da equipe ou usar "Sair de todos os aparelhos"; o apagamento acontece quando o app se conecta de novo).</li>
+      <li>O que foi alterado sem internet é enviado aos servidores do SyncServ quando a conexão volta. Alterações ainda não enviadas são perdidas se a pessoa sair da conta antes disso; o app avisa antes de sair.</li>
+      <li>A versão web, usada no navegador do computador, não guarda dados dos clientes no computador: funciona só com internet.</li>
+    </ul>
 
     <h2>8. Cookies e este site</h2>
     <p>Este site não usa cookies de rastreamento nem de publicidade. [Se for adicionada uma ferramenta de métricas, descrevê-la aqui e, se usar cookies, pedir consentimento antes.] As fontes são carregadas do Google Fonts, que recebe o endereço IP do visitante para entregar os arquivos.</p>

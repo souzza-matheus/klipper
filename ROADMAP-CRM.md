@@ -136,6 +136,15 @@ Caddy (`deploy/Caddyfile.app`), só online (aviso e escrita bloqueada sem intern
 (papéis, teclado, tabela), `mobile/tests/web_e2e.py` (Playwright) e testes de segurança do backend para o token web e o
 CSP.
 
+### Landing page (Etapa 4) ✅
+
+Seção "Gestão" com 9 cards (comanda e caixa, estoque, pacotes, clube de assinatura, sinal contra faltas, lista de
+espera, equipe com permissões, app sem internet, versão web), mockups em HTML/CSS (agenda com selos no celular, comanda
+sem conexão e versão web com menu lateral, todos trocando com o nicho), comparativo e planos revisados (preços seguem
+como `[PREÇO INDIVIDUAL]` e `[PREÇO EQUIPE]`), 4 perguntas novas e política de privacidade com o banco criptografado do
+celular e o apagamento ao sair. Só o que está implementado; sem números, depoimentos ou "Pix automático". Teste:
+`landing/tests/landing_e2e.py` (Playwright, 375, 768 e 1440 px).
+
 ### Seeds
 
 `python -m app.seed_mock` e `python -m app.seed_niches` criam produtos (um abaixo do mínimo), pacote, plano com 3 assinantes (um atrasado), comandas fechadas (com produto, desconto, gorjeta e pagamento dividido), lista de espera e logins `recepcao@demo.com` e `profissional@demo.com` (nos outros segmentos, `recepcao.salao@demo.com` etc.), senha `demo123`.

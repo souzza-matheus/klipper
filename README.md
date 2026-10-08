@@ -7,7 +7,7 @@ barberbot/
 ├── backend/            API em Python (FastAPI), bots, Pix, rotinas automáticas
 ├── mobile/             App admin em React Native (Expo)
 ├── branding/           kit de logo SyncServ (syncserv-logo-kit) e arquivos da futura landing page (web-publico)
-├── landing/            landing page de vendas (site estático; ver landing/README.md)
+├── landing/            landing page de vendas (site estático com a seção de gestão do CRM; teste: python3 landing/tests/landing_e2e.py)
 ├── docker-compose.yml  Postgres + Redis + Evolution API + backend
 ├── scripts/whatsapp.sh atalhos do Docker e do WhatsApp (up, qr, status...)
 └── .env.example
@@ -356,7 +356,7 @@ Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/doc
 2. Defina um **limite de gasto** (orçamento e alertas no Cloud Billing) para o projeto.
 3. No `.env` do servidor: `AI_TIER=paid` e a chave do projeto com faturamento. Reinicie o backend (`docker compose up -d --build backend`).
 4. Ligue a IA por barbearia no app. Ajuste o limite mensal de cada uma direto no banco (`shops.ai_monthly_limit`) se precisar.
-5. Atualize a política de privacidade (provedor de IA e uso dos dados; ver `landing/privacidade.html`).
+5. Atualize a política de privacidade (provedor de IA e uso dos dados; ver `landing/privacidade.html`, que já descreve o banco criptografado do celular e o apagamento ao sair).
 
 ## Colocar no ar (VPS)
 
