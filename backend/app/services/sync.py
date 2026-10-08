@@ -19,7 +19,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Callable
 
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..config import now_local
 from ..models import (
@@ -56,7 +56,8 @@ def _base(o) -> dict:
 
 def _service(o: Service, user: User) -> dict:
     return {**_base(o), "name": o.name, "duration_minutes": o.duration_minutes, "price": _iso(o.price),
-            "active": o.active, "sort_order": o.sort_order}
+            "active": o.active, "sort_order": o.sort_order, "deposit_mode": o.deposit_mode,
+            "deposit_value": _iso(o.deposit_value)}
 
 
 def _barber(o: Barber, user: User) -> dict:
@@ -71,24 +72,29 @@ def _block(o: Block, user: User) -> dict:
 
 
 def _customer(o: Customer, user: User) -> dict:
-    out = {**_base(o), "name": o.name, "phone": o.phone, "notes": o.notes}
+    out = {**_base(o), "name": o.name, "phone": o.phone, "notes": o.notes, "created_at": _iso(o.created_at)}
     if not is_pro(user):
-        out["access_status"] = o.access_status
+        out["access_status"], out["access_reason"] = o.access_status, o.access_reason
     return out
 
 
 def _appointment(o: Appointment, user: User) -> dict:
-    return {**_base(o), "customer_id": o.customer.uuid, "barber_id": o.barber.uuid, "service_id": o.service.uuid,
+    from .approvals import approval_deadline
+    pay = o.payment
+    deadline = approval_deadline(o.barber.shop, o) if o.status == ApptStatus.PENDING_APPROVAL else None
+    return {**_base(o), "payment_id": pay.id if pay else None,
+            "customer_reported_paid": bool(pay and pay.customer_reported_at),
+            "rating": o.review.rating if o.review else None, "approval_deadline": _iso(deadline), "customer_id": o.customer.uuid, "barber_id": o.barber.uuid, "service_id": o.service.uuid,
             "start": _iso(o.start), "end": _iso(o.end), "status": o.status, "price": _iso(o.price),
             "notes": o.notes, "payment_status": o.payment_status, "payment_method": o.payment_method,
             "checked_in_at": _iso(o.checked_in_at), "deposit_status": o.deposit_status,
             "deposit_amount": _iso(o.deposit_amount), "paid_with": "package" if o.customer_package_id
-            else "subscription" if o.subscription_id else None}
+            else "subscription" if o.subscription_id else None, "created_via": o.created_via}
 
 
 def _product(o: Product, user: User) -> dict:
     out = {**_base(o), "name": o.name, "kind": o.kind, "unit": o.unit, "price": _iso(o.price),
-           "min_stock": _iso(o.min_stock), "active": o.active}
+           "min_stock": _iso(o.min_stock), "active": o.active, "commission_pct": _iso(o.commission_pct)}
     if user.role == Role.OWNER:
         out["cost"] = _iso(o.cost)
     return out
@@ -142,7 +148,8 @@ def _comanda_item(o: ComandaItem, user: User) -> dict:
     return {**_base(o), "comanda_id": o.comanda.uuid, "kind": o.kind, "description": o.description,
             "service_id": _u(o.service), "product_id": _u(o.product), "barber_id": _u(o.barber),
             "quantity": o.quantity, "unit_price": _iso(o.unit_price), "amount": _iso(o.amount),
-            "covered_by": o.covered_by, "reverses_id": o.__dict__["_rev"] if "_rev" in o.__dict__ else None,
+            "percent": _iso(o.percent), "commission_base": _iso(o.commission_base),
+            "package_plan_id": _u(o.package_plan), "covered_by": o.covered_by, "reverses_id": o.__dict__["_rev"] if "_rev" in o.__dict__ else None,
             "created_at": _iso(o.created_at)}
 
 
@@ -154,7 +161,7 @@ def _comanda_payment(o: ComandaPayment, user: User) -> dict:
 def _waitlist(o: WaitlistEntry, user: User) -> dict:
     return {**_base(o), "customer_id": o.customer.uuid, "service_id": o.service.uuid, "barber_id": _u(o.barber),
             "day": _iso(o.day), "after_time": _iso(o.after_time), "before_time": _iso(o.before_time),
-            "status": o.status, "offer_expires_at": _iso(o.offer_expires_at)}
+            "status": o.status, "offer_expires_at": _iso(o.offer_expires_at), "created_at": _iso(o.created_at)}
 
 
 @dataclass
@@ -163,6 +170,7 @@ class Entity:
     serialize: Callable
     roles: tuple[str, ...] = Role.ALL
     scope: Callable | None = None  # (query, user, today) -> query: filtro de papel e janela de dados
+    options: tuple = ()            # carregamentos em lote (evita uma consulta por linha)
 
 
 def _appt_scope(q, user: User, today: date):
@@ -203,7 +211,9 @@ ENTITIES: dict[str, Entity] = {
     "barbers": Entity(Barber, _barber),
     "blocks": Entity(Block, _block, scope=_block_scope),
     "customers": Entity(Customer, _customer, scope=_customer_scope),
-    "appointments": Entity(Appointment, _appointment, scope=_appt_scope),
+    "appointments": Entity(Appointment, _appointment, scope=_appt_scope, options=(
+        selectinload(Appointment.customer), selectinload(Appointment.barber), selectinload(Appointment.service),
+        selectinload(Appointment.payment), selectinload(Appointment.review))),
     "products": Entity(Product, _product, STAFF),
     "stock_movements": Entity(StockMovement, _movement, STAFF),
     "package_plans": Entity(PackagePlan, _package_plan, STAFF),
@@ -259,6 +269,8 @@ def pull(db: Session, user: User, cursor: int, limit: int = PAGE) -> dict:
         q = select(m).where(m.shop_id == shop.id, m.sync_seq > cursor, m.sync_seq <= top)
         if ent.scope:
             q = ent.scope(q, user, today)
+        if ent.options:
+            q = q.options(*ent.options)
         rows = list(db.scalars(q.order_by(m.sync_seq).limit(limit + 1).execution_options(include_deleted=True)))
         if len(rows) > limit:
             rows = rows[:limit]
@@ -392,7 +404,8 @@ def _appt_create(db: Session, user: User, op) -> Appointment:
         raise Conflict("horario_ocupado", "Esse horário foi ocupado enquanto você estava sem internet.")
     a.uuid = uid
     db.flush()
-    notify_new_appointment(db, shop, a, use_balance=d.get("use_balance", True) is not False)
+    notify_new_appointment(db, shop, a, use_balance=d.get("use_balance", True) is not False,
+                           require_deposit=d.get("require_deposit") is True)
     return a
 
 
@@ -409,8 +422,18 @@ def _appt_update(db: Session, user: User, op) -> Appointment:
     if is_pro(user):
         if a.barber_id != own_barber_id(user):
             raise Reject("nao_encontrado", "id: registro não encontrado.")
-        if set(d) - {"status", "notes"} or d.get("status") not in (None, "confirmed", "completed", "no_show"):
+        if set(d) - {"status", "notes", "check_in", "checked_in_at"} or d.get("status") not in (None, "confirmed", "completed",
+                                                                                  "no_show"):
             raise Reject("sem_permissao", "Seu perfil não tem acesso a esta função.")
+    if ("price" in d or "payment_method" in d):
+        _need(user, Role.STAFF)
+    if d.get("check_in") is True:  # cliente chegou (feito offline: vale o horário em que foi registrado)
+        if a.status not in ApptStatus.ACTIVE:
+            raise Conflict("status_alterado", "Esse agendamento já foi cancelado ou concluído.", _appointment(a, user),
+                           ["status"])
+        a.checked_in_at = a.checked_in_at or (_dt(d["checked_in_at"], "checked_in_at") if d.get("checked_in_at")
+                                              else now_local())
+        a.status = ApptStatus.CONFIRMED
     if "start" in d or "barber_id" in d:
         _need(user, Role.STAFF)
         if a.status not in ApptStatus.OCCUPYING:
@@ -437,12 +460,13 @@ def _appt_update(db: Session, user: User, op) -> Appointment:
                            ["status"])
         if a.status in (ApptStatus.CANCELLED,) and status != ApptStatus.CANCELLED:
             raise Conflict("status_alterado", "Esse agendamento já foi cancelado.", _appointment(a, user), ["status"])
-    if status is not None or "notes" in d:
+    if status is not None or "notes" in d or "price" in d or "payment_method" in d:
         if "notes" in d and op.version is not None and op.version < a.version and \
                 op.base.get("notes", a.notes) != a.notes and a.notes != d["notes"]:
             raise Conflict("campo_alterado", "Outra pessoa alterou a observação.", _appointment(a, user), ["notes"])
         try:
             body = S.AppointmentPatch(status=status if status != a.status else None, notes=d.get("notes"),
+                                      price=d.get("price"), payment_method=d.get("payment_method"),
                                       notify_customer=d.get("notify_customer", True))
         except ValueError:
             raise Reject("dados_invalidos", "Dados inválidos.")
@@ -627,7 +651,14 @@ def _waitlist_create(db: Session, user: User, op) -> WaitlistEntry:
     shop = user.shop
     uid = _new_id(db, WaitlistEntry, op)
     d = op.data
-    customer = _by_uuid(db, shop, Customer, d.get("customer_id"), "customer_id")
+    if d.get("customer_id"):
+        customer = _by_uuid(db, shop, Customer, d["customer_id"], "customer_id")
+    else:  # cliente novo, digitado offline: o mesmo telefone vira o mesmo cadastro
+        from . import scheduling as sch
+        phone = wa.normalize_phone(_text(d.get("customer_phone"), 30))
+        if not 12 <= len(phone) <= 15:
+            raise Reject("dados_invalidos", "Telefone inválido.")
+        customer = sch.get_or_create_customer(db, shop, phone, _text(d.get("customer_name"), 120).strip().title())
     service = _by_uuid(db, shop, Service, d.get("service_id"), "service_id")
     barber = _by_uuid(db, shop, Barber, d.get("barber_id"), "barber_id", required=False)
     try:
@@ -641,7 +672,12 @@ def _waitlist_create(db: Session, user: User, op) -> WaitlistEntry:
     if same:
         raise Conflict("ja_na_lista", "Esse cliente já está na lista desse dia.", _waitlist(same, user))
     try:
-        e = wl.join(db, shop, customer, service, day, barber, via="app")
+        after = time.fromisoformat(d["after_time"]) if d.get("after_time") else None
+        before = time.fromisoformat(d["before_time"]) if d.get("before_time") else None
+    except (TypeError, ValueError):
+        raise Reject("dados_invalidos", "Horário inválido.")
+    try:
+        e = wl.join(db, shop, customer, service, day, barber, after, before, via="app")
     except wl.WaitlistError as err:
         raise Reject("regra", str(err))
     e.uuid = uid

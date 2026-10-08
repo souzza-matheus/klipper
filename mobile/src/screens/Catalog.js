@@ -1,6 +1,8 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { api } from '../api';
+import { PendingBadge } from '../components/Sync';
+import { repo, saved } from '../repo';
 import {
   dtLabel, hm, isHM, money, moneyInput, normHM, parseBRDate, parseMoney, phoneLabel, todayISO, WEEKDAYS_MON_FIRST,
 } from '../format';
@@ -234,8 +236,8 @@ export function BarberEditScreen({ navigation, route }) {
 
 export function BlocksScreen() {
   const { s, v } = useTheme();
-  const list = useLoad(() => api.get('/blocks'), []);
-  const barbers = useLoad(() => api.get('/barbers'), []);
+  const list = useLoad(() => repo.blocks(), []);
+  const barbers = useLoad(() => repo.barbers(), []);
   const [date, setDate] = useState('');
   const [start, setStart] = useState('12:00');
   const [end, setEnd] = useState('13:00');
@@ -249,10 +251,11 @@ export function BlocksScreen() {
     const a = allDay ? '00:00' : start;
     const b = allDay ? '23:59' : end;
     if (!isHM(a) || !isHM(b)) throw new Error('Horário inválido. Use HH:MM.');
-    await api.post('/blocks', { barber_id: barberId, start: `${iso}T${normHM(a)}:00`, end: `${iso}T${normHM(b)}:00`, reason });
+    const r = await repo.createBlock({ barber_id: barberId, start: `${iso}T${normHM(a)}:00`, end: `${iso}T${normHM(b)}:00`, reason });
     setReason('');
     list.reload();
-  }, 'Horário bloqueado. O bot não oferece mais esse intervalo.');
+    return r;
+  }, saved('Horário bloqueado. O bot não oferece mais esse intervalo.'));
 
   const whole = `${v.Business} ${['clínica', 'barbearia'].includes(v.business) ? 'inteira' : 'inteiro'}`;
   const name = (id) => (barbers.data || []).find((b) => b.id === id)?.name || whole;
@@ -281,8 +284,13 @@ export function BlocksScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={s.bodyBold}>{dtLabel(b.start)} até {hm(b.end)}</Text>
                 <Muted>{name(b.barber_id)}{b.reason ? ` · ${b.reason}` : ''}</Muted>
+                <PendingBadge item={b} />
               </View>
-              <RemoveBlock onPress={() => confirm('Remover bloqueio?', '', () => run(async () => { await api.del(`/blocks/${b.id}`); list.reload(); }, 'Bloqueio removido.'), 'Remover', true)} />
+              <RemoveBlock onPress={() => confirm('Remover bloqueio?', '', () => run(async () => {
+                const r = await repo.deleteBlock(b);
+                list.reload();
+                return r;
+              }, saved('Bloqueio removido.')), 'Remover', true)} />
             </View>
           </Card>
         ))}

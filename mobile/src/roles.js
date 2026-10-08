@@ -84,12 +84,15 @@ const MORE = [
   { route: 'Reports', icon: 'bar-chart-outline', label: () => 'Relatórios', feature: 'reports' },
   { route: 'Settings', icon: 'settings-outline', label: () => 'Configurações e aparência', feature: 'settings' },
   { route: 'WhatsApp', icon: 'logo-whatsapp', label: () => 'Conexão do WhatsApp', feature: 'whatsapp' },
+  { route: 'Sync', icon: 'sync-outline', label: () => 'Sincronização e modo offline', appOnly: true },
   { route: 'ChangePassword', icon: 'key-outline', label: () => 'Trocar senha' },
   { route: 'About', icon: 'information-circle-outline', label: () => 'Sobre o SyncServ' },
 ];
 
-export function moreItemsFor(role, v = { Pros: 'Profissionais' }) {
-  return MORE.filter((m) => !m.feature || can(role, m.feature)).map((m) => ({ ...m, label: m.label(v) }));
+// web=true: sem os itens que só existem no app do celular (modo offline)
+export function moreItemsFor(role, v = { Pros: 'Profissionais' }, web = false) {
+  return MORE.filter((m) => (!m.feature || can(role, m.feature)) && !(web && m.appOnly))
+    .map((m) => ({ ...m, label: m.label(v) }));
 }
 
 // Atalhos de teclado da versão web (computador). Só com o foco fora de campos de texto.

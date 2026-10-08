@@ -64,6 +64,8 @@ class TokenOut(BaseModel):
     first_login: bool = False  # convite com senha provisória: precisa trocar antes de usar
     refresh_token: str | None = None  # só na versão web
     expires_in: int | None = None     # segundos de validade do token (web)
+    user_id: int | None = None        # o app apaga os dados offline quando outra pessoa entra no aparelho
+    shop_id: int | None = None
 
 
 class ChangePasswordIn(BaseModel):

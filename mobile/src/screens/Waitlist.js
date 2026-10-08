@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { api } from '../api';
+import { PendingBadge } from '../components/Sync';
+import { repo, saved } from '../repo';
 import { DayNav } from './Agenda';
 import { dayLabel, dtLabel, normHM, phoneLabel, todayISO } from '../format';
 import { SPACE } from '../theme';
@@ -19,8 +21,8 @@ const WAIT = {
 
 function AddSheet({ visible, onClose, day, onAdded }) {
   const { s, v } = useTheme();
-  const services = useLoad(() => api.get('/services'), []);
-  const barbers = useLoad(() => api.get('/barbers'), []);
+  const services = useLoad(() => repo.services(), []);
+  const barbers = useLoad(() => repo.barbers(), []);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [serviceId, setServiceId] = useState(null);
@@ -29,13 +31,14 @@ function AddSheet({ visible, onClose, day, onAdded }) {
   const [before, setBefore] = useState('');
   useEffect(() => { if (!visible) { setPhone(''); setName(''); setAfter(''); setBefore(''); } }, [visible]);
   const save = () => run(async () => {
-    await api.post('/waitlist', {
+    const r = await repo.joinWaitlist({
       customer_phone: phone, customer_name: name, service_id: serviceId, barber_id: barberId, day,
       after_time: after ? normHM(after) : null, before_time: before ? normHM(before) : null,
     });
     onAdded();
     onClose();
-  }, 'Adicionado à lista de espera.');
+    return r;
+  }, saved('Adicionado à lista de espera.'));
   return (
     <BottomSheet visible={visible} onClose={onClose} title={`Lista de espera de ${dayLabel(day).toLowerCase()}`}
                  footer={<Button title="Adicionar" icon="add" onPress={save} disabled={!phone || !serviceId}
@@ -61,7 +64,7 @@ export function WaitlistScreen({ navigation }) {
   const [day, setDay] = useState(todayISO());
   const [all, setAll] = useState(false);
   const [adding, setAdding] = useState(false);
-  const list = useLoad(() => api.get('/waitlist', { day, include_closed: all }), [day, all]);
+  const list = useLoad(() => repo.waitlist(day, all), [day, all]);
   useLayoutEffect(() => {
     navigation.setOptions({ headerRight: () => (
       <IconButton icon="add-circle" size={30} label="Adicionar à lista" onPress={() => setAdding(true)} />
@@ -98,8 +101,9 @@ export function WaitlistScreen({ navigation }) {
               ) : null}
             </View>
             <Badge info={WAIT[e.status]} />
+            <PendingBadge item={e} />
           </View>
-          {['waiting', 'offered'].includes(e.status) ? (
+          {['waiting', 'offered'].includes(e.status) && typeof e.id === 'number' ? (
             <Button title="Tirar da lista" kind="ghost" compact style={{ marginTop: SPACE(2), alignSelf: 'flex-start' }}
                     onPress={() => confirm('Tirar da lista de espera?', `${e.customer_name} não será mais avisado.`,
                       () => run(() => api.del(`/waitlist/${e.id}`).then(list.reload), 'Removido da lista.'), 'Tirar', true)} />

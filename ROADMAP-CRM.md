@@ -109,13 +109,23 @@ Legenda: ✅ pronto (backend e telas) · 🟡 pronto no backend · 🔜 planejad
 
 Ferramentas novas: `get_my_balance`, `list_packages`, `propose_package_purchase` (resumo com confirmação determinística; nada é cobrado antes do "1") e `join_waitlist`. Regras 10 e 11 no prompt.
 
-### 8. Base da sincronização offline 🟡 (app offline na Etapa 3)
+### 8. Sincronização offline ✅ (base na Etapa 1, app na Etapa 3)
 
 - **Banco:** tabelas do app ganharam `uuid` (id público, pode ser gerado no aparelho), `updated_at` (relógio do servidor), `deleted_at` (exclusão vira tombstone), `version` e `sync_seq` (ordem das mudanças, contador por loja que trava a linha da loja até o commit: o cursor nunca pula mudança em andamento). Consultas normais não enxergam excluídos.
 - **`GET /api/sync/pull?cursor=`:** por entidade, o que mudou depois do cursor, paginado (`has_more`), filtrado por papel e por loja; agenda de 30 dias para trás a 60 para frente e comandas dos últimos 30 dias. Profissional recebe só serviços, profissionais, bloqueios, a própria agenda e os clientes que atendeu.
 - **`POST /api/sync/push`:** operações em ordem com `operation_id` único (reenvio devolve o mesmo resultado); cada uma em savepoint; resultado `aplicado`, `rejeitado` (motivo) ou `conflito` (com a versão do servidor).
 - **Conflitos:** agendamento criado ou remarcado offline é validado como novo (horário ocupado = conflito); lançamentos de comanda, pagamentos e estoque só acrescentam e nunca conflitam; edição de cadastro com versão antiga faz merge campo a campo e só conflita no mesmo campo; WhatsApp só sai depois que a operação foi gravada.
-- **Testes:** `tests/security/test_sync.py` (idempotência, conflito de horário, tombstones, filtro por papel, isolamento entre lojas, paginação, merge, operações em ordem com falha isolada, limites de entrada).
+- **Testes:** `tests/security/test_sync.py` (idempotência, conflito de horário, tombstones, filtro por papel, isolamento entre lojas, paginação, merge, operações em ordem com falha isolada, limites de entrada, check-in e conclusão offline, lista de espera com telefone novo).
+
+### App offline (Etapa 3) ✅
+
+- **Banco do aparelho:** SQLite com SQLCipher, chave aleatória no SecureStore; apagado ao sair, ao trocar de usuário ou papel e quando o servidor recusa o token. A web não guarda dados (só online).
+- **Repositório:** as telas usam `repo` (`mobile/src/repo.js`): no celular lê do banco local e grava alteração + operação da outbox na mesma transação (`operation_id` UUID); na web usa a API pela mesma interface.
+- **Sincronização:** ao abrir, ao voltar para o app, quando a internet volta, a cada 2 min, depois de cada alteração e em segundo plano (`expo-background-task`); espera crescente nas falhas (5 s a 5 min); pull completo uma vez por dia. Com internet, a tela espera a resposta e mostra o conflito na hora.
+- **Offline funciona:** agenda (agendar, remarcar, check-in, concluir, falta, cancelar), observações do cliente, comanda completa, estoque, lista de espera e bloqueios. Precisam de internet: Pix, aprovações, financeiro, relatórios, configurações, equipe e cadastros.
+- **Na tela:** faixa "Sem conexão: suas alterações serão sincronizadas" com o contador, selo "A confirmar" em cada item pendente, *Mais › Sincronização e modo offline* (última sincronização, pendências, "Sincronizar agora") e "Precisa da sua atenção" (conflitos e recusas, com "Agendar em outro horário").
+- **Backend:** o pull passou a levar o que as telas mostram (Pix e avaliação do agendamento, sinal do serviço, comissão do produto, data de entrada na lista de espera); o push aceita check-in, conclusão com pagamento e valor, pedido de sinal e lista de espera com telefone novo; o login devolve `user_id` e `shop_id` (para apagar o banco quando outra pessoa entra).
+- **Testes:** Jest com o SQLite do Node (`mobile/tests/sync.jest.js`, `shapes.jest.js`, `repo.jest.js`) e roteiro manual com modo avião (`mobile/tests/OFFLINE-TESTE-MANUAL.md`).
 
 ### Versão web e layout responsivo ✅
 
@@ -134,7 +144,8 @@ CSP.
 
 - Falta (no-show) não devolve a sessão do pacote nem o uso da assinatura.
 - Desconto da comanda é rateado proporcionalmente entre serviços, produtos e pacotes.
-- A janela da agenda no pull é calculada no dia do pull; o app deve refazer o pull completo (cursor 0) uma vez por dia (Etapa 3).
+- A janela da agenda no pull é calculada no dia do pull; o app refaz o pull completo (cursor 0) uma vez por dia.
+- Offline, a ficha do cliente e o calendário do mês mostram só o que está no aparelho (com aviso); horários perto de clientes incompatíveis só são escondidos com internet (sem ela, o servidor decide na sincronização e o conflito vai para "Precisa da sua atenção").
 - O MRR soma as assinaturas não canceladas pelo valor contratado.
 - Cobrança automática (gateway com webhook) fica para quando houver contrato com um provedor: só a interface está pronta.
 

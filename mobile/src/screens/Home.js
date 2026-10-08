@@ -3,6 +3,8 @@ import { Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api';
+import { repo } from '../repo';
+import { useSession } from '../session';
 import { Symbol as BrandSymbol } from '../brand/Logo';
 import { AppointmentCard, QuickActions } from '../components/AppointmentCard';
 import { toMin } from '../components/DayGrid';
@@ -26,8 +28,8 @@ export function HomeScreen({ navigation }) {
   const { c, s, font, v } = useTheme();
   const insets = useSafeAreaInsets();
   const day = todayISO();
-  const shop = useLoad(() => api.get('/me'), []);
-  const agenda = useLoad(() => api.get('/agenda/day', { day }), [day]);
+  const { shopName } = useSession();
+  const agenda = useLoad(() => repo.agendaDay(day), [day]);
   const pix = useLoad(() => api.get('/payments', { status: 'pending' }), []);
   const approvals = useLoad(() => api.get('/approvals'), []);
   const [held, setHeld] = useState(null);
@@ -36,7 +38,7 @@ export function HomeScreen({ navigation }) {
   // Atualiza sozinho a cada 60 s enquanto a aba está aberta (sem o indicador de carregamento)
   useFocusEffect(useCallback(() => {
     const id = setInterval(() => {
-      api.get('/agenda/day', { day }).then(agenda.setData).catch(() => {});
+      repo.agendaDay(day).then(agenda.setData).catch(() => {});
       api.get('/payments', { status: 'pending' }).then(pix.setData).catch(() => {});
       api.get('/approvals').then(approvals.setData).catch(() => {});
     }, REFRESH_MS);
@@ -62,7 +64,7 @@ export function HomeScreen({ navigation }) {
         <BrandSymbol size={36} color={c.accent} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: font.extrabold, fontSize: 20, color: c.text }} numberOfLines={1}>
-            {shop.data?.shop_name || ' '}
+            {shopName || ' '}
           </Text>
           <Text style={s.caption}>{dayLabel(day)}</Text>
         </View>

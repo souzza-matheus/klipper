@@ -142,12 +142,45 @@ suíte com as mesmas garantias das antigas:
   versões publicadas. Nenhum dos dois entra no bundle web nem no Android (só o Expo CLI e o Metro, no build, os
   usam), e a dependência nova (`expo-asset`) não acrescentou aviso.
 
+## Atualização: modo offline do app (Etapa 3)
+
+- **Dados no aparelho criptografados:** SQLite com SQLCipher (`expo-sqlite` com `useSQLCipher: true`). A chave é
+  aleatória, de 256 bits, gerada com `expo-crypto` e guardada no SecureStore (`AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`:
+  não vai para backup nem para outro aparelho). Se o build não tiver SQLCipher (Expo Go), o modo offline não liga e
+  nenhum dado de cliente é gravado no aparelho. A exceção é desenvolvimento com `EXPO_PUBLIC_OFFLINE_PLAINTEXT=1`
+  (`__DEV__`), que nunca vale num build de produção.
+- **Transações na mesma conexão:** não usamos o `withExclusiveTransactionAsync` do expo-sqlite, porque ele abre outra
+  conexão, que não receberia a chave. Isso foi achado na revisão: no aparelho, as gravações falhariam.
+- **Apagar (LGPD):** o arquivo e a chave são apagados quando:
+  - a pessoa sai da conta;
+  - outra pessoa ou outro papel entra no aparelho (`user_id` e `shop_id` agora vêm no login);
+  - o servidor recusa o token, inclusive durante a sincronização em segundo plano.
+
+  Ao sair com alterações pendentes, o aviso diz que elas serão perdidas.
+- **Sem dados de clientes em logs:** a sincronização registra só eventos e contagens. O teste
+  `sync.jest.js › o log não recebe dados de clientes` roda um conflito com nome e telefone e confere o log.
+- **Ações sem internet:** no celular sem conexão, as chamadas diretas à API que não têm versão offline (Pix,
+  financeiro, equipe, configurações) são bloqueadas com aviso, como na web.
+- **Push:** continua com a mesma validação de papel e de loja de antes. Os campos novos foram testados em
+  `test_sync.py`:
+  - check-in e conclusão: o profissional não altera valor nem forma de pagamento;
+  - lista de espera com telefone inválido é rejeitada.
+- **Teste estático novo:** `test_mobile_offline_db_is_encrypted_and_wiped` cobre:
+  - o plugin SQLCipher, o `PRAGMA key` e a chave no SecureStore;
+  - apagar ao sair e com token recusado;
+  - nenhum dado no log;
+  - nada de banco local na web.
+- **Dependências novas** (todas na versão do SDK 57): `expo-sqlite`, `expo-crypto`, `expo-task-manager`,
+  `expo-background-task`, e `jest` e `jest-expo` só para desenvolvimento. Elas não trouxeram aviso novo no app. O
+  `npm audit` agora também lista ferramentas de teste do Jest, que o React Native 0.86 puxa (`@react-native/jest-preset`):
+  `micromatch`/`braces` e `sprintf-js`, sem versão corrigida publicada. Nada disso entra no bundle.
+
 ## Como rodar a suíte
 
 ```bash
 cd backend
-pytest tests/security -v      # só segurança (363 testes)
-pytest                        # tudo (508 testes)
+pytest tests/security -v      # só segurança (368 testes)
+pytest                        # tudo (513 testes)
 ```
 
 Os testes usam SQLite de teste e dados fictícios, sem rede (a Evolution e o Gemini são simulados). Para rodar a verificação de dependências:

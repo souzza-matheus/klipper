@@ -35,7 +35,7 @@ function SideItem({ icon, label, focused, onPress, small }) {
 // tabBar do navegador de abas quando a tela é larga: logo, abas, "Gestão" (itens do Mais) e atalhos
 export function Sidebar({ state, navigation, descriptors, role, shopName, userName }) {
   const { c, font, v, mode } = useTheme();
-  const more = moreItemsFor(role, v).filter((m) => !['About', 'ChangePassword'].includes(m.route));
+  const more = moreItemsFor(role, v, Platform.OS === 'web').filter((m) => !['About', 'ChangePassword'].includes(m.route));
   const current = state.routes[state.index];
   const nested = current.state ? current.state.routes[current.state.index]?.name : null;
   const shortcuts = Platform.OS === 'web' ? SHORTCUTS.filter((s) => can(role, s.feature)) : [];

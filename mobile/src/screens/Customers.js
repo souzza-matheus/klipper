@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
+import { PendingBadge } from '../components/Sync';
+import { repo, saved } from '../repo';
 import { Stars } from './Agenda';
 import { useDebounced } from '../components/QuickBook';
 import { dmy, dtLabel, gapLabel, money, phoneLabel } from '../format';
@@ -26,7 +28,7 @@ export function CustomersScreen({ navigation, route }) {
   useEffect(() => { if (route?.params?.focus) search.current?.focus(); }, [route?.params?.focus]);
   const [access, setAccess] = useState('');
   const query = useDebounced(q);
-  const list = useLoad(() => api.get('/customers', { q: query, access_status: access || null, limit: 100 }), [query, access]);
+  const list = useLoad(() => repo.customers({ q: query, access_status: access || null, limit: 100 }), [query, access]);
   const items = list.data || [];
 
   return (
@@ -54,7 +56,8 @@ export function CustomersScreen({ navigation, route }) {
           {items.map((x, i) => (
             <ListRow key={x.id} icon="person-circle-outline" title={x.name || 'Sem nome'} subtitle={phoneLabel(x.phone)}
                      first={i === 0} last={i === items.length - 1}
-                     right={ACCESS[x.access_status] ? <Badge info={ACCESS[x.access_status]} /> : undefined}
+                     right={x._pending ? <PendingBadge item={x} />
+                       : ACCESS[x.access_status] ? <Badge info={ACCESS[x.access_status]} /> : undefined}
                      onPress={() => navigation.navigate('Customer', { id: x.id })} />
           ))}
         </Group>
@@ -151,7 +154,8 @@ function ConflictSheet({ d, edit, visible, onClose, onSaved, defaultGap }) {
   }, [visible, edit]);
   useEffect(() => {
     if (!visible || other || query.trim().length < 2) { setFound([]); return; }
-    api.get('/customers', { q: query, limit: 10 }).then((r) => setFound(r.filter((x) => x.id !== d.id))).catch(() => setFound([]));
+    repo.customers({ q: query, limit: 10 }).then((r) => setFound(r.filter((x) => x.id !== d.id && typeof x.id === 'number')))
+      .catch(() => setFound([]));
   }, [query, visible, other, d.id]);
 
   const body = () => ({
@@ -261,17 +265,18 @@ function ConflictsSection({ d, navigation }) {
 export function CustomerScreen({ route, navigation }) {
   const { s, v } = useTheme();
   const { can } = useSession();
-  const cust = useLoad(() => api.get(`/customers/${route.params.id}`), [route.params.id]);
+  const cust = useLoad(() => repo.customer(route.params.id), [route.params.id]);
   const [name, setName] = useState(null);
   const [notes, setNotes] = useState(null);
   if (!cust.data) return <Loading error={cust.error} onRetry={cust.reload} />;
   const d = cust.data;
   const dirty = (name !== null && name !== d.name) || (notes !== null && notes !== d.notes);
   const save = () => run(async () => {
-    await api.put(`/customers/${d.id}`, { name: name ?? d.name, notes: notes ?? d.notes });
+    const r = await repo.updateCustomer(d, { name: name ?? d.name, notes: notes ?? d.notes });
     setName(null); setNotes(null);
     cust.reload();
-  }, `${v.Customer} atualizado.`);
+    return r;
+  }, saved(`${v.Customer} atualizado.`));
 
   return (
     <Screen footer={dirty ? <Button title="Salvar dados" icon="checkmark" onPress={save} style={{ marginBottom: 0 }} /> : null}>
@@ -279,7 +284,13 @@ export function CustomerScreen({ route, navigation }) {
         <Title style={{ flexShrink: 1, marginBottom: 0 }}>{d.name || 'Sem nome'}</Title>
         <Badge info={ACCESS[d.access_status]} large />
       </View>
-      <Text style={[s.muted, { marginBottom: SPACE(4), marginTop: SPACE(1) }]}>{phoneLabel(d.phone)} · desde {dmy(d.created_at)}</Text>
+      <Text style={[s.muted, { marginBottom: SPACE(4), marginTop: SPACE(1) }]}>
+        {phoneLabel(d.phone)}{d.created_at ? ` · desde ${dmy(d.created_at)}` : ''}
+      </Text>
+      {d._partial ? (
+        <Banner tone="info" icon="cloud-offline-outline" title="Sem internet: dados do aparelho"
+                text={`Histórico e totais contam só os ${v.services} dos últimos 30 dias e dos próximos 60.`} />
+      ) : null}
       <View style={[s.row, { gap: SPACE(2), marginBottom: SPACE(4) }]}>
         <Stat label={v.Services} value={d.visits} />
         <Stat label="Faltas" value={d.no_shows} tone={d.no_shows ? 'danger' : undefined} icon={d.no_shows ? 'alert-circle-outline' : undefined} />
@@ -291,7 +302,7 @@ export function CustomerScreen({ route, navigation }) {
         {can('comandas') ? (
           <Button title="Nova comanda" kind="ghost" icon="receipt-outline" style={{ flex: 1 }}
                   onPress={() => run(async () => {
-                    const r = await api.post('/comandas', { customer_id: d.id });
+                    const r = await repo.openComanda({ customer_id: d.id });
                     navigation.navigate('Comanda', { id: r.id });
                   })} />
         ) : null}
@@ -305,8 +316,8 @@ export function CustomerScreen({ route, navigation }) {
           <Field label="Observações" value={notes ?? d.notes} onChangeText={setNotes} multiline placeholder="Preferências, cuidados, histórico" />
         </Section>
       ) : d.notes ? <Section title="Observações"><Text style={s.body}>{d.notes}</Text></Section> : null}
-      {can('customerAccess') ? <AccessSection d={d} onSaved={cust.reload} /> : null}
-      {can('customerAccess') ? <ConflictsSection d={d} navigation={navigation} /> : null}
+      {can('customerAccess') && !d._partial ? <AccessSection d={d} onSaved={cust.reload} /> : null}
+      {can('customerAccess') && !d._partial ? <ConflictsSection d={d} navigation={navigation} /> : null}
       <Section title="Histórico">
         {!d.appointments.length ? <Empty text={`Sem ${v.services} ainda.`} /> : null}
         {d.appointments.map((a) => (

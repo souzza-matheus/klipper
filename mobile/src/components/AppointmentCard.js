@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 import { api } from '../api';
+import { repo, saved } from '../repo';
+import { PendingBadge } from './Sync';
 import { hm, money, PAY_METHODS, payMethodLabel, phoneLabel } from '../format';
 import { ACCESS, PAY, STATUS } from '../status';
 import { SPACE } from '../theme';
@@ -28,10 +30,11 @@ export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
   if (!a) return null;
   const close = () => { setCompleting(false); setMethod(null); onClose(); };
   const act = (body, msg) => run(async () => {
-    await api.patch(`/appointments/${a.id}`, body);
+    const r = await repo.updateAppointment(a, body);
     close();
     onChanged && onChanged();
-  }, msg);
+    return r;
+  }, saved(msg));
   const active = a.status === 'scheduled' || a.status === 'confirmed';
   return (
     <BottomSheet visible={visible} onClose={close} title={`${hm(a.start)} · ${a.customer_name || phoneLabel(a.customer_phone)}`}>
@@ -53,7 +56,7 @@ export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
           {active && can('comandas') ? (
             <Button title="Abrir comanda" icon="receipt-outline"
                     onPress={() => run(async () => {
-                      const r = await api.post('/comandas', { appointment_id: a.id });
+                      const r = await repo.openComanda({ appointment_id: a.id });
                       close();
                       navigation.navigate('Comanda', { id: r.id });
                     })} />
@@ -61,10 +64,11 @@ export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
           {active && !a.checked_in_at ? (
             <Button title="Cliente chegou" icon="enter-outline" kind="secondary"
                     onPress={() => run(async () => {
-                      await api.post(`/appointments/${a.id}/check-in`);
+                      const r = await repo.checkIn(a);
                       close();
                       onChanged && onChanged();
-                    }, 'Check-in feito.')} />
+                      return r;
+                    }, saved('Check-in feito.'))} />
           ) : null}
           {active && can('changePrice') ? (
             <Button title="Concluir sem comanda" icon="checkmark-done" kind="ghost"
@@ -119,6 +123,7 @@ export function AppointmentCard({ a, navigation, onChanged, onLongPress }) {
               ? { label: 'Disse que pagou', tone: 'warning', icon: 'chatbubble-ellipses-outline' } : PAY[a.payment_status]} />
             {!cancelled ? <Badge info={ACCESS[a.customer_access_status]} /> : null}
             {a.status === 'completed' && a.payment_method ? <Badge info={{ label: payMethodLabel(a.payment_method), tone: 'neutral' }} /> : null}
+            <PendingBadge item={a} />
             {a.created_via === 'bot' && a.status !== 'completed' ? (
               <Badge info={{ label: 'WhatsApp', tone: 'neutral', icon: 'logo-whatsapp' }} />
             ) : null}

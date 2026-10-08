@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
+import { repo, saved } from '../repo';
 import { dayLabel, gapLabel, hm, money, phoneLabel } from '../format';
 import { ACCESS } from '../status';
 import { SPACE } from '../theme';
@@ -57,10 +58,10 @@ export function QuickBookSheet({ slot, onClose, onBooked, services, barbers }) {
   }, [slot?.start, slot?.barber?.id]);
   useEffect(() => {
     if (!slot || customer || isNew || query.trim().length < 2) { setFound([]); return; }
-    api.get('/customers', { q: query, limit: 8 }).then(setFound).catch(() => setFound([]));
+    repo.customers({ q: query, limit: 8 }).then(setFound).catch(() => setFound([]));
   }, [query, customer, isNew, slot]);
   useEffect(() => {
-    if (!slot || !customer) { setHits([]); return; }
+    if (!slot || !customer || typeof customer.id !== 'number') { setHits([]); return; }
     api.get('/customer-conflicts/day', { day: slot.day, customer_id: customer.id }).then(setHits).catch(() => setHits([]));
   }, [customer, slot]);
 
@@ -75,10 +76,12 @@ export function QuickBookSheet({ slot, onClose, onBooked, services, barbers }) {
 
   const save = () => confirmAccess(customer, async () => {
     setBusy(true);
-    const r = await saveWithConflictCheck((force) => api.post('/appointments', {
+    const r = await saveWithConflictCheck((force) => repo.createAppointment({
+      customer_id: customer ? customer.id : undefined,
       customer_phone: customer ? customer.phone : phone, customer_name: customer ? '' : name,
       service_id: svc.id, barber_id: slot.barber.id, start: slot.start, force,
-    }), `Agendado às ${hm(slot.start)}. O ${v.customer} recebeu a confirmação no WhatsApp.`);
+    }), saved(`Agendado às ${hm(slot.start)}. O ${v.customer} recebeu a confirmação no WhatsApp.`,
+      `Agendado às ${hm(slot.start)} no aparelho (a confirmar). O WhatsApp sai quando o servidor confirmar.`));
     setBusy(false);
     if (r) onBooked(r);
   });

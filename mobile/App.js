@@ -18,6 +18,9 @@ import { preloadWebFonts } from './src/webFonts';
 import { api, clearSession, loadSession, refreshSession, saveAppearance, setUnauthorizedHandler } from './src/api';
 import { LogoVertical } from './src/brand/Logo';
 import { OfflineBanner, Sidebar } from './src/components/Layout';
+import { AttentionScreen, SyncBanner, SyncScreen } from './src/components/Sync';
+import { startNet } from './src/net';
+import { setOfflineSession, startOffline, stopOffline } from './src/offline/manager';
 import { shortcutFor, tabsFor } from './src/roles';
 import { SessionProvider, useWide } from './src/session';
 import { BRAND_THEME } from './src/theme';
@@ -106,6 +109,8 @@ function details(v) {
     ['Settings', SettingsScreen, 'Configurações'],
     ['WhatsApp', WhatsAppScreen, 'Conexão do WhatsApp'],
     ['About', AboutScreen, 'Sobre o SyncServ'],
+    ['Sync', SyncScreen, 'Sincronização'],
+    ['Attention', AttentionScreen, 'Precisa da sua atenção'],
     ['Expenses', ExpensesScreen, 'Gastos'],
     ['ExpenseEdit', ExpenseEditScreen, 'Gasto'],
     ['Commissions', CommissionsScreen, 'Comissões e repasses'],
@@ -177,6 +182,7 @@ function Tabs({ onLogout, session }) {
     <NavigationContainer theme={navTheme} ref={navRef} documentTitle={{ formatter: () => 'SyncServ' }}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <OfflineBanner />
+      <SyncBanner onOpen={(screen) => navRef.isReady() && navRef.navigate('Mais', { screen })} />
       <Tab.Navigator
         tabBar={wide ? (props) => <Sidebar {...props} role={session.role} shopName={session.shop}
                                              userName={session.name} /> : undefined}
@@ -244,13 +250,16 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
+    const stopNet = startNet();
     loadSession().then(setSession);
+    return stopNet;
   }, []);
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
   const logout = useCallback(async () => {
+    await stopOffline({ wipe: true }); // LGPD: nada de clientes fica no aparelho depois de sair
     await clearSession();
     setSession((s) => ({ ...s, token: '', firstLogin: false }));
   }, []);
@@ -269,9 +278,18 @@ export default function App() {
     refreshSession().catch(() => {}); // renova a validade do token
     api.get('/me').then((me) => {
       setAppearance(me.niche, me.theme_mode, me.shop_name);
-      setSession((s) => ({ ...s, role: me.role, barberId: me.barber_id, name: me.name, firstLogin: me.first_login }));
+      setSession((s) => ({ ...s, role: me.role, barberId: me.barber_id, name: me.name, firstLogin: me.first_login,
+                           userId: me.user_id, shopId: me.shop_id }));
     }).catch(() => {});
   }, [token, setAppearance]);
+
+  // Modo offline (celular): banco da pessoa logada. Outra pessoa ou outro papel no aparelho = banco apagado.
+  const { userId, shopId, role, barberId, firstLogin } = session || {};
+  useEffect(() => {
+    if (!token || !userId || !shopId || firstLogin) return;
+    setOfflineSession({ role, barberId });
+    startOffline(`${shopId}:${userId}:${role}`);
+  }, [token, userId, shopId, role, barberId, firstLogin]);
 
   const sessionValue = useMemo(() => ({
     role: session?.role || 'owner', barberId: session?.barberId || null, userName: session?.name || '',
@@ -292,6 +310,7 @@ export default function App() {
                  onLogged={(r) => setSession({
                    ...session, token: r.token, name: r.user_name, shop: r.shop_name, niche: r.niche,
                    themeMode: r.theme_mode, role: r.role, barberId: r.barber_id, firstLogin: r.first_login,
+                   userId: r.user_id, shopId: r.shop_id,
                  })} />
           <ToastHost />
           <DialogHost />

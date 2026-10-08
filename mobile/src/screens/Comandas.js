@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
+import { PendingBadge } from '../components/Sync';
+import { repo, saved } from '../repo';
 import { BigButton, Keypad } from '../components/Layout';
 import { useDebounced } from '../components/QuickBook';
 import { dtLabel, hm, money, PAY_METHODS, payMethodLabel, phoneLabel, todayISO } from '../format';
@@ -29,10 +31,10 @@ function NewComandaSheet({ visible, onClose, navigation }) {
   const [found, setFound] = useState([]);
   useEffect(() => {
     if (!visible || query.length < 2) { setFound([]); return; }
-    api.get('/customers', { q: query, limit: 8 }).then(setFound).catch(() => setFound([]));
+    repo.customers({ q: query, limit: 8 }).then(setFound).catch(() => setFound([]));
   }, [query, visible]);
   const open = (customerId) => run(async () => {
-    const r = await api.post('/comandas', customerId ? { customer_id: customerId } : {});
+    const r = await repo.openComanda(customerId ? { customer_id: customerId } : {});
     onClose();
     setQ('');
     navigation.navigate('Comanda', { id: r.id });
@@ -56,9 +58,9 @@ export function ComandasScreen({ navigation, route }) {
   const { s, v } = useTheme();
   const { can } = useSession();
   const day = todayISO();
-  const open = useLoad(() => api.get('/comandas', { status: 'open' }), []);
-  const closed = useLoad(() => api.get('/comandas', { status: 'closed', day }), [day]);
-  const appts = useLoad(() => api.get('/appointments', { date_from: day }), [day]);
+  const open = useLoad(() => repo.comandas({ status: 'open' }), []);
+  const closed = useLoad(() => repo.comandas({ status: 'closed', day }), [day]);
+  const appts = useLoad(() => repo.appointmentsOfDay(day), [day]);
   const pix = useLoad(() => api.get('/payments', { status: 'pending' }), []);
   const [sheet, setSheet] = useState(false);
 
@@ -69,7 +71,7 @@ export function ComandasScreen({ navigation, route }) {
   const pending = (appts.data || []).filter((a) => ['scheduled', 'confirmed'].includes(a.status) && !withComanda.has(a.id));
   const reload = () => { open.reload(); closed.reload(); appts.reload(); pix.reload(); };
   const openFor = (a) => run(async () => {
-    const r = await api.post('/comandas', { appointment_id: a.id });
+    const r = await repo.openComanda({ appointment_id: a.id });
     navigation.navigate('Comanda', { id: r.id });
   });
   const totalDay = (closed.data || []).reduce((t, x) => t + Number(x.paid), 0);
@@ -89,7 +91,10 @@ export function ComandasScreen({ navigation, route }) {
           <Card key={x.id} onPress={() => navigation.navigate('Comanda', { id: x.id })}>
             <View style={s.row}>
               <View style={{ flex: 1 }}>
-                <Text style={s.bodyBold}>{x.customer_name || 'Venda avulsa'}</Text>
+                <View style={[s.row, { gap: SPACE(2) }]}>
+                  <Text style={s.bodyBold}>{x.customer_name || 'Venda avulsa'}</Text>
+                  <PendingBadge item={x} />
+                </View>
                 <Text style={s.caption}>Aberta às {hm(x.opened_at)} · {x.items.filter((i) => !i.reverses_id).length} item(ns)</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
@@ -124,6 +129,7 @@ export function ComandasScreen({ navigation, route }) {
           <Card key={x.id} onPress={() => navigation.navigate('Comanda', { id: x.id })}>
             <View style={s.row}>
               <Text style={[s.body, { flex: 1 }]}>{x.customer_name || 'Venda avulsa'} · {hm(x.closed_at)}</Text>
+              <PendingBadge item={x} />
               <Text style={s.bodyBold}>{money(x.paid)}</Text>
             </View>
           </Card>
@@ -151,7 +157,7 @@ function ItemRow({ it, canReverse, onReverse }) {
         </Text>
         <Text style={s.caption}>
           {[it.barber_name, it.covered_by !== 'none' ? `pago com ${COVER_LABEL[it.covered_by]}` : null,
-            it.reversed ? 'estornado' : null].filter(Boolean).join(' · ')}
+            it.reversed ? 'estornado' : null, it._pending ? 'a confirmar' : null].filter(Boolean).join(' · ')}
         </Text>
       </View>
       <Text style={[s.bodyBold, dim && { color: c.textMuted }]}>{money(it.amount)}</Text>
@@ -165,10 +171,10 @@ function ItemRow({ it, canReverse, onReverse }) {
 
 function AddItemSheet({ kind, comanda, onClose, onAdded }) {
   const { s, v } = useTheme();
-  const services = useLoad(() => api.get('/services'), []);
-  const barbers = useLoad(() => api.get('/barbers'), []);
-  const products = useLoad(() => api.get('/products'), []);
-  const plans = useLoad(() => api.get('/package-plans'), []);
+  const services = useLoad(() => repo.services(), []);
+  const barbers = useLoad(() => repo.barbers(), []);
+  const products = useLoad(() => repo.products(), []);
+  const plans = useLoad(() => repo.packagePlans(), []);
   const [serviceId, setServiceId] = useState(null);
   const [productId, setProductId] = useState(null);
   const [planId, setPlanId] = useState(null);
@@ -200,7 +206,7 @@ function AddItemSheet({ kind, comanda, onClose, onAdded }) {
   }[kind];
   const send = async (extra) => {
     setBusy(true);
-    const r = await run(() => api.post(`/comandas/${comanda.id}/items`, { ...body(), ...extra }));
+    const r = await run(() => repo.addComandaItem(comanda, { ...body(), ...extra }), saved(null));
     setBusy(false);
     if (r) { onAdded(r); onClose(); } else if (kind === 'product') products.reload();
   };
@@ -293,16 +299,17 @@ function PaymentPanel({ c: comanda, onChanged, canReverse }) {
   const open = comanda.status === 'open';
   const pay = async () => {
     setBusy(true);
-    const r = await run(() => api.post(`/comandas/${comanda.id}/payments`, { method, amount: toApi(digits) }));
+    const r = await run(() => repo.addComandaPayment(comanda, { method, amount: toApi(digits) }), saved(null));
     setBusy(false);
     if (r) onChanged(r);
   };
   const reversePay = (p) => confirm('Estornar pagamento?', `${payMethodLabel(p.method)} de ${money(p.amount)} vira um lançamento negativo.`,
-    () => run(() => api.post(`/comandas/${comanda.id}/payments/${p.id}/reverse`).then(onChanged), 'Pagamento estornado.'),
+    () => run(() => repo.reverseComandaPayment(comanda, p).then((r) => { onChanged(r); return r; }), saved('Pagamento estornado.')),
     'Estornar', true);
   const close = async () => {
     setBusy(true);
-    const r = await run(() => api.post(`/comandas/${comanda.id}/close`), 'Comanda fechada.');
+    const r = await run(() => repo.closeComanda(comanda), saved('Comanda fechada.',
+      'Comanda fechada no aparelho. Vai para o caixa do servidor quando a internet voltar.'));
     setBusy(false);
     if (r) onChanged(r);
   };
@@ -359,7 +366,7 @@ function PaymentPanel({ c: comanda, onChanged, canReverse }) {
 export function ComandaScreen({ route, navigation }) {
   const { s, v } = useTheme();
   const { wide, can } = useSession();
-  const r = useLoad(() => api.get(`/comandas/${route.params.id}`), [route.params.id]);
+  const r = useLoad(() => repo.comanda(route.params.id), [route.params.id]);
   const [kind, setKind] = useState(null);
   const comanda = r.data;
   if (!comanda) return <Loading error={r.error} onRetry={r.reload} />;
@@ -368,10 +375,11 @@ export function ComandaScreen({ route, navigation }) {
   const update = (x) => (x && x.id ? r.setData(x) : r.reload());
   const reverse = (it) => confirm('Estornar lançamento?',
     `"${it.description}" (${money(it.amount)}) vira um lançamento negativo. Estoque e saldo de pacote voltam.`,
-    () => run(() => api.post(`/comandas/${comanda.id}/items/${it.id}/reverse`).then(update), 'Estornado.'),
+    () => run(() => repo.reverseComandaItem(comanda, it).then((x) => { update(x); return x; }), saved('Estornado.')),
     'Estornar', true);
   const cancel = () => confirm('Cancelar comanda?', 'Só dá para cancelar a comanda sem valor.',
-    () => run(() => api.post(`/comandas/${comanda.id}/cancel`).then(update), 'Comanda cancelada.'), 'Cancelar', true);
+    () => run(() => repo.cancelComanda(comanda).then((x) => { update(x); return x; }), saved('Comanda cancelada.')),
+    'Cancelar', true);
 
   const items = (
     <View style={{ flex: wide ? 1.3 : undefined }}>
@@ -383,6 +391,10 @@ export function ComandaScreen({ route, navigation }) {
         ) : null}
       </View>
       <Text style={[s.caption, { marginBottom: SPACE(4) }]}>Aberta {dtLabel(comanda.opened_at).toLowerCase()}</Text>
+      {comanda._pending ? (
+        <Banner tone="warning" icon="cloud-upload-outline" title="A confirmar"
+                text="Lançamentos feitos sem internet vão para o servidor quando a conexão voltar." />
+      ) : null}
       {open ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE(2), marginBottom: SPACE(4) }}>
           <BigButton icon="cut-outline" label={v.Service} onPress={() => setKind('service')} />
@@ -421,7 +433,7 @@ export function ComandaScreen({ route, navigation }) {
 // Abre (ou retoma) a comanda de um agendamento e navega até ela
 export function openComandaFor(navigation, appointmentId) {
   return run(async () => {
-    const r = await api.post('/comandas', { appointment_id: appointmentId });
+    const r = await repo.openComanda({ appointment_id: appointmentId });
     navigation.navigate('Comanda', { id: r.id });
     return r;
   });

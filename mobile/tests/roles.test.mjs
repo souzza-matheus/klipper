@@ -23,7 +23,9 @@ test('recepção: agenda, caixa e clientes, sem financeiro, equipe e configuraç
 
 test('profissional: só agenda, clientes e as próprias comissões', () => {
   assert.deepEqual(names('professional'), ['Agenda', 'Clientes', 'Comissoes', 'Mais']);
-  assert.deepEqual(routes('professional'), ['Reviews', 'ChangePassword', 'About']);
+  assert.deepEqual(routes('professional'), ['Reviews', 'Sync', 'ChangePassword', 'About']);
+  // Sincronização (modo offline) só existe no app do celular
+  assert.deepEqual(moreItemsFor('professional', undefined, true).map((m) => m.route), ['Reviews', 'ChangePassword', 'About']);
   for (const f of ['newAppointment', 'comandas', 'pix', 'customerEdit', 'customerBalance', 'finance']) {
     assert.ok(!can('professional', f), f);
   }

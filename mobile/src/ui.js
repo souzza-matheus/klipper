@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Symbol as BrandSymbol } from './brand/Logo';
+import { onDataChange } from './offline/manager';
 import { NICHE_INFO, SPACE, TOUCH } from './theme';
 import { useTheme } from './ThemeProvider';
 import { useWide } from './session';
@@ -30,7 +31,12 @@ export function useLoad(fn, deps = []) {
       setLoading(false);
     }
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  // Sem o indicador de carregamento: a tela troca os dados quando a sincronização traz novidade
+  const quiet = useCallback(() => { Promise.resolve().then(fn).then(setData, () => {}); }, deps); // eslint-disable-line
+  useFocusEffect(useCallback(() => {
+    load();
+    return onDataChange(quiet); // celular com modo offline: recarrega quando os dados do aparelho mudam
+  }, [load, quiet]));
   return { data, setData, loading, error, reload: load };
 }
 
@@ -158,10 +164,12 @@ export function ToastHost() {
 }
 
 // Executa uma ação da API: sucesso vira Toast (se houver okMsg), erro vira Toast de erro.
+// okMsg pode ser uma função do resultado (ex.: "salvo no aparelho" quando ficou na fila do modo offline)
 export async function run(fn, okMsg) {
   try {
     const r = await fn();
-    if (okMsg) toast(okMsg);
+    const msg = typeof okMsg === 'function' ? okMsg(r) : okMsg;
+    if (msg) toast(msg, r && r._queued ? 'info' : 'success');
     return r;
   } catch (e) {
     toast(e.message, 'error');

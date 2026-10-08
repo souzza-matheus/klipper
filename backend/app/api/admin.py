@@ -86,7 +86,8 @@ def _token_out(user: User, client: str = "app") -> S.TokenOut:
                       theme_mode=shop.theme_mode, role=user.role, barber_id=user.barber_id,
                       first_login=user.must_change_password,
                       refresh_token=make_refresh_token(user) if web else None,
-                      expires_in=settings.web_access_minutes * 60 if web else None)
+                      expires_in=settings.web_access_minutes * 60 if web else None, user_id=user.id,
+                      shop_id=user.shop_id)
 
 
 @router.post("/auth/token", response_model=S.TokenOut, tags=["auth"])
@@ -164,7 +165,7 @@ def change_password(body: S.ChangePasswordIn, request: Request, user: User = Dep
 
 @router.get("/me", tags=["auth"])
 def me(user: User = Depends(current_user)):
-    return {"name": user.name, "email": user.email, "shop_id": user.shop_id, "shop_name": user.shop.name,
+    return {"name": user.name, "email": user.email, "user_id": user.id, "shop_id": user.shop_id, "shop_name": user.shop.name,
             "niche": user.shop.niche, "theme_mode": user.shop.theme_mode, "role": user.role,
             "role_label": Role.LABELS.get(user.role, user.role), "barber_id": user.barber_id,
             "first_login": user.must_change_password}

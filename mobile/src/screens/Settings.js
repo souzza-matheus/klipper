@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Platform, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
 import { LogoVertical, Symbol as BrandSymbol } from '../brand/Logo';
+import { useSyncStatus } from '../components/Sync';
 import { moneyInput, parseMoney, phoneLabel } from '../format';
 import { buildTheme, NICHE_INFO, NICHES, SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
@@ -20,7 +21,12 @@ import {
 export function MoreScreen({ navigation, onLogout, shopName }) {
   const { c, s, font, v } = useTheme();
   const { role, userName } = useSession();
-  const items = moreItemsFor(role, v).map((m) => [m.route, m.icon, m.label]);
+  const sync = useSyncStatus();
+  const items = moreItemsFor(role, v, Platform.OS === 'web').map((m) => [m.route, m.icon, m.label]);
+  const leaveMsg = sync.pending
+    ? `${sync.pending} alteração(ões) feita(s) sem internet ainda não foi(ram) enviada(s) e será(ão) perdida(s). `
+      + 'Os dados deste aparelho serão apagados.'
+    : sync.available ? 'Os dados guardados neste aparelho serão apagados.' : '';
   return (
     <Screen>
       <View style={[s.row, { gap: SPACE(3), marginBottom: SPACE(5) }]}>
@@ -36,7 +42,7 @@ export function MoreScreen({ navigation, onLogout, shopName }) {
                    onPress={() => navigation.navigate(route)} />
         ))}
       </Group>
-      <Button title="Sair" kind="ghost" icon="log-out-outline" onPress={() => confirm('Sair do app?', '', onLogout, 'Sair', true)} />
+      <Button title="Sair" kind="ghost" icon="log-out-outline" onPress={() => confirm('Sair do app?', leaveMsg, onLogout, 'Sair', true)} />
       <Button title="Sair de todos os aparelhos" kind="danger" icon="phone-portrait-outline"
               onPress={() => confirm('Sair de todos os aparelhos?',
                 'Use se perdeu um celular ou alguém viu sua senha. Todos os aparelhos (inclusive este) vão precisar entrar de novo.',

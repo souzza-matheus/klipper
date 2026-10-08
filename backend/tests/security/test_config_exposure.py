@@ -187,6 +187,34 @@ def test_mobile_keeps_token_in_secure_store_and_has_no_api_keys():
         assert not re.search(pattern, code), pattern
 
 
+def test_mobile_offline_db_is_encrypted_and_wiped():
+    """Modo offline (Etapa 3): banco local com SQLCipher e chave no SecureStore; sair, trocar de usuário ou token
+    recusado apagam o arquivo e a chave; o log da sincronização não recebe dados de clientes."""
+    import json
+    import re
+    mobile = os.path.join(ROOT, "mobile")
+    read = lambda *p: open(os.path.join(mobile, *p), encoding="utf-8").read()  # noqa: E731
+    plugins = json.loads(read("app.json"))["expo"]["plugins"]
+    assert ["expo-sqlite", {"useSQLCipher": True}] in plugins
+    db = read("src", "offline", "db.js")
+    assert "PRAGMA key" in db and "cipher_version" in db and "getRandomBytesAsync(32)" in db
+    assert "SecureStore.setItemAsync(KEY" in db and "deleteDatabaseAsync" in db and "deleteItemAsync(KEY" in db
+    assert "__DEV__ &&" in db  # texto puro só em desenvolvimento (Expo Go), nunca em build de produção
+    store = read("src", "offline", "store.js")
+    assert "withExclusiveTransactionAsync(" not in store.replace("withExclusiveTransactionAsync do", "")
+    app = read("App.js")
+    logout = app[app.index("const logout = useCallback"):]
+    assert logout.index("stopOffline({ wipe: true })") < logout.index("clearSession()")
+    manager = read("src", "offline", "manager.js")
+    assert "e.status === 401) await stopOffline({ wipe: true })" in manager
+    assert re.search(r"owner && owner !== id\) \{\s*await destroyOfflineDb", manager)
+    engine = read("src", "offline", "engine.js")
+    calls = re.findall(r"log\('([\w-]+)', \{([^}]*)\}\)", engine)
+    assert calls and all(not re.search(r"name|phone|data|label|message", args) for _, args in calls), calls
+    # Web: nada de banco local no navegador
+    assert "offlineReady = () => false" in read("src", "offline", "manager.web.js")
+
+
 def test_web_app_is_served_with_csp_and_security_headers():
     caddy = open(os.path.join(ROOT, "deploy", "Caddyfile.app"), encoding="utf-8").read()
     import re

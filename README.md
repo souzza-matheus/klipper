@@ -58,7 +58,8 @@ Pacotes, Clube de assinatura, Lista de espera e Equipe e permissões; menus e bo
 - **Clube de assinatura:** planos mensais com serviços e limites por período, cobrança por Pix no WhatsApp no vencimento (confirmação manual; gateway plugável), status ativa/atrasada/cancelada, benefícios bloqueados depois de X dias de atraso e relatório com MRR.
 - **Sinal contra faltas:** por estabelecimento e por serviço (desligado, fixo ou %). O horário fica "aguardando sinal" e é liberado se o Pix não for confirmado a tempo; regra de devolução configurável.
 - **Lista de espera:** o bot oferece quando o dia está cheio; quando um horário abre, a primeira pessoa da fila é avisada e a vaga fica reservada por 10 minutos.
-- **Sincronização offline (base):** ids públicos (UUID), versão e exclusões como tombstone; `GET /api/sync/pull` e `POST /api/sync/push` com idempotência e regras de conflito (o app offline vem na Etapa 3).
+- **Sincronização offline:** ids públicos (UUID), versão e exclusões como tombstone; `GET /api/sync/pull` e `POST /api/sync/push` com idempotência e regras de conflito.
+- **App offline (celular):** banco local criptografado (SQLCipher) com a agenda, clientes, catálogo, estoque, saldos e comandas; agenda, comanda, estoque e lista de espera funcionam sem internet e sincronizam sozinhos (ver "Modo offline do app").
 
 **Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave do próprio negócio. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp). Se o cliente manda a imagem ou o PDF do comprovante no WhatsApp, o backend baixa o arquivo pela Evolution API (`POST /chat/getBase64FromMediaMessage/{instância}`, até 5 MB, só imagem ou PDF) e guarda junto do Pix pendente; o app mostra o comprovante na lista. **Recusar** um Pix (o dinheiro não caiu) marca como expirado e avisa o cliente com uma mensagem neutra; o horário continua marcado.
 
@@ -410,8 +411,8 @@ memória, e um **refresh token** de 12 horas, guardado no `sessionStorage` da ab
 renova o token sozinho (`POST /api/auth/token`); fechar a aba encerra a sessão; "Sair de todos os aparelhos",
 trocar a senha ou desativar a pessoa invalidam o refresh token. O `/api/auth/refresh` mantém o token web curto.
 
-**Só online:** sem internet, a versão web mostra o aviso "Sem conexão" e bloqueia as alterações (o app nativo ganha o
-modo offline na próxima etapa).
+**Só online:** sem internet, a versão web mostra o aviso "Sem conexão" e bloqueia as alterações. Nada de dados de
+clientes fica no navegador (o modo offline é só do app do celular).
 
 **CSP:** o Caddyfile não libera `'unsafe-inline'`. Os estilos do react-native-web e as fontes entram pelo CSSOM
 (`src/webFonts.web.js`), e o estilo base fica em `public/web.css`. Não coloque `<style>` nem `<script>` inline no
@@ -422,6 +423,82 @@ Teste ponta a ponta: `cd mobile && npm run test:web`. Precisa do Playwright para
 os dados fictícios do `seed_mock`, porta 8010), gera o export e o serve com o mesmo CSP do Caddyfile. Confere login,
 papéis, armazenamento, sessão, modo sem internet, fontes e ausência de erros de console ou bloqueios do CSP, em 375
 e 1440 px.
+
+## Modo offline do app (celular)
+
+O app do celular funciona sem internet e sincroniza sozinho. A versão web continua só online.
+
+**Onde ficam os dados:** num SQLite do aparelho criptografado com **SQLCipher**: o plugin `expo-sqlite` vem com
+`useSQLCipher: true` no `app.json`. A chave é aleatória (256 bits), gerada no aparelho e guardada no SecureStore
+(Keychain/Keystore, `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`). O arquivo e a chave são apagados quando:
+- a pessoa sai da conta;
+- outra pessoa (ou outro papel) entra no aparelho;
+- o servidor recusa o token (inclusive "Sair de todos os aparelhos").
+
+**O que vai para o aparelho:** a janela que o servidor manda, já filtrada por papel:
+- agenda de 30 dias para trás a 60 para frente;
+- clientes, serviços, profissionais e bloqueios;
+- produtos e o estoque (movimentos);
+- pacotes, assinaturas e os saldos;
+- comandas dos últimos 30 dias.
+
+O profissional recebe só a própria agenda e os clientes que atendeu. Uma vez por dia o pull recomeça do zero, porque
+a janela anda com o calendário.
+
+**O que funciona offline:**
+- agendar, remarcar, check-in, concluir, falta e cancelar;
+- editar nome e observações do cliente;
+- comanda inteira: abrir, lançar, desconto, gorjeta, receber, estornar, fechar e cancelar;
+- movimentar o estoque;
+- lista de espera;
+- bloqueios.
+
+Relatórios, financeiro, Pix, configurações, equipe e cadastros (serviços, produtos, planos) continuam precisando de
+internet. O app avisa e não deixa a ação sair sem conexão.
+
+**Como sincroniza:** cada alteração é gravada no aparelho junto com a operação da fila (outbox), na mesma
+transação, com um `operation_id` (UUID).
+- **Quando:** ao abrir o app, ao voltar para ele, quando a internet volta, a cada 2 minutos e logo depois de cada
+  alteração. Também em segundo plano (`expo-background-task`, a cada ~15 min, quando o sistema deixar).
+- **Falha de rede:** a próxima tentativa espera 5 s, 10 s, 20 s, e assim por diante até 5 min.
+- **Envio e resposta:** a fila sai na ordem em que foi feita. O reenvio usa o mesmo `operation_id`, e o servidor
+  devolve a resposta já gravada (nada se aplica duas vezes).
+- **Com internet:** o app espera a resposta por alguns segundos. Conflito ou recusa aparecem na hora, na própria tela.
+
+**Na tela:**
+- **Avisos no topo:** a faixa "Sem conexão: suas alterações serão sincronizadas" mostra o número de pendências.
+  Cada item ainda não confirmado tem o selo **A confirmar**.
+- **Sincronização:** em *Mais › Sincronização e modo offline* ficam a última sincronização, a lista do que está
+  pendente e o botão **Sincronizar agora**.
+- **Atenção:** o que o servidor não aceitou, como horário ocupado enquanto o aparelho estava offline, é desfeito no
+  aparelho e vai para **Precisa da sua atenção**, com "Agendar em outro horário".
+- **WhatsApp:** agendamento feito offline fica "a confirmar". O cliente só recebe a mensagem depois que o servidor
+  aceitar.
+
+**Logs:** a sincronização registra só eventos e contagens, nunca nome, telefone ou outros dados de clientes.
+
+**Build:** o Expo Go não traz o SQLCipher. Nele o modo offline fica desligado e o app funciona online, como a web.
+- **Para testar o offline de verdade:** gere o APK com `npx eas-cli build -p android --profile apk`, ou rode
+  `npx expo run:android`.
+- **Só para mexer na interface:** `EXPO_PUBLIC_OFFLINE_PLAINTEXT=1 npx expo start` liga o modo offline no Expo Go
+  sem criptografia, apenas em desenvolvimento e com dados fictícios.
+
+**Código:**
+- `mobile/src/offline/`:
+  - `store.js`: banco e outbox;
+  - `engine.js`: push, pull, conflitos e espera entre tentativas;
+  - `shapes.js`: os formatos da API montados no aparelho;
+  - `db.js`: SQLCipher;
+  - `manager.js`: gatilhos.
+- `mobile/src/repo.js`: o repositório. As telas usam sempre a mesma interface: `repo.local.js` no celular,
+  `repo.remote.js` (API) na web.
+
+**Testes:**
+- `cd mobile && npm test` roda o Jest com o SQLite do Node, o mesmo SQL do aparelho. Cobre:
+  - motor de sincronização: ordem, reenvio sem duplicar, conflito indo para a atenção, tombstones, apagar ao trocar
+    de usuário, transação, espera entre tentativas, pull diário e nada de dados de clientes no log;
+  - repositório de ponta a ponta: agenda e caixa offline sincronizando sem duplicar.
+- Roteiro manual com modo avião: `mobile/tests/OFFLINE-TESTE-MANUAL.md`.
 
 ## Marca e temas (SyncServ)
 
@@ -457,8 +534,8 @@ Contraste (WCAG AA): `cd mobile && npm test` confere 4.5:1 para textos e 3:1 par
 ```bash
 cd mobile
 npm install
-npx expo start          # abre no celular pelo app Expo Go
-npm test                # teste de contraste dos temas
+npx expo start          # abre no celular pelo app Expo Go (sem o modo offline: ver "Modo offline do app")
+npm test                # testes do app (temas, papéis, teclado, sincronização offline)
 ```
 
 Telas:

@@ -1,4 +1,5 @@
 import { File, Paths } from 'expo-file-system';
+import { isOnline } from './net';
 import { getItem, IS_WEB, removeItem, setItem } from './storage';
 
 let baseUrl = '';
@@ -6,6 +7,7 @@ let token = '';
 let refreshToken = ''; // só na versão web
 let refreshTimer = null;
 let onUnauthorized = () => {};
+let onWrite = null; // celular: depois de uma alteração feita direto na API, sincroniza o banco local
 
 // Na versão web publicada (app.dominio), a API fica no mesmo endereço (o Caddy encaminha /api)
 const webOrigin = () => (IS_WEB && typeof window !== 'undefined' ? window.location.origin : '');
@@ -19,6 +21,7 @@ export async function loadSession() {
     email: await getItem('lastEmail'), niche: (await getItem('niche')) || 'barbershop',
     themeMode: (await getItem('themeMode')) || 'auto', role: (await getItem('role')) || 'owner',
     barberId: Number(await getItem('barberId')) || null,
+    userId: Number(await getItem('userId')) || null, shopId: Number(await getItem('shopId')) || null,
   };
   if (IS_WEB && !token && refreshToken) {
     // Aba recarregada: o token de acesso estava só na memória; o refresh token da aba gera um novo
@@ -69,6 +72,8 @@ async function saveSession(url, r) {
   await setItem('shopName', r.shop_name);
   await setItem('role', r.role || 'owner');
   await setItem('barberId', r.barber_id || '');
+  await setItem('userId', r.user_id || '');
+  await setItem('shopId', r.shop_id || '');
 }
 
 // Segmento e modo do tema do negócio (aplicados já na abertura do app, antes de carregar a API)
@@ -104,11 +109,19 @@ export class ApiError extends Error {
 }
 
 export const OFFLINE_WEB = 'Sem conexão. Na versão web as alterações só podem ser feitas com internet.';
+export const OFFLINE_APP = 'Sem conexão. Essa ação precisa de internet; as de agenda, comanda e estoque funcionam '
+  + 'offline.';
 
 // A versão web funciona só online: sem internet, nenhuma alteração é enviada
 export function webOffline() {
   return IS_WEB && typeof navigator !== 'undefined' && navigator.onLine === false;
 }
+
+export function setWriteHook(fn) {
+  onWrite = fn;
+}
+
+const NO_HOOK = /^\/(sync|auth)\//;
 
 function buildUrl(path, query) {
   let url = baseUrl.replace(/\/$/, '') + '/api' + path;
@@ -124,6 +137,8 @@ function buildUrl(path, query) {
 
 export async function request(method, path, body, query, retried = false) {
   if (method !== 'GET' && webOffline()) throw new ApiError(OFFLINE_WEB, 0);
+  // Celular sem internet: o que funciona offline passa pelo repositório local (src/repo.local.js), não por aqui
+  if (method !== 'GET' && !IS_WEB && !isOnline() && !path.startsWith('/auth/')) throw new ApiError(OFFLINE_APP, 0);
   const url = buildUrl(path, query);
   let res;
   try {
@@ -162,6 +177,7 @@ export async function request(method, path, body, query, retried = false) {
     else if (msg && typeof msg === 'object') msg = msg.message;
     throw new ApiError(msg || `Erro ${res.status}`, res.status, data);
   }
+  if (method !== 'GET' && onWrite && !NO_HOOK.test(path)) onWrite();
   return data;
 }
 

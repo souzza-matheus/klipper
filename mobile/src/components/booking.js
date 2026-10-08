@@ -5,7 +5,8 @@ import { ask, confirm, haptic, run, toast } from '../ui';
 export async function saveWithConflictCheck(call, okMsg) {
   try {
     const r = await call(false);
-    if (okMsg) toast(okMsg);
+    const msg = typeof okMsg === 'function' ? okMsg(r) : okMsg;
+    if (msg) toast(msg, r && r._queued ? 'info' : 'success');
     return r;
   } catch (e) {
     if (e.status !== 409 || e.data?.detail?.code !== 'customer_conflict') {

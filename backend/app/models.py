@@ -824,6 +824,7 @@ class ComandaItem(SyncMixin, Base):
     service: Mapped[Service | None] = relationship()
     product: Mapped[Product | None] = relationship()
     barber: Mapped[Barber | None] = relationship()
+    package_plan: Mapped["PackagePlan | None"] = relationship()
 
 
 class ComandaPayMethod:

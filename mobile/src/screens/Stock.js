@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { api } from '../api';
+import { repo, saved } from '../repo';
 import { DataTable } from '../components/Layout';
 import { dtLabel, money, moneyInput, parseMoney } from '../format';
 import { useSession } from '../session';
@@ -22,7 +23,7 @@ const LOW = { label: 'Estoque baixo', tone: 'warning', icon: 'alert-circle-outli
 export function ProductsScreen({ navigation }) {
   const { s } = useTheme();
   const { wide, can } = useSession();
-  const list = useLoad(() => api.get('/products', { include_inactive: true }), []);
+  const list = useLoad(() => repo.products(true), []);
   useLayoutEffect(() => {
     if (!can('productEdit')) return;
     navigation.setOptions({ headerRight: () => (
@@ -87,11 +88,12 @@ function MovementForm({ product, onDone }) {
   const save = () => run(async () => {
     const delta = Number(String(amount).replace(',', '.'));
     if (!delta) throw new Error('Informe a quantidade.');
-    await api.post(`/products/${product.id}/movements`, { delta: String(delta), reason, notes });
+    const r = await repo.addStockMovement(product, { delta: String(delta), reason, notes });
     setAmount('');
     setNotes('');
     onDone();
-  }, 'Estoque atualizado.');
+    return r;
+  }, saved('Estoque atualizado.'));
   return (
     <Card>
       <Chips value={reason} onChange={setReason} options={reasons} />
@@ -120,10 +122,10 @@ export function ProductEditScreen({ navigation, route }) {
   const [minimum, setMinimum] = useState(item ? qty(item.min_stock) : '0');
   const [pct, setPct] = useState(item?.commission_pct ? String(Number(item.commission_pct)) : '');
   const [active, setActive] = useState(item ? item.active : true);
-  const moves = useLoad(async () => (item && can('stockPurchase') ? api.get(`/products/${item.id}/movements`) : null),
+  const moves = useLoad(async () => (item && can('stockPurchase') ? repo.productMovements(item.id) : null),
     [item?.id]);
-  const current = useLoad(async () => (item ? (await api.get('/products', { include_inactive: true }))
-    .find((p) => p.id === item.id) : null), [item?.id]);
+  const current = useLoad(async () => (item ? (await repo.products(true)).find((p) => p.id === item.id) : null),
+    [item?.id]);
 
   const save = () => run(async () => {
     const body = {

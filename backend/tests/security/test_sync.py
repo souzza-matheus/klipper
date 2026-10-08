@@ -230,3 +230,59 @@ def test_pull_window_keeps_old_agenda_off_the_device(two):
     two.db.commit()
     changes, _, _, _ = pull_all(two.ca)
     assert ap.uuid not in {x["id"] for x in changes["appointments"]}
+
+
+def test_offline_check_in_and_completion_with_payment(two):
+    """Check-in e conclusão com forma de pagamento feitos offline; o profissional não mexe em valor."""
+    a = two.a
+    pro = _login(a.extra["pro"].email, a.extra["pro_password"])
+    at = datetime.combine(_future_weekday(8), time(9, 5)).isoformat()
+    res = pro.post("/api/sync/push", json={"operations": [
+        op("appointments", "update", a.appt.uuid, {"check_in": True, "checked_in_at": at}),
+        op("appointments", "update", a.appt.uuid, {"status": "completed", "price": "1.00"}),
+    ]}).json()["results"]
+    assert res[0]["status"] == "aplicado", res[0]
+    assert res[0]["server"]["checked_in_at"] == at
+    assert res[0]["server"]["status"] == "confirmed"
+    assert res[1]["status"] == "rejeitado" and res[1]["reason"] == "sem_permissao"
+    res = two.ca.post("/api/sync/push", json={"operations": [
+        op("appointments", "update", a.appt.uuid, {"status": "completed", "payment_method": "dinheiro",
+                                                   "price": "55.00"}),
+        op("appointments", "update", a.appt.uuid, {"check_in": True}),
+    ]}).json()["results"]
+    assert res[0]["status"] == "aplicado"
+    two.db.expire_all()
+    appt = two.db.get(Appointment, a.appt.id)
+    assert appt.status == "completed" and appt.payment_method == "dinheiro" and str(appt.price) == "55.00"
+    assert res[1]["status"] == "conflito" and res[1]["reason"] == "status_alterado"  # já concluído
+
+
+def test_pull_carries_what_the_offline_screens_show(two):
+    changes, _, _, _ = pull_all(two.ca)
+    appt = next(x for x in changes["appointments"] if x["id"] == two.a.appt.uuid)
+    assert appt["created_via"]
+    cust = next(x for x in changes["customers"] if x["id"] == two.a.customer.uuid)
+    assert cust["created_at"] and "access_reason" in cust
+    item = changes["comanda_items"][0]
+    assert {"percent", "commission_base", "package_plan_id"} <= set(item)
+
+
+def test_offline_waitlist_with_new_phone_and_time_window(two):
+    a = two.a
+    o = op("waitlist_entries", "create", uid(), {"customer_phone": "5531955557777", "customer_name": "fila nova",
+                                                 "service_id": a.service.uuid, "day": _future_weekday(9).isoformat(),
+                                                 "after_time": "14:00", "before_time": "18:00"})
+    res = two.ca.post("/api/sync/push", json={"operations": [o]}).json()["results"][0]
+    assert res["status"] == "aplicado", res
+    assert res["server"]["after_time"] == "14:00:00" and res["server"]["before_time"] == "18:00:00"
+    cust = two.db.scalar(select(Customer).where(Customer.phone == "5531955557777"))
+    assert cust.name == "Fila Nova" and cust.shop_id == two.a.shop.id
+    bad = op("waitlist_entries", "create", uid(), {"customer_phone": "123", "service_id": a.service.uuid,
+                                                   "day": _future_weekday(9).isoformat()})
+    assert two.ca.post("/api/sync/push", json={"operations": [bad]}).json()["results"][0]["reason"] == "dados_invalidos"
+
+
+def test_pull_appointment_has_pix_and_approval_info(two):
+    changes, _, _, _ = pull_all(two.ca)
+    appt = next(x for x in changes["appointments"] if x["id"] == two.a.appt.uuid)
+    assert {"payment_id", "customer_reported_paid", "rating", "approval_deadline"} <= set(appt)

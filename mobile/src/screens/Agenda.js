@@ -3,6 +3,8 @@ import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../api';
 import { confirmPix, QuickActions } from '../components/AppointmentCard';
+import { PendingBadge } from '../components/Sync';
+import { repo, saved } from '../repo';
 import { confirmAccess, saveWithConflictCheck } from '../components/booking';
 import { DayGrid, fromMin, toMin } from '../components/DayGrid';
 import { ConflictDayWarning, QuickBookSheet } from '../components/QuickBook';
@@ -101,7 +103,7 @@ const WEEK_HEAD = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 function MonthView({ month, barber, onPick, onMonth }) {
   const { c, s, font, v } = useTheme();
   const [y, m] = month.split('-').map(Number);
-  const r = useLoad(() => api.get('/appointments/month', { year: y, month: m, barber_id: barber }), [month, barber]);
+  const r = useLoad(() => repo.appointmentsMonth(y, m, barber), [month, barber]);
   const days = r.data?.days || [];
   const today = todayISO();
   const lead = days.length ? weekdayMonFirst(days[0].date) : 0;
@@ -117,6 +119,11 @@ function MonthView({ month, barber, onPick, onMonth }) {
       {!r.data ? <Loading error={r.error} onRetry={r.reload} /> : (
         <>
           <Text style={[s.muted, { marginBottom: SPACE(3) }]}>{v.count(total, v.service, v.services)} · previsto {money(revenue)}</Text>
+          {r.data._offline ? (
+            <Text style={[s.caption, { marginBottom: SPACE(3) }]}>
+              Sem internet: contando só o que está no aparelho (30 dias para trás e 60 para frente).
+            </Text>
+          ) : null}
           <View style={[s.card, { padding: SPACE(1.5) }]}>
             <View style={s.row}>
               {WEEK_HEAD.map((w, i) => (
@@ -202,9 +209,9 @@ export function AgendaScreen({ navigation }) {
   const [barber, setBarber] = useState(null);
   const [slot, setSlot] = useState(null);
   const [held, setHeld] = useState(null);
-  const agenda = useLoad(async () => (mode === 'month' ? null : api.get('/agenda/day', { day })), [day, mode]);
-  const barbers = useLoad(() => api.get('/barbers'), []);
-  const services = useLoad(() => api.get('/services'), []);
+  const agenda = useLoad(async () => (mode === 'month' ? null : repo.agendaDay(day)), [day, mode]);
+  const barbers = useLoad(() => repo.barbers(), []);
+  const services = useLoad(() => repo.services(), []);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -294,7 +301,7 @@ export function SlotPicker({ serviceId, barberId, customerId, value, onChange, i
     if (!serviceId) return;
     setSlots(null);
     setErr('');
-    api.get('/availability', { service_id: serviceId, day, barber_id: barberId, customer_id: customerId })
+    repo.availability({ service_id: serviceId, day, barber_id: barberId, customer_id: customerId })
       .then(setSlots).catch((e) => setErr(e.message));
   }, [serviceId, barberId, customerId, day]);
   if (!serviceId) return <Text style={s.muted}>Escolha o serviço primeiro.</Text>;
@@ -305,7 +312,7 @@ export function SlotPicker({ serviceId, barberId, customerId, value, onChange, i
       {slots && !slots.length ? <Empty text="Sem horários livres neste dia." icon="time-outline" /> : null}
       {slots && slots.length ? (
         <Chips value={value ? `${value.start}|${value.barber_id}` : null}
-               onChange={(x) => { const [start, b] = x.split('|'); onChange({ start, barber_id: Number(b) }); }}
+               onChange={(x) => { const [start, b] = x.split('|'); onChange({ start, barber_id: /^\d+$/.test(b) ? Number(b) : b }); }}
                options={slots.map((x) => ({ value: `${x.start}|${x.barber_id}`, label: barberId ? hm(x.start) : `${hm(x.start)} ${x.barber_name}` }))} />
       ) : null}
     </View>
@@ -314,22 +321,30 @@ export function SlotPicker({ serviceId, barberId, customerId, value, onChange, i
 
 export function NewAppointmentScreen({ navigation, route }) {
   const { s, v } = useTheme();
-  const services = useLoad(() => api.get('/services'), []);
-  const barbers = useLoad(() => api.get('/barbers'), []);
-  const [phone, setPhone] = useState('');
-  const [name, setName] = useState('');
+  const services = useLoad(() => repo.services(), []);
+  const barbers = useLoad(() => repo.barbers(), []);
+  const prefill = route.params?.prefill; // "Agendar em outro horário" (tela Precisa da sua atenção)
+  const [phone, setPhone] = useState(prefill?.phone || '');
+  const [name, setName] = useState(prefill?.name || '');
   const [serviceId, setServiceId] = useState(null);
   const [barberId, setBarberId] = useState(null);
   const [slot, setSlot] = useState(null);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(prefill?.notes || '');
   const [busy, setBusy] = useState(false);
   const [customer, setCustomer] = useState(null); // cliente já cadastrado com este telefone
+  useEffect(() => {
+    if (!prefill) return;
+    const svc = (services.data || []).find((x) => x.uuid && x.uuid === prefill.serviceUuid);
+    const pro = (barbers.data || []).find((x) => x.uuid && x.uuid === prefill.barberUuid);
+    if (svc) setServiceId(svc.id);
+    if (pro) setBarberId(pro.id);
+  }, [services.data, barbers.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [day, setDay] = useState(route.params?.day || todayISO());
   const [hits, setHits] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [useBalance, setUseBalance] = useState(true);
   const [deposit, setDeposit] = useState(false);
-  const shop = useLoad(() => api.get('/shop'), []);
+  const shop = useLoad(() => repo.shop(), []);
   const svc = (services.data || []).find((x) => x.id === serviceId);
   const depositMode = svc?.deposit_mode || shop.data?.deposit_mode || 'off';
 
@@ -338,23 +353,24 @@ export function NewAppointmentScreen({ navigation, route }) {
   useEffect(() => {
     if (digits.length < 10) { setCustomer(null); return undefined; }
     const t = setTimeout(() => {
-      api.get('/customers', { q: digits, limit: 5 })
+      repo.customers({ q: digits, limit: 5 })
         .then((r) => setCustomer(r.find((x) => x.phone.endsWith(digits)) || null)).catch(() => setCustomer(null));
     }, 350);
     return () => clearTimeout(t);
   }, [digits]);
   useEffect(() => {
-    if (!customer) { setHits([]); return; }
+    if (!customer || typeof customer.id !== 'number') { setHits([]); return; }
     api.get('/customer-conflicts/day', { day, customer_id: customer.id }).then(setHits).catch(() => setHits([]));
   }, [customer, day]);
 
   const save = () => confirmAccess(customer, async () => {
     setBusy(true);
-    const r = await saveWithConflictCheck((force) => api.post('/appointments', {
+    const r = await saveWithConflictCheck((force) => repo.createAppointment({
       customer_phone: phone, customer_name: name, service_id: serviceId, barber_id: slot.barber_id, start: slot.start,
       notes, force, use_balance: useBalance, require_deposit: deposit && depositMode !== 'off',
-    }), deposit && depositMode !== 'off' ? `Reservado. O ${v.customer} recebeu o Pix do sinal no WhatsApp.`
-      : `Agendado. O ${v.customer} recebeu a confirmação no WhatsApp.`);
+    }), saved(deposit && depositMode !== 'off' ? `Reservado. O ${v.customer} recebeu o Pix do sinal no WhatsApp.`
+      : `Agendado. O ${v.customer} recebeu a confirmação no WhatsApp.`,
+    `Agendado no aparelho (a confirmar). O ${v.customer} recebe o WhatsApp quando o servidor confirmar.`));
     setBusy(false);
     if (r) navigation.goBack();
   });
@@ -427,10 +443,7 @@ export function AppointmentScreen({ navigation, route }) {
   const { s, v } = useTheme();
   const { can } = useSession();
   const { id } = route.params;
-  const appt = useLoad(async () => {
-    const list = await api.get('/appointments', { date_from: route.params.item.start.slice(0, 10), include_cancelled: true });
-    return list.find((x) => x.id === id) || route.params.item;
-  }, [id]);
+  const appt = useLoad(() => repo.appointment(id, route.params.item), [id]);
   const [moving, setMoving] = useState(false);
   const [slot, setSlot] = useState(null);
   const [completing, setCompleting] = useState(false);
@@ -448,10 +461,11 @@ export function AppointmentScreen({ navigation, route }) {
   const complete = () => run(async () => {
     const price = parseMoney(finalPrice);
     if (price === null || price < 0) throw new Error('Valor inválido.');
-    await api.patch(`/appointments/${a.id}`, { status: 'completed', payment_method: method, price: price.toFixed(2) });
+    const r = await repo.updateAppointment(a, { status: 'completed', payment_method: method, price: price.toFixed(2) });
     setCompleting(false);
     appt.reload();
-  }, `${v.Service} ${v.done}.`);
+    return r;
+  }, saved(`${v.Service} ${v.done}.`));
   const diff = (parseMoney(finalPrice) ?? Number(a.price)) - Number(a.price);
   const completePanel = completing ? (
     <Section title={a.status === 'completed' ? 'Pagamento' : `Concluir ${v.service}`}>
@@ -471,9 +485,10 @@ export function AppointmentScreen({ navigation, route }) {
   ) : null;
 
   const setStatus = (status, msg) => run(async () => {
-    await api.patch(`/appointments/${a.id}`, { status });
+    const r = await repo.updateAppointment(a, { status });
     appt.reload();
-  }, msg);
+    return r;
+  }, msg ? saved(msg) : undefined);
   const active = a.status === 'scheduled' || a.status === 'confirmed';
   const pending = a.status === 'pending_approval';
   const decide = (action, msg) => run(async () => {
@@ -493,7 +508,12 @@ export function AppointmentScreen({ navigation, route }) {
         {a.customer_package_id ? <Badge info={{ label: 'Pago com pacote', tone: 'accent', icon: 'albums-outline' }} large /> : null}
         {a.subscription_id ? <Badge info={{ label: 'Pela assinatura', tone: 'accent', icon: 'repeat-outline' }} large /> : null}
         {a.rating ? <Stars n={a.rating} /> : null}
+        <PendingBadge item={a} />
       </View>
+      {a._local ? (
+        <Banner tone="warning" icon="cloud-upload-outline" title="A confirmar"
+                text={`Feito sem internet. O ${v.customer} recebe a confirmação no WhatsApp quando o servidor aceitar.`} />
+      ) : null}
       <Card>
         <InfoRow icon="pricetag-outline">{a.service_name} com {a.barber_name}</InfoRow>
         <InfoRow icon="calendar-outline">{dtLabel(a.start)} até {hm(a.end)}</InfoRow>
@@ -535,14 +555,14 @@ export function AppointmentScreen({ navigation, route }) {
           <Section title="Ações">
             {!a.checked_in_at ? (
               <Button title="Cliente chegou (check-in)" kind="secondary" icon="enter-outline"
-                      onPress={() => run(() => api.post(`/appointments/${a.id}/check-in`).then(appt.reload), 'Check-in feito.')} />
+                      onPress={() => run(() => repo.checkIn(a).then((r) => { appt.reload(); return r; }), saved('Check-in feito.'))} />
             ) : null}
             {a.status === 'scheduled' && a.checked_in_at ? <Button title="Confirmar presença" kind="secondary" icon="checkmark" onPress={() => setStatus('confirmed', 'Presença confirmada.')} /> : null}
             {!completing ? (can('changePrice') ? <Button title={`Concluir sem comanda`} kind="ghost" icon="checkmark-done" onPress={openComplete} />
               : <Button title={`Marcar como ${v.done}`} kind="ghost" icon="checkmark-done" onPress={() => setStatus('completed', `${v.Service} ${v.done}.`)} />) : null}
             {completePanel}
             <Button title={`${v.Customer} faltou`} kind="ghost" icon="close-circle-outline" onPress={() => setStatus('no_show', 'Falta registrada.')} />
-            {a.payment_status !== 'paid' && can('sendPix') && !a.customer_package_id && !a.subscription_id ? (
+            {a.payment_status !== 'paid' && can('sendPix') && !a.customer_package_id && !a.subscription_id && !a._local ? (
               <Button title="Enviar Pix pelo WhatsApp" kind="secondary" icon="qr-code-outline"
                       onPress={() => run(() => api.post(`/appointments/${a.id}/send-pix`).then(appt.reload), 'Pix enviado.')} />
             ) : null}
@@ -555,9 +575,9 @@ export function AppointmentScreen({ navigation, route }) {
               <SlotPicker serviceId={a.service_id} barberId={a.barber_id} customerId={a.customer_id} value={slot}
                           onChange={setSlot} initialDay={a.start.slice(0, 10)} />
               <Button title="Confirmar remarcação" disabled={!slot} onPress={async () => {
-                const r = await saveWithConflictCheck((force) => api.post(`/appointments/${a.id}/reschedule`, {
+                const r = await saveWithConflictCheck((force) => repo.reschedule(a, {
                   start: slot.start, barber_id: slot.barber_id, force,
-                }), 'Remarcado. O cliente foi avisado.');
+                }), saved('Remarcado. O cliente foi avisado.', 'Remarcado no aparelho. O cliente é avisado quando sincronizar.'));
                 if (r) { setMoving(false); appt.reload(); }
               }} />
             </Section>
