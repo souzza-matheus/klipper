@@ -205,8 +205,11 @@ function AISection() {
   );
 }
 
+const AUTO_CONFIRM_WARNING = 'O sistema não acessa seu extrato. Comprovantes podem ser falsificados. Use apenas para '
+  + 'valores baixos e confira o extrato diariamente.';
+
 export function SettingsScreen() {
-  const { s, v } = useTheme();
+  const { c, s, v } = useTheme();
   const shop = useLoad(() => api.get('/shop'), []);
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -222,6 +225,12 @@ export function SettingsScreen() {
       [...NUM, ...DEPOSIT_NUM].forEach(([k]) => { body[k] = Number(body[k]); });
       body.deposit_value = (parseMoney(f.deposit_value_text ?? '') ?? Number(f.deposit_value) ?? 0).toFixed(2);
       delete body.deposit_value_text;
+      const autoMax = parseMoney(f.receipt_auto_confirm_max_text ?? '') ?? Number(f.receipt_auto_confirm_max) ?? 0;
+      if (body.receipt_auto_confirm && !(autoMax > 0 && autoMax <= 100)) {
+        throw new Error('Informe um valor entre R$ 0,01 e R$ 100,00 para a confirmação automática.');
+      }
+      body.receipt_auto_confirm_max = Math.min(autoMax, 100).toFixed(2);
+      delete body.receipt_auto_confirm_max_text;
       const r = await api.put('/shop', body);
       setF({ ...r, owner_phone: phoneLabel(r.owner_phone) });
     }, 'Configurações salvas. O bot já usa os novos dados.');
@@ -258,6 +267,26 @@ export function SettingsScreen() {
                    keyboardType={f.pix_key_type === 'email' ? 'email-address' : ['cpf', 'cnpj', 'phone'].includes(f.pix_key_type) ? 'number-pad' : 'default'} />
             <Field label="Nome do recebedor (até 25 letras)" value={f.pix_receiver_name} onChangeText={set('pix_receiver_name')} maxLength={25} />
             <Field label="Cidade (até 15 letras)" value={f.pix_city} onChangeText={set('pix_city')} maxLength={15} />
+            <Text style={[s.caption, { marginBottom: SPACE(3) }]}>
+              Quando o cliente manda o comprovante no WhatsApp, a IA lê os dados e o sistema confere valor, recebedor,
+              data e se o comprovante já foi usado. Você recebe o resultado e confirma com um toque. O arquivo é
+              apagado depois de 90 dias (ficam só os dados lidos).
+            </Text>
+            <Toggle label="Confirmar automaticamente comprovantes que conferem" value={f.receipt_auto_confirm}
+                    onValueChange={(on) => (on ? confirm('Confirmação automática',
+                      AUTO_CONFIRM_WARNING, () => set('receipt_auto_confirm')(true), 'Entendi, ligar')
+                      : set('receipt_auto_confirm')(false))}
+                    hint={'Só vale com todos os dados conferindo, leitura com confiança alta, cliente sem comprovante '
+                      + 'recusado ou divergente e até 3 por cliente por mês. Você vê cada uma no resumo diário e pode '
+                      + 'desfazer.'} />
+            {f.receipt_auto_confirm ? (
+              <>
+                <Field label="Até o valor (máximo R$ 100,00)" mask="money"
+                       value={f.receipt_auto_confirm_max_text ?? moneyInput(f.receipt_auto_confirm_max)}
+                       onChangeText={set('receipt_auto_confirm_max_text')} />
+                <Text style={[s.caption, { color: c.statusText.warning, marginBottom: SPACE(3) }]}>{AUTO_CONFIRM_WARNING}</Text>
+              </>
+            ) : null}
           </>
         ) : null}
       </Section>

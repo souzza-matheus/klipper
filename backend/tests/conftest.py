@@ -6,6 +6,11 @@ os.environ["EVOLUTION_URL"] = ""
 os.environ["RUN_SCHEDULER"] = "false"
 os.environ["DEV_MODE"] = "true"
 os.environ["JWT_SECRET"] = "segredo-de-teste-com-mais-de-32-caracteres"
+# Comprovantes dos testes numa pasta temporária (nunca na pasta de dados do desenvolvimento)
+import tempfile  # noqa: E402
+# Nunca a chave de verdade do backend/.env: teste não fala com o Gemini (cada teste injeta o FakeProvider)
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["RECEIPTS_DIR"] = tempfile.mkdtemp(prefix="barberbot-receipts-")
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import bcrypt  # noqa: E402

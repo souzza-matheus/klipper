@@ -48,6 +48,8 @@ NEW_COLUMNS = [
     ("shops", "deposit_refund_hours"), ("shops", "waitlist_hold_minutes"), ("shops", "sync_seq"),
     ("services", "deposit_mode"), ("services", "deposit_value"), ("payments", "kind"),
     ("appointments", "checked_in_at"), ("appointments", "deposit_amount"), ("appointments", "deposit_status"),
+    # 0009: comprovantes
+    ("shops", "receipt_auto_confirm"), ("shops", "receipt_auto_confirm_max"),
 ]
 # 0008: tabelas que ganharam as colunas da sincronização (uuid único, sync_seq indexado)
 SYNC_TABLES = ("services", "barbers", "blocks", "customers", "appointments")
@@ -55,7 +57,7 @@ SYNC_COLUMNS = ("uuid", "updated_at", "deleted_at", "version", "sync_seq")
 NEW_TABLES = ("expenses", "customer_conflicts", "conversation_messages", "ai_usage", "products", "service_products",
               "stock_movements", "package_plans", "customer_packages", "package_uses", "subscription_plans",
               "subscription_plan_items", "subscriptions", "subscription_uses", "charges", "comandas",
-              "comanda_items", "comanda_payments", "waitlist_entries", "sync_operations")
+              "comanda_items", "comanda_payments", "waitlist_entries", "sync_operations", "payment_receipts")
 
 
 def _old_metadata() -> MetaData:

@@ -114,6 +114,17 @@ def confirm_charge(db: Session, shop: Shop, ch: Charge, user: User | None = None
         benefits.refresh_status(db, ch.subscription)
 
 
+def confirm_and_notify(db: Session, shop: Shop, ch: Charge, user: User | None = None) -> None:
+    """Confirma a cobrança e avisa o cliente (só na primeira vez)."""
+    from .whatsapp import send_text
+    was = ch.status
+    confirm_charge(db, shop, ch, user)
+    if was != PayStatus.PAID:
+        what = "a mensalidade" if ch.kind == "subscription" else "o pacote"
+        send_text(db, shop, ch.customer.phone, f"✅ Recebemos o seu Pix de {money(ch.amount)} referente a {what}. "
+                                               "Obrigado!")
+
+
 def cancel_charge(ch: Charge) -> None:
     if ch.status == PayStatus.PENDING:
         ch.status = "cancelled"

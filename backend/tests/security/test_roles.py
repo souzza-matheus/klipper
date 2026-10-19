@@ -41,7 +41,8 @@ STAFF = {
     ("POST", "/api/comandas/{cid}/items/{iid}/reverse"), ("POST", "/api/comandas/{cid}/payments"),
     ("POST", "/api/comandas/{cid}/payments/{pid}/reverse"), ("POST", "/api/comandas/{cid}/close"),
     ("POST", "/api/comandas/{cid}/cancel"), ("GET", "/api/waitlist"), ("POST", "/api/waitlist"),
-    ("DELETE", "/api/waitlist/{wid}"),
+    ("DELETE", "/api/waitlist/{wid}"), ("GET", "/api/receipts/{rid}"), ("GET", "/api/receipts/{rid}/file"),
+    ("POST", "/api/receipts/{rid}/confirm"), ("POST", "/api/receipts/{rid}/reject"),
 }
 
 

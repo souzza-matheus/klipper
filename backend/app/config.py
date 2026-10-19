@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # URL pública do backend, usada para registrar o webhook na Evolution API
     public_url: str = "http://backend:8000"
     webhook_secret: str = "troque-este-segredo-do-webhook"
+    # Mensagens mais velhas que isso são ignoradas: ao conectar o WhatsApp, a Evolution reenvia as conversas
+    # anteriores como messages.upsert e o bot responderia a quem escreveu antes de ele entrar no ar
+    webhook_max_message_age_seconds: int = 120
 
     # Token exigido para cadastrar uma nova barbearia pela API
     setup_token: str = "troque-este-token-de-setup"
@@ -47,6 +50,9 @@ class Settings(BaseSettings):
     # paid: qualquer barbearia com ai_enabled
     ai_tier: str = "free"
     ai_timeout_seconds: int = 15
+    # Os dois modelos com 5xx (sobrecarga): repete a rodada N vezes, esperando X segundos, antes de cair no menu
+    ai_unavailable_retries: int = 1
+    ai_unavailable_retry_delay_seconds: float = 2.0
     ai_max_tool_calls: int = 6
     ai_history_messages: int = 12
     ai_hourly_limit_per_customer: int = 20
@@ -62,6 +68,14 @@ class Settings(BaseSettings):
     ai_flood_messages: int = 5         # mais que isso em ai_flood_seconds = flood
     ai_flood_seconds: int = 30
     ai_repeat_limit: int = 3           # a mesma mensagem 3 vezes seguidas
+
+    # Comprovantes de Pix (pré-conferência com IA). A pasta fica fora de qualquer pasta pública; no Docker, um volume.
+    receipts_dir: str = "data/receipts"
+    receipt_retention_days: int = 90   # depois disso o arquivo é apagado (os dados lidos ficam)
+    receipt_daily_limit: int = 5       # comprovantes por cliente por dia
+    receipt_max_bytes: int = 5 * 1024 * 1024
+    receipt_max_pdf_pages: int = 2
+    receipt_timeout_seconds: int = 30
 
 
 settings = Settings()

@@ -98,27 +98,40 @@ def _recent_user_texts(ctx: Ctx, since: datetime | None = None, limit: int = 10)
 
 # ---------------------------------------------------------------- chamadas ao modelo
 
+# Falhas em que vale tentar o modelo reserva: cota (429), sobrecarga (5xx) e tempo esgotado do modelo principal
+FALLBACK_KINDS = {"quota", "unavailable", "timeout"}
+
+
 def _generate(ctx: Ctx, system: str, msgs: list[Message], tool_specs):
-    """Chama o modelo principal; no 429 (cota), tenta uma vez o modelo reserva. Registra cada chamada.
-    Devolve (resultado, linha de uso)."""
+    """Chama o modelo principal; no 429 (cota), 5xx (sobrecarga) ou timeout, tenta uma vez o modelo reserva. Registra cada chamada.
+    Se os dois estiverem sobrecarregados (5xx), espera um pouco e repete a rodada: o pico costuma passar em segundos
+    e cair no menu no meio da conversa confunde o cliente. Devolve (resultado, linha de uso)."""
     models = [settings.ai_model]
     if settings.ai_fallback_model and settings.ai_fallback_model != settings.ai_model:
         models.append(settings.ai_fallback_model)
-    for i, model in enumerate(models):
-        t0 = time.monotonic()
-        try:
-            r = get_provider().generate(system, msgs, tool_specs, model, settings.ai_timeout_seconds,
-                                        settings.ai_max_output_tokens)
-        except LLMError as e:
-            usage.record(ctx.db, ctx.shop, ctx.phone, model, False, int((time.monotonic() - t0) * 1000), error=str(e))
-            if e.kind == "quota" and i + 1 < len(models):
-                log.warning("IA: cota do %s esgotada (429); tentando %s", model, models[i + 1])
-                continue
-            raise
-        row = usage.record(ctx.db, ctx.shop, ctx.phone, model, True, int((time.monotonic() - t0) * 1000),
-                           r.input_tokens, r.output_tokens, thinking_tokens=r.thinking_tokens,
-                           cached_tokens=r.cached_tokens)
-        return r, row
+    rounds = 1 + max(0, settings.ai_unavailable_retries)
+    for attempt in range(rounds):
+        for i, model in enumerate(models):
+            t0 = time.monotonic()
+            try:
+                r = get_provider().generate(system, msgs, tool_specs, model, settings.ai_timeout_seconds,
+                                            settings.ai_max_output_tokens)
+            except LLMError as e:
+                usage.record(ctx.db, ctx.shop, ctx.phone, model, False, int((time.monotonic() - t0) * 1000),
+                             error=str(e))
+                if e.kind in FALLBACK_KINDS and i + 1 < len(models):
+                    log.warning("IA: %s indisponível (%s); tentando %s", model, e.kind, models[i + 1])
+                    continue
+                if e.kind == "unavailable" and attempt + 1 < rounds:
+                    log.warning("IA: modelos sobrecarregados; nova tentativa em %ss",
+                                settings.ai_unavailable_retry_delay_seconds)
+                    time.sleep(settings.ai_unavailable_retry_delay_seconds)
+                    break
+                raise
+            row = usage.record(ctx.db, ctx.shop, ctx.phone, model, True, int((time.monotonic() - t0) * 1000),
+                               r.input_tokens, r.output_tokens, thinking_tokens=r.thinking_tokens,
+                               cached_tokens=r.cached_tokens)
+            return r, row
     raise LLMError("quota", "sem modelo disponível")
 
 
@@ -301,7 +314,7 @@ def _failed(ctx: Ctx, start: int) -> str:
 
 
 def transcribe(db, shop: Shop, phone: str, audio: bytes, mime_type: str) -> str:
-    """Transcreve um áudio com o mesmo provedor (e o modelo reserva no 429)."""
+    """Transcreve um áudio com o mesmo provedor (e o modelo reserva no 429, 5xx ou timeout)."""
     models = [settings.ai_model] + ([settings.ai_fallback_model] if settings.ai_fallback_model else [])
     for i, model in enumerate(models):
         t0 = time.monotonic()
@@ -309,7 +322,7 @@ def transcribe(db, shop: Shop, phone: str, audio: bytes, mime_type: str) -> str:
             r = get_provider().transcribe(audio, mime_type, model, settings.ai_timeout_seconds * 2)
         except LLMError as e:
             usage.record(db, shop, phone, model, False, int((time.monotonic() - t0) * 1000), error=str(e))
-            if e.kind == "quota" and i + 1 < len(models):
+            if e.kind in FALLBACK_KINDS and i + 1 < len(models):
                 continue
             raise
         usage.record(db, shop, phone, model, True, int((time.monotonic() - t0) * 1000), r.input_tokens,

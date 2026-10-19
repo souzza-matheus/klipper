@@ -12,7 +12,7 @@ from ..db import SessionLocal, get_db
 from ..jobs import run_all
 from ..models import Shop
 from ..security import same_secret
-from ..services.payments import save_receipt
+from ..services import receipts
 from ..services.whatsapp import (
     EvolutionError, mask_phone, media_base64, normalize_phone, parse_webhook, send_text,
 )
@@ -45,6 +45,10 @@ async def evolution_webhook(request: Request, background: BackgroundTasks, event
         return {"ignored": True}
     if not msg or not msg["phone"]:
         return {"ignored": True}
+    if msg.get("media"):
+        # Imagem ou PDF: pode ser o comprovante do Pix. Baixar, ler e conferir leva alguns segundos
+        background.add_task(process_media, msg["instance"], msg["phone"], msg["name"], msg["text"], msg["media"])
+        return {"ok": True, "media": True}
     if msg.get("audio"):
         # Áudio: só com a transcrição por IA ligada; baixar e transcrever leva alguns segundos
         background.add_task(process_audio, msg["instance"], msg["phone"], msg["name"], msg["audio"])
@@ -55,9 +59,6 @@ async def evolution_webhook(request: Request, background: BackgroundTasks, event
     except Exception:
         db.rollback()
         log.exception("Erro ao processar mensagem de %s", mask_phone(msg["phone"]))
-    if msg.get("media"):
-        # Baixar a mídia leva alguns segundos: fica para depois da resposta do bot
-        background.add_task(store_receipt, msg["instance"], msg["phone"], msg["media"])
     return {"ok": True}
 
 
@@ -100,16 +101,23 @@ def process_audio(instance: str, phone: str, name: str, audio: dict) -> None:
         db.close()
 
 
-def store_receipt(instance: str, phone: str, media: dict) -> None:
-    """Guarda imagem/PDF mandado pelo cliente como comprovante dos Pix pendentes dele (se houver)."""
+def process_media(instance: str, phone: str, name: str, text: str, media: dict) -> None:
+    """Imagem ou PDF. Do cliente: comprovante de Pix (app/services/receipts.py), que responde sozinho, inclusive
+    quando não há pagamento em aberto. Da equipe (fora do modo cliente): segue o fluxo normal com a legenda."""
+    from ..bot.context import conversation_for
+    from ..bot.owner import is_staff
     db = SessionLocal()
     try:
         shop = db.scalar(select(Shop).where(Shop.evolution_instance == instance))
-        if shop and save_receipt(db, shop, phone, media):
-            db.commit()
+        if shop is None:
+            return
+        if is_staff(shop, phone) and not (conversation_for(db, shop, phone).data or {}).get("as_customer"):
+            handle_incoming(db, instance, phone, text, name)
+            return
+        receipts.handle_media(db, shop, phone, media)
     except Exception:
         db.rollback()
-        log.exception("Erro ao guardar o comprovante de %s", mask_phone(phone))
+        log.exception("Erro ao processar o anexo de %s", mask_phone(phone))
     finally:
         db.close()
 
@@ -142,3 +150,28 @@ def simulate(body: SimIn, db: Session = Depends(get_db)):
 def dev_run_jobs():
     run_all()
     return {"ok": True}
+
+
+class SimReceiptIn(BaseModel):
+    phone: str
+    base64: str  # arquivo (imagem ou PDF) em base64
+    mimetype: str = "image/jpeg"
+    instance: str | None = None
+
+
+@router.post("/dev/simulate-receipt", tags=["dev"], dependencies=[Depends(dev_only)])
+def simulate_receipt(body: SimReceiptIn, db: Session = Depends(get_db)):
+    """Simula o cliente mandando a imagem ou o PDF do comprovante no WhatsApp (mesmo fluxo do webhook, com a
+    leitura por IA se ela estiver configurada). Devolve as mensagens enviadas e o resultado da conferência."""
+    from ..models import OutboxMessage
+    instance = body.instance or db.scalar(select(Shop.evolution_instance).order_by(Shop.id))
+    shop = db.scalar(select(Shop).where(Shop.evolution_instance == instance))
+    if shop is None:
+        raise HTTPException(404, "Instância não encontrada")
+    phone = normalize_phone(body.phone)
+    last = db.scalar(select(OutboxMessage.id).order_by(OutboxMessage.id.desc()).limit(1)) or 0
+    r = receipts.handle_media(db, shop, phone, {"base64": body.base64, "mimetype": body.mimetype})
+    sent = db.scalars(select(OutboxMessage).where(OutboxMessage.id > last).order_by(OutboxMessage.id)).all()
+    return {"messages": [{"to": m.phone, "text": m.text} for m in sent],
+            "receipt": None if r is None else {"id": r.id, "result": r.result, "checks": r.checks,
+                                               "decision": r.decision}}

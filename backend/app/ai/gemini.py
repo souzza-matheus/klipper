@@ -35,7 +35,8 @@ class GeminiProvider:
                 else:
                     out.append(t.Content(role="model", parts=[t.Part.from_text(text=m.text)]))
             elif m.role == "tool":
-                out.append(t.Content(role="tool", parts=[
+                # A API do Gemini só aceita user/model: a resposta da função vai com role "user"
+                out.append(t.Content(role="user", parts=[
                     t.Part.from_function_response(name=call.name, response=result) for call, result in m.tool_results
                 ]))
         return out
@@ -54,7 +55,8 @@ class GeminiProvider:
         try:
             return self._client.models.generate_content(model=model, contents=contents, config=config)
         except errors.APIError as e:
-            kind = "quota" if e.code == 429 else "other"
+            # 5xx: modelo sobrecarregado ou fora do ar (ex.: 503 "high demand"); o reserva costuma estar livre
+            kind = "quota" if e.code == 429 else "unavailable" if (e.code or 0) >= 500 else "other"
             raise LLMError(kind, f"HTTP {e.code}: {getattr(e, 'message', '') or ''}"[:200]) from e
         except (httpx.TimeoutException, TimeoutError) as e:
             raise LLMError("timeout", str(e)[:200]) from e
@@ -84,6 +86,17 @@ class GeminiProvider:
 
     def generate(self, system: str, messages: list[Message], tools: list[ToolSpec], model: str,
                  timeout: float, max_output_tokens: int) -> LLMResult:
+        try:
+            return self._generate(system, messages, tools, model, timeout, max_output_tokens)
+        except LLMError as e:
+            # O raciocínio conta no limite de saída: às vezes ele gasta tudo e não sobra texto. Repete uma vez com
+            # folga (o tamanho da resposta visível continua contido pelo prompt)
+            if e.kind != "invalid" or "MAX_TOKENS" not in str(e):
+                raise
+            return self._generate(system, messages, tools, model, timeout, max_output_tokens * 4)
+
+    def _generate(self, system: str, messages: list[Message], tools: list[ToolSpec], model: str,
+                  timeout: float, max_output_tokens: int) -> LLMResult:
         t = self._types
         config = t.GenerateContentConfig(
             system_instruction=system,  # fixo por negócio e no início: aproveita o cache implícito
@@ -115,4 +128,23 @@ class GeminiProvider:
         text = (resp.text or "").strip()
         if not text:
             raise LLMError("invalid", "transcrição vazia")
+        return LLMResult(text=text, model=model, **self._usage(resp))
+
+    def read_document(self, system: str, prompt: str, data: bytes, mime_type: str, schema: dict, model: str,
+                      timeout: float) -> LLMResult:
+        """Imagem ou PDF inline (Part.from_bytes) com saída estruturada: response_mime_type=application/json e
+        response_json_schema. Temperatura 0: é extração, não criação."""
+        t = self._types
+        config = t.GenerateContentConfig(
+            system_instruction=system, http_options=t.HttpOptions(timeout=int(timeout * 1000)), temperature=0,
+            max_output_tokens=2048, thinking_config=self._thinking(),
+            response_mime_type="application/json", response_json_schema=schema,
+        )
+        contents = [t.Content(role="user", parts=[t.Part.from_bytes(data=data, mime_type=mime_type),
+                                                  t.Part.from_text(text=prompt)])]
+        resp = self._call(model, contents, config)
+        text = (resp.text or "").strip()
+        if not text:
+            reason = getattr((resp.candidates or [None])[0], "finish_reason", None)
+            raise LLMError("invalid", f"leitura vazia (finish_reason={reason})")
         return LLMResult(text=text, model=model, **self._usage(resp))

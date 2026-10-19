@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 # Limites de entrada: nenhum valor pode passar do que o banco aceita (sem isso o Postgres devolve erro)
 Id = Annotated[int, Field(gt=0, lt=2**31)]
@@ -107,6 +107,9 @@ class ShopIn(BaseModel):
     deposit_expire_minutes: int | None = Field(None, ge=5, le=1440)
     deposit_refund_hours: int | None = Field(None, ge=0, le=720)
     waitlist_hold_minutes: int | None = Field(None, ge=5, le=120)
+    # Confirmação automática de comprovantes que conferem: teto de R$ 100
+    receipt_auto_confirm: bool | None = None
+    receipt_auto_confirm_max: Annotated[Decimal, Field(ge=0, le=100, decimal_places=2)] | None = None
 
 
 class ShopOut(ORM):
@@ -142,6 +145,8 @@ class ShopOut(ORM):
     deposit_expire_minutes: int = 30
     deposit_refund_hours: int = 24
     waitlist_hold_minutes: int = 10
+    receipt_auto_confirm: bool = False
+    receipt_auto_confirm_max: Decimal = Decimal(0)
 
 
 # ---- services
@@ -362,6 +367,51 @@ class AppointmentOut(ORM):
 
 
 # ---- payments / reviews
+class ReceiptCheck(BaseModel):
+    key: str
+    ok: bool
+    label: str
+    detail: str
+
+
+class ReceiptOut(ORM):
+    """Comprovante: dados lidos pela IA, conferências e resultado (confere | divergente | ilegivel)."""
+    id: int
+    payment_id: int | None
+    charge_id: int | None
+    mime: str
+    has_file: bool
+    created_at: datetime
+    read_status: str
+    amount: Decimal | None
+    paid_at: datetime | None
+    receiver_name: str | None
+    receiver_key: str | None
+    receiver_bank: str | None
+    payer_name: str | None
+    payer_bank: str | None
+    e2e_id: str | None = Field(None, validation_alias="e2e_read")
+    doc_type: str | None
+    confidence: Decimal | None
+    checks: list[ReceiptCheck] = []
+    result: str | None
+    decision: str | None
+    decided_at: datetime | None
+    auto_confirmed: bool
+    file_deleted_at: datetime | None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_model(cls, v):
+        if hasattr(v, "file_path"):  # modelo do banco: has_file vem do caminho, checks nulo vira lista
+            v = {k: getattr(v, k) for k in (
+                "id", "payment_id", "charge_id", "mime", "created_at", "read_status", "amount", "paid_at",
+                "receiver_name", "receiver_key", "receiver_bank", "payer_name", "payer_bank", "e2e_read", "doc_type",
+                "confidence", "result", "decision", "decided_at", "auto_confirmed", "file_deleted_at")} | {
+                "has_file": bool(v.file_path), "checks": v.checks or []}
+        return v
+
+
 class PaymentOut(ORM):
     id: int
     appointment_id: int
@@ -379,6 +429,8 @@ class PaymentOut(ORM):
     has_receipt: bool = False
     receipt_mime: str | None = None
     receipt_at: datetime | None = None
+    kind: str = "full"
+    receipt: ReceiptOut | None = None
 
 
 class ReviewOut(ORM):
@@ -806,6 +858,7 @@ class ChargeOut(BaseModel):
     sent_at: datetime | None
     customer_reported_at: datetime | None
     confirmed_at: datetime | None
+    receipt: ReceiptOut | None = None
 
 
 # ---- comanda

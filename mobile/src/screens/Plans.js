@@ -5,6 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 import { api } from '../api';
 import { DataTable } from '../components/Layout';
 import { useDebounced } from '../components/QuickBook';
+import { ReceiptReview } from '../components/ReceiptReview';
 import { dmy, money, moneyInput, parseMoney, phoneLabel } from '../format';
 import { useSession } from '../session';
 import { SPACE } from '../theme';
@@ -123,9 +124,15 @@ function Charges({ list, onChanged }) {
   const { can } = useSession();
   if (!list.data) return <Loading error={list.error} onRetry={list.reload} />;
   if (!list.data.length) return <Empty icon="receipt-outline" text="Nenhuma cobrança pendente." />;
+  const openReceipt = (ch) => (ch.receipt && !ch.receipt.decision ? ch.receipt : null);
   const confirmCh = (ch) => confirm('Confirmar Pix?', `Confira no extrato: ${money(ch.amount)} de ${ch.customer_name}.`,
-    () => run(() => api.post(`/charges/${ch.id}/confirm`).then(onChanged), 'Pagamento confirmado. O cliente foi avisado.'),
+    () => run(() => api.post(openReceipt(ch) ? `/receipts/${ch.receipt.id}/confirm` : `/charges/${ch.id}/confirm`)
+      .then(onChanged), 'Pagamento confirmado. O cliente foi avisado.'),
     'Recebi');
+  const rejectReceipt = (ch) => confirm('Recusar o comprovante?',
+    `${ch.customer_name} recebe uma mensagem neutra pedindo para conferir o pagamento. A cobrança continua aberta.`,
+    () => run(() => api.post(`/receipts/${ch.receipt.id}/reject`).then(onChanged), 'Comprovante recusado. O cliente foi avisado.'),
+    'Recusar', true);
   return list.data.map((ch) => (
     <Card key={ch.id}>
       <View style={[s.row, { gap: SPACE(2) }]}>
@@ -136,6 +143,11 @@ function Charges({ list, onChanged }) {
         {ch.kind === 'subscription' ? 'Mensalidade' : 'Pacote'} · vencimento {dmy(ch.due_date)}
         {ch.customer_reported_at ? ' · cliente disse que pagou' : ''}
       </Text>
+      {ch.receipt ? (
+        <View style={{ marginTop: SPACE(3) }}>
+          <ReceiptReview receipt={ch.receipt} paid={ch.status === 'paid'} onChanged={onChanged} />
+        </View>
+      ) : null}
       <View style={[s.row, { gap: SPACE(2), marginTop: SPACE(3), flexWrap: 'wrap' }]}>
         <Badge info={CHARGE_STATUS[ch.status]} />
         <View style={{ flex: 1 }} />
@@ -151,6 +163,9 @@ function Charges({ list, onChanged }) {
               <Button title="Cancelar" kind="ghost" compact onPress={() => confirm('Cancelar cobrança?', '',
                 () => run(() => api.post(`/charges/${ch.id}/cancel`).then(onChanged), 'Cobrança cancelada.'),
                 'Cancelar cobrança', true)} />
+            ) : null}
+            {openReceipt(ch) ? (
+              <Button title="Recusar" kind="danger" compact icon="close-circle-outline" onPress={() => rejectReceipt(ch)} />
             ) : null}
             <Button title="Recebi" compact icon="checkmark" onPress={() => confirmCh(ch)} />
           </>

@@ -160,6 +160,26 @@ celular e o apagamento ao sair. Só o que está implementado; sem números, depo
 
 ---
 
+## Comprovante de Pix com IA (pré-conferência) ✅
+
+O cliente manda a imagem ou o PDF do comprovante no WhatsApp; a IA (Gemini, visão) só extrai os campos e o código confere valor, recebedor, data, ID da transação (único na plataforma), tipo do documento e arquivo repetido. O dono recebe o resultado e confirma (1) ou recusa (2). Confirmação automática opcional, desligada por padrão, só até R$ 100 e com várias travas. Detalhes no README ("Comprovante de Pix") e em `backend/app/services/receipts.py`.
+
+**Limite assumido:** o sistema não acessa o extrato. Comprovante pode ser editado ou reaproveitado; por isso o resultado é sempre pré-conferência (`PaymentVerifier.definitive = False`).
+
+### Confirmação real do Pix pelo banco (próximo passo, só a interface)
+
+`backend/app/services/verifiers.py` define `PaymentVerifier` com `ReceiptVerifier` (o comprovante, hoje) e o ponto de entrada `BankPixVerifier` (não implementado). Para a confirmação ser definitiva e automática de verdade, a integração vai precisar de:
+
+- **Conta PJ** do estabelecimento num banco com API Pix (padrão do Banco Central: cobrança imediata `PUT /cob/{txid}` e consulta `GET /pix/{e2eid}`), ou de um **gateway** (Mercado Pago, Asaas, Efí, etc.) com Pix e webhook.
+- **Credenciais da API** do banco ou gateway (client_id e client_secret, OAuth2) guardadas cifradas por estabelecimento.
+- **Certificado digital** do banco para mTLS (a API Pix dos bancos exige), com renovação e troca pelo app.
+- **QR Code dinâmico:** trocar o Pix "copia e cola" estático (`app/services/pix.py`) por uma cobrança com `txid` criada na API; o `txid` liga o pagamento recebido ao agendamento, sinal, pacote ou mensalidade.
+- **Webhook** público e autenticado (`PUT /webhook/{chave}` no banco; mTLS ou assinatura) chamando `BankPixVerifier`, que marca como pago sem o dono precisar conferir, e uma rotina de conciliação (`GET /pix?inicio&fim`) para os webhooks perdidos.
+- Para cobranças avulsas, um `PaymentGateway` em `app/services/billing.py` com `automatic() = True`.
+- Ajustes no app: tela de conexão com o banco (credenciais, certificado, teste), selo "confirmado pelo banco" e o comprovante virando só um anexo.
+
+---
+
 ## Fase 2 🔜
 
 | Funcionalidade | Objetivo | Regras de negócio | Banco | Rotas | Telas | Bot | Testes |

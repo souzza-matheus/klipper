@@ -61,7 +61,7 @@ Pacotes, Clube de assinatura, Lista de espera e Equipe e permissões; menus e bo
 - **Sincronização offline:** ids públicos (UUID), versão e exclusões como tombstone; `GET /api/sync/pull` e `POST /api/sync/push` com idempotência e regras de conflito.
 - **App offline (celular):** banco local criptografado (SQLCipher) com a agenda, clientes, catálogo, estoque, saldos e comandas; agenda, comanda, estoque e lista de espera funcionam sem internet e sincronizam sozinhos (ver "Modo offline do app").
 
-**Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave do próprio negócio. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp). Se o cliente manda a imagem ou o PDF do comprovante no WhatsApp, o backend baixa o arquivo pela Evolution API (`POST /chat/getBase64FromMediaMessage/{instância}`, até 5 MB, só imagem ou PDF) e guarda junto do Pix pendente; o app mostra o comprovante na lista. **Recusar** um Pix (o dinheiro não caiu) marca como expirado e avisa o cliente com uma mensagem neutra; o horário continua marcado.
+**Pix:** gera o "copia e cola" (padrão do Banco Central) com a chave do próprio negócio. O dinheiro vai direto para a conta do dono; a confirmação é manual (app ou WhatsApp). Se o cliente manda a imagem ou o PDF do comprovante no WhatsApp, a IA lê os dados e o sistema faz uma **pré-conferência** (valor, recebedor, data, comprovante já usado) para o dono confirmar com um toque; ver [Comprovante de Pix](#comprovante-de-pix-pré-conferência-com-ia). **Recusar** um Pix (o dinheiro não caiu) marca como expirado e avisa o cliente com uma mensagem neutra; o horário continua marcado.
 
 ## Testar em 2 minutos (sem WhatsApp)
 
@@ -124,7 +124,7 @@ Cada empresa também tem os dados do CRM: produtos (um abaixo do mínimo), um pa
 
 Essas quatro não têm WhatsApp do dono nem dos profissionais, e a instância delas (`salao-demo`, `petshop-demo`, `clinica-demo`, `estudio-demo`) não existe na Evolution: nenhuma mensagem sai delas.
 
-Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês, cliente bloqueado e em aprovação, conflitos entre clientes, migrações, comanda, estoque, pacotes, assinatura, sinal, lista de espera, papéis e sincronização). Rode um `pytest` por vez: os testes usam o mesmo arquivo SQLite.
+Testes automatizados: `cd backend && pytest` (Pix, agendamento completo, cancelamento, remarcação, menu do dono, lembrete, pesquisa, comissões, gastos e recorrência, resumo financeiro, CSV, agenda do mês, cliente bloqueado e em aprovação, conflitos entre clientes, migrações, comanda, estoque, pacotes, assinatura, sinal, lista de espera, papéis, sincronização e comprovantes de Pix com IA falsa). Rode um `pytest` por vez: os testes usam o mesmo arquivo SQLite.
 
 ## Banco de dados e migrações (Alembic)
 
@@ -136,6 +136,7 @@ alembic upgrade head                                   # aplica as migrações p
 alembic revision --autogenerate -m "o que mudou"      # depois de alterar app/models.py
 ```
 
+- `0009` (comprovantes) cria `payment_receipts` (arquivo, dados lidos, conferências, resultado e decisão; `e2e_id` único) e as configurações `shops.receipt_auto_confirm` e `receipt_auto_confirm_max`.
 - `0008` (CRM fase 1) adiciona os papéis dos usuários (quem já existia vira dono), as colunas da sincronização (`uuid`, `updated_at`, `deleted_at`, `version`, `sync_seq`, preenchidas para as linhas existentes) e as tabelas de comanda, estoque, pacotes, assinaturas, cobranças, lista de espera e operações do sync.
 - `0004` adiciona o segmento e o modo do tema do negócio (`shops.niche`, padrão `barbershop`, e `shops.theme_mode`, padrão `auto`), a ação de conflito (`customer_conflicts.conflict_action`, padrão `block`) e o comprovante do Pix (`payments.receipt_mime`, `receipt_data`, `receipt_at`).
 - `0001` representa o esquema de antes do Alembic, `0002` adiciona a forma de pagamento nos atendimentos e a tabela de gastos e `0003` adiciona o acesso do cliente (`access_status`, `access_reason`, `access_changed_at`), o início do pedido para aprovar nos agendamentos (`approval_requested_at`), as configurações `approval_expire_hours` e `conflict_default_gap_minutes` e a tabela `customer_conflicts`. Clientes que já existiam ficam com acesso "normal".
@@ -195,9 +196,13 @@ Todas as rotas exigem login e enxergam só a barbearia do usuário. Valores em r
 | Rota | O que faz |
 | --- | --- |
 | `GET /api/agenda/day?day=AAAA-MM-DD` | tudo da agenda do dia numa resposta: para cada profissional ativo (ou com agendamento no dia), `working` (expediente), `blocks` (com `whole_shop`), `appointments` (sem os cancelados) e `free` (expediente menos bloqueios e agendamentos, a partir de agora; dia passado não tem livre). Também `now` e `slot_step_minutes` |
-| `GET /api/payments?status=pending` | pendentes primeiro os que o cliente disse que pagou, depois pelo horário do atendimento; trazem serviço, profissional, `has_receipt`, `receipt_mime` e `receipt_at` |
+| `GET /api/payments?status=pending` | pendentes: primeiro os com comprovante que **confere**, depois os que o cliente disse que pagou, depois pelo horário do atendimento; trazem serviço, profissional, `kind` (`full` ou `deposit`), `has_receipt` e `receipt` (o último comprovante: dados lidos, `checks`, `result`, `decision`, `auto_confirmed`, `has_file`) |
 | `POST /api/payments/{id}/reject` | o Pix não caiu: marca como expirado e avisa o cliente com mensagem neutra (409 se não estiver pendente) |
-| `GET /api/payments/{id}/receipt` | o comprovante (imagem ou PDF) com o `Content-Type` original; exige login |
+| `GET /api/payments/{id}/receipt` | o último comprovante (imagem ou PDF) com o `Content-Type` original; exige login de dono ou recepção |
+| `GET /api/receipts/{id}`, `GET /api/receipts/{id}/file` | dados e arquivo de um comprovante (dono e recepção da própria loja; 404 depois do prazo de retenção) |
+| `POST /api/receipts/{id}/confirm`, `.../reject` | confirma (fluxo de sempre) ou recusa (mensagem neutra) o pagamento do comprovante; 409 se não estiver mais pendente |
+| `POST /api/receipts/{id}/undo` | só o dono: desfaz uma confirmação automática (o pagamento volta para pendente e o cliente é avisado) |
+| `GET /api/charges?status=pending` | as cobranças também trazem `receipt`, com as que conferem no topo |
 | `GET/PUT /api/shop`, `POST /api/auth/login`, `GET /api/me` | incluem `niche` (`barbershop`, `beauty`, `petshop`, `clinic`, `fitness`) e `theme_mode` (`auto`, `dark`, `light`) |
 
 Os agendamentos (`AppointmentOut`) trazem `payment_id` e `customer_reported_paid`, para o app confirmar o Pix direto do card.
@@ -357,6 +362,28 @@ Modelos padrão (confira os nomes atuais em https://ai.google.dev/gemini-api/doc
 3. No `.env` do servidor: `AI_TIER=paid` e a chave do projeto com faturamento. Reinicie o backend (`docker compose up -d --build backend`).
 4. Ligue a IA por barbearia no app. Ajuste o limite mensal de cada uma direto no banco (`shops.ai_monthly_limit`) se precisar.
 5. Atualize a política de privacidade (provedor de IA e uso dos dados; ver `landing/privacidade.html`, que já descreve o banco criptografado do celular e o apagamento ao sair).
+
+## Comprovante de Pix (pré-conferência com IA)
+
+Comprovante **não prova** que o dinheiro caiu (pode ser editado ou reaproveitado). O sistema lê e confere para poupar trabalho do dono, mas quem confirma é ele, olhando o extrato. A única exceção é a confirmação automática opcional, desligada por padrão.
+
+1. **Recebimento.** O cliente manda imagem (JPG, PNG, WEBP) ou PDF numa conversa com pagamento pendente: Pix de agendamento ou de sinal, pacote ou mensalidade (comanda não gera Pix pelo WhatsApp, é paga no balcão). O backend baixa a mídia pela Evolution API: se o webhook já trouxer o arquivo (`base64`), usa direto; senão chama `POST /chat/getBase64FromMediaMessage/{instância}` com a mensagem inteira (no modo QR Code, `key` + `message`; no modo oficial/Cloud API, também `messageType`, que a Evolution usa para baixar a mídia da Graph API). Limites: até 5 MB, tipo conferido pelos bytes (não pela extensão), PDF de até 2 páginas. Fora disso, o bot pede uma foto do comprovante. Sem pagamento pendente, a IA não é chamada: o bot diz que não há pagamento em aberto e mostra o menu. O cliente recebe na hora "Recebi seu comprovante! A barbearia vai conferir e te aviso assim que confirmar." Com mais de um pendente, o valor lido escolhe; se ainda houver dúvida, o bot pergunta a qual pagamento ele se refere (lista numerada).
+2. **Leitura.** `app/services/receipt_reader.py` manda o arquivo ao Gemini (mesma chave, mesmo limite mensal e registro em `ai_usage` com a categoria `comprovante`) pedindo saída estruturada (`response_mime_type=application/json` + `response_json_schema`). Campos: valor, data e hora, recebedor (nome, chave, banco), pagador (nome, banco), ID da transação (E2E: `E` + ISPB + data e hora + 11 caracteres, 32 no total), tipo (comprovante, Pix agendado ou outro) e confiança. O texto da imagem é tratado como dado, nunca como instrução, e o JSON é validado no código. Falhou = "ilegível", e vai para a conferência manual. Limite de 5 comprovantes por cliente por dia. A leitura não depende do atendimento com IA estar ligado, só da chave e do limite.
+3. **Conferências (no código).** Valor igual ao cobrado (tolerância zero); recebedor (nome parecido com o do Pix cadastrado, sem acentos e maiúsculas, ou chave compatível, inclusive mascarada como `***.456.789-**`); data depois da geração do Pix e no máximo 48 h antes do envio; ID da transação nunca usado em outro pagamento da plataforma (índice único); tipo (Pix agendado gera alerta próprio); o mesmo arquivo reenviado é reconhecido pelo hash, sem nova leitura. Resultado: **confere**, **divergente** (com a lista do que falhou) ou **ilegível**.
+4. **Para o dono.** Alerta no WhatsApp ("Comprovante confere: R$ 65,00 para Barbearia Demo às 14:32 (ID final ...A1B2). Confira no extrato e responda 1 para confirmar." ou "Atenção no comprovante de Carlos: valor R$ 30,00, cobrado R$ 65,00."). Responder **1** confirma (o fluxo de sempre: cliente avisado, horário pago, sinal, pacote ou mensalidade liberados) e **2** recusa (o cliente recebe uma mensagem neutra pedindo para conferir o pagamento ou falar com a barbearia). No app, em Pagamentos Pix e em Clube de assinatura > Cobranças: miniatura (tela cheia ao tocar), selo verde/laranja/cinza, dados lidos, a lista de conferências e Confirmar/Recusar; os que conferem ficam no topo.
+5. **Confirmação automática (opcional).** Configurações > Pix: "Confirmar automaticamente comprovantes que conferem até R$ X" (desligada; teto de R$ 100). Só confirma se o resultado for "confere", a confiança for de pelo menos 0,9, o valor estiver dentro do limite, o cliente nunca tiver tido comprovante divergente, recusado ou desfeito e tiver no máximo 3 confirmações automáticas no mês. Cada uma fica marcada como "automática pelo comprovante", vai para o resumo diário do dono e pode ser desfeita (app ou "2" no WhatsApp).
+6. **Armazenamento e LGPD.** Arquivo em `RECEIPTS_DIR` (padrão `backend/data/receipts`, no Docker o volume `receipts`), fora de pastas públicas, com nome aleatório, permissão só do dono do processo e download só autenticado para dono e recepção da própria loja. Depois de `RECEIPT_RETENTION_DAYS` (90) o arquivo é apagado pela rotina automática; ficam os dados lidos, o resultado e o ID da transação. Os dados do comprovante não vão para o log. Comprovantes antigos (guardados no banco antes desta versão) continuam abrindo e também são apagados no prazo.
+7. **Confirmação pelo banco (futuro).** `app/services/verifiers.py` tem a interface `PaymentVerifier` (`ReceiptVerifier` hoje; `BankPixVerifier` e gateway depois). O que falta está no [ROADMAP-CRM.md](ROADMAP-CRM.md#confirmação-real-do-pix-pelo-banco-próximo-passo-só-a-interface).
+
+Testar sem WhatsApp: `POST /dev/simulate-receipt` (com `X-Setup-Token`) recebe `{"phone": "...", "base64": "<arquivo>", "mimetype": "image/png"}` e devolve as mensagens enviadas e o resultado. Comprovantes **fictícios** para teste em `backend/tests/fixtures/receipts/` (gerados com Pillow por `generate.py`; nunca use comprovantes reais). Avaliação com o Gemini de verdade:
+
+```bash
+cd backend
+python scripts/receipt_eval.py           # gera as imagens com o horário atual e imprime campos, conferências e custo
+python scripts/receipt_eval.py --only correto injecao --sleep 6
+```
+
+Ele usa um SQLite temporário (não mexe no banco de desenvolvimento) e não envia nada pelo WhatsApp.
 
 ## Colocar no ar (VPS)
 
@@ -565,6 +592,7 @@ APK para instalar direto no Android: `npx eas-cli build -p android --profile apk
 | Pedido para aprovar expira | 12 h (ou 1 h antes do horário) |
 | Distância padrão entre clientes que não podem se encontrar | 240 min |
 | Resumo diário | 8 h |
+| Confirmar automaticamente comprovantes que conferem | desligado (teto de R$ 100) |
 
 ## Observações
 

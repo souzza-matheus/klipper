@@ -151,6 +151,9 @@ class Shop(Base):
     pix_receiver_name: Mapped[str] = mapped_column(String(25), default="")
     pix_city: Mapped[str] = mapped_column(String(15), default="")
     pix_expire_hours: Mapped[int] = mapped_column(Integer, default=12)
+    # Confirmação automática de comprovantes que conferem (desligada por padrão; teto de R$ 100 na API)
+    receipt_auto_confirm: Mapped[bool] = mapped_column(Boolean, default=False)
+    receipt_auto_confirm_max: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
 
     # Regras do bot
     slot_step_minutes: Mapped[int] = mapped_column(Integer, default=30)
@@ -384,6 +387,72 @@ class Payment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
 
     appointment: Mapped[Appointment] = relationship(back_populates="payment")
+
+
+class ReceiptResult:
+    """Resultado das conferências automáticas do comprovante (nunca é prova de que o dinheiro caiu)."""
+    OK = "confere"
+    DIVERGENT = "divergente"
+    UNREADABLE = "ilegivel"
+    ALL = (OK, DIVERGENT, UNREADABLE)
+
+
+class ReceiptDecision:
+    CONFIRMED = "confirmed"            # o dono (ou a recepção) confirmou
+    REJECTED = "rejected"              # recusado: o cliente recebe uma mensagem neutra
+    AUTO_CONFIRMED = "auto_confirmed"  # confirmado sozinho pelo comprovante (regras do estabelecimento)
+    UNDONE = "undone"                  # confirmação automática desfeita: o pagamento voltou a pendente
+
+
+class PaymentReceipt(Base):
+    """Comprovante de Pix mandado pelo cliente no WhatsApp: dados lidos pela IA e conferências feitas no código.
+    É pré-conferência: o dono confirma no extrato. O arquivo fica fora da pasta pública (RECEIPTS_DIR, nome aleatório)
+    e é apagado depois de RECEIPT_RETENTION_DAYS; os dados lidos e o ID da transação ficam.
+    Vinculado a um Pix de agendamento/sinal (payment_id) ou a uma cobrança de pacote/assinatura (charge_id); os dois
+    nulos = aguardando o cliente dizer a qual pagamento se refere."""
+    __tablename__ = "payment_receipts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    payment_id: Mapped[int | None] = mapped_column(ForeignKey("payments.id", ondelete="SET NULL"), nullable=True,
+                                                   index=True)
+    charge_id: Mapped[int | None] = mapped_column(ForeignKey("charges.id", ondelete="SET NULL"), nullable=True,
+                                                  index=True)
+    # Arquivo
+    file_path: Mapped[str | None] = mapped_column(String(255), nullable=True)  # relativo a RECEIPTS_DIR
+    file_hash: Mapped[str] = mapped_column(String(64), index=True)  # sha256: o mesmo arquivo reenviado
+    mime: Mapped[str] = mapped_column(String(40))
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    file_deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Leitura (cada campo pode ficar nulo). read_status: ok | failed (IA falhou ou indisponível) | reused (mesmo
+    # arquivo já lido antes: copia a leitura, sem chamar a IA)
+    read_status: Mapped[str] = mapped_column(String(10), default="failed")
+    amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    receiver_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    receiver_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    receiver_bank: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    payer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    payer_bank: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    e2e_read: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)  # ID lido (válido)
+    # O mesmo ID de transação só pode valer para um pagamento em toda a plataforma: fica preenchido só no primeiro
+    # comprovante que o usou (os seguintes guardam o ID em e2e_read e falham na conferência)
+    e2e_id: Mapped[str | None] = mapped_column(String(40), nullable=True, unique=True)
+    doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True)  # comprovante_pix | agendamento_pix | outro
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)  # 0 a 1
+    # Conferências: [{"key", "ok", "label", "detail"}] e o resultado final (ReceiptResult)
+    checks: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    result: Mapped[str | None] = mapped_column(String(12), nullable=True, index=True)
+    decision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    decided_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    auto_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)  # "automática pelo comprovante"
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
+
+    customer: Mapped[Customer] = relationship()
+    payment: Mapped["Payment | None"] = relationship()
+    charge: Mapped["Charge | None"] = relationship()
 
 
 class Review(Base):

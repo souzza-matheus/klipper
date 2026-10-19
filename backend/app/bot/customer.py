@@ -24,7 +24,8 @@ MSG_BLOCKED = "No momento não conseguimos agendar por aqui. Por favor, fale com
 # ---------------------------------------------------------------- entrada
 
 # Estados em que a resposta é sempre do fluxo atual (não passa pela IA)
-DETERMINISTIC_STATES = {"reminder", "survey_rating", "survey_comment", "book_name", wl.OFFER_STATE, "pkg_confirm"}
+DETERMINISTIC_STATES = {"reminder", "survey_rating", "survey_comment", "book_name", wl.OFFER_STATE, "pkg_confirm",
+                        "receipt_pick"}
 HUMAN_WORDS = {"atendente", "humano", "falar com atendente", "falar com alguem", "pessoa"}
 CONFIRM_WORDS = {"1", "sim", "s", "confirmar", "confirmo", "confirma", "pode", "ok", "isso", "fechado", "beleza"}
 OTHER_WORDS = {"2", "outro", "outra", "outro horario", "escolher outro"}
@@ -60,7 +61,8 @@ def _handle(ctx: Ctx) -> None:
         talk_to_human(ctx)
         return
 
-    if conv.state not in ("survey_rating", "survey_comment") and _looks_like_paid(ctx) and _report_paid(ctx):
+    if conv.state not in ("survey_rating", "survey_comment", "receipt_pick") and _looks_like_paid(ctx) \
+            and _report_paid(ctx):
         return
 
     # Modo híbrido: números, respostas de confirmação, lembrete e pesquisa seguem o fluxo atual (sem gastar IA);
@@ -919,7 +921,29 @@ def st_pkg_confirm(ctx: Ctx) -> None:
         ctx.say("Responda *1* para confirmar a compra ou *2* para desistir.")
 
 
+# ---------------------------------------------------------------- comprovante para mais de um pagamento
+
+def st_receipt_pick(ctx: Ctx) -> None:
+    """O cliente mandou um comprovante e tem mais de um pagamento em aberto: diz a qual ele se refere."""
+    from ..models import PaymentReceipt
+    from ..services import receipts
+    refs = ctx.get("receipt_targets", [])
+    i = pick(ctx.text, len(refs))
+    if i is None:
+        ctx.say(f"Responda com um número de 1 a {len(refs)} (ou *menu* para voltar).")
+        return
+    r = ctx.db.get(PaymentReceipt, ctx.get("receipt_id") or 0)
+    t = receipts.resolve_ref(ctx.db, ctx.shop, refs[i])
+    ctx.reset()
+    if r is None or r.shop_id != ctx.shop.id or t is None or t.customer.phone != ctx.phone or not t.pending:
+        ctx.say("Esse pagamento não está mais em aberto. Mande *menu* para ver as opções.")
+        return
+    receipts.finalize(ctx.db, ctx.shop, r, t)
+    ctx.say("Obrigado! A barbearia vai conferir e te aviso assim que confirmar.")
+
+
 STATES = {
+    "receipt_pick": st_receipt_pick,
     "ai_confirm": st_ai_confirm,
     wl.OFFER_STATE: st_wl_offer,
     "pkg_pick": st_pkg_pick,

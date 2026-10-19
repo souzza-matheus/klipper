@@ -46,13 +46,15 @@
 
     <p>Se o negócio ligar o atendimento com inteligência artificial, as mensagens do cliente (e a transcrição dos áudios, se ligada) e informações necessárias para responder, como serviços, horários livres e os agendamentos do próprio cliente, são enviadas a um provedor de IA ([PROVEDOR DE IA, ex.: Google Gemini]) para interpretar o pedido e redigir a resposta. A IA só sugere: quem grava agendamentos e aplica as regras é o sistema do SyncServ, depois da confirmação do cliente. [Revisar com o advogado: termos de uso de dados do provedor de IA no plano contratado e transferência internacional de dados.]</p>
 
+    <p>Quando o cliente manda no WhatsApp a imagem ou o PDF do comprovante de um Pix em aberto, o arquivo é enviado ao mesmo provedor de IA para a <strong>leitura automática</strong> dos dados (valor, data e hora, recebedor, pagador, bancos e ID da transação). O sistema do SyncServ compara esses dados com a cobrança e mostra o resultado ao negócio, que confere no extrato e confirma o pagamento. A leitura é uma pré-conferência: o comprovante sozinho não prova o pagamento, e o cliente só recebe a confirmação depois que ela acontece de verdade.</p>
+
     <h2>3. Que dados tratamos e por quê</h2>
     <h3>Dos clientes dos negócios (quem agenda pelo WhatsApp)</h3>
     <ul>
       <li>Nome e número de WhatsApp: identificar o cliente e responder.</li>
       <li>Mensagens trocadas com o robô e o estado da conversa: conduzir o agendamento e os demais atendimentos. Com a IA ligada, as mensagens dos últimos 30 dias ficam guardadas como contexto da conversa e depois são apagadas.</li>
       <li>Agendamentos (serviço, profissional, data, valor, status, comparecimento): organizar a agenda do negócio, enviar lembretes e pesquisa de satisfação.</li>
-      <li>Pagamentos via Pix: o código gerado, o aviso de "paguei" e o comprovante (imagem ou PDF) que o cliente enviar, para o negócio conferir e confirmar. O dinheiro vai direto para a conta do negócio; o SyncServ não recebe nem guarda dados bancários do cliente.</li>
+      <li>Pagamentos via Pix: o código gerado, o aviso de "paguei" e o comprovante (imagem ou PDF) que o cliente enviar, para o negócio conferir e confirmar. Do comprovante, guardamos também os dados lidos automaticamente por IA (valor, data e hora, nome e banco de quem pagou e de quem recebeu, chave Pix como aparece no comprovante e ID da transação) e o resultado da conferência. O ID da transação serve para impedir que o mesmo comprovante seja usado em outro pagamento. O dinheiro vai direto para a conta do negócio; o SyncServ não recebe nem guarda dados bancários do cliente.</li>
       <li>Avaliações (nota e comentário).</li>
       <li>Observações internas registradas pelo negócio, como preferências, restrição de agendamento (aprovação manual ou bloqueio) e motivo. Essas informações só aparecem para o negócio e nunca são mostradas ao cliente pelo robô.</li>
       <li>Atendimentos e compras no negócio: comandas (serviços, produtos, descontos, gorjetas e formas de pagamento), pacotes, assinaturas com as cobranças e a lista de espera: fechar a conta, controlar saldos e avisar quando um horário abrir.</li>
@@ -70,7 +72,8 @@
     <p>Não vendemos dados. Compartilhamos apenas com quem é necessário para o serviço funcionar: o próprio negócio atendido, o WhatsApp (Meta), o provedor de hospedagem [PROVEDOR], o provedor de IA quando o atendimento com IA estiver ligado e [OUTROS FORNECEDORES], além de autoridades quando exigido por lei.</p>
 
     <h2>5. Por quanto tempo guardamos</h2>
-    <p>Enquanto o negócio for assinante e pelo prazo necessário para cumprir obrigações legais. Depois do cancelamento, os dados são apagados ou anonimizados em até [PRAZO], salvo obrigação legal de guarda. [Definir os prazos.]</p>
+    <p>Arquivos de comprovante de Pix (imagem ou PDF): apagados automaticamente <strong>90 dias</strong> depois do envio. Ficam só os dados lidos, o resultado da conferência e o ID da transação, como registro do pagamento. Os arquivos ficam fora de qualquer área pública e só a equipe do próprio negócio (dono e recepção) consegue abri-los, com login.</p>
+    <p>Demais dados: enquanto o negócio for assinante e pelo prazo necessário para cumprir obrigações legais. Depois do cancelamento, os dados são apagados ou anonimizados em até [PRAZO], salvo obrigação legal de guarda. [Definir os prazos.]</p>
 
     <h2>6. Seus direitos e como pedir exclusão</h2>
     <p>A LGPD garante, entre outros, os direitos de confirmar a existência de tratamento, acessar, corrigir, anonimizar, bloquear ou eliminar dados, pedir portabilidade e revogar consentimento (art. 18).</p>

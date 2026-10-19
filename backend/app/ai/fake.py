@@ -11,8 +11,11 @@ from .provider import LLMError, LLMResult, Message, ToolCall, ToolSpec
 
 
 class FakeProvider:
-    def __init__(self, script=None, transcript: str = "quero cortar amanhã"):
+    def __init__(self, script=None, transcript: str = "quero cortar amanhã", documents=None):
         self.script = list(script or [])
+        # Leituras de comprovante, na ordem: dict (vira o JSON da resposta), str (texto cru), LLMError ou
+        # função (data, mime_type) -> um desses
+        self.documents = list(documents or [])
         self.calls: list[dict] = []  # o que foi enviado em cada chamada (para os testes conferirem)
         self.transcript = transcript
 
@@ -39,6 +42,21 @@ class FakeProvider:
     def transcribe(self, audio: bytes, mime_type: str, model: str, timeout: float) -> LLMResult:
         self.calls.append({"transcribe": len(audio), "mime": mime_type, "model": model})
         return LLMResult(text=self.transcript, model=model, input_tokens=50, output_tokens=10)
+
+
+    def read_document(self, system: str, prompt: str, data: bytes, mime_type: str, schema: dict, model: str,
+                      timeout: float) -> LLMResult:
+        import json
+        self.calls.append({"document": len(data), "mime": mime_type, "model": model, "system": system})
+        if not self.documents:
+            raise LLMError("invalid", "roteiro de documentos do FakeProvider acabou")
+        item = self.documents.pop(0)
+        if callable(item):
+            item = item(data, mime_type)
+        if isinstance(item, LLMError):
+            raise item
+        text = item if isinstance(item, str) else json.dumps(item)
+        return LLMResult(text=text, model=model, input_tokens=1300, output_tokens=120, thinking_tokens=40)
 
 
 def last_tool_result(messages: list[Message], name: str) -> dict | None:

@@ -87,6 +87,10 @@ def send_daily_summary(db, shop: Shop) -> bool:
     low = low_stock_text(db, shop)
     if low:
         parts.append(low)
+    from .services.receipts import auto_confirmed_text
+    autos = auto_confirmed_text(db, shop, now - timedelta(days=1))
+    if autos:
+        parts.append(autos)
     send_text(db, shop, shop.owner_phone, "\n\n".join(parts))
     return True
 
@@ -112,6 +116,13 @@ def run_all() -> None:
         except Exception:
             db.rollback()
             log.exception("Erro ao limpar o histórico das conversas")
+        try:
+            from .services.receipts import purge_expired
+            if purge_expired(db):  # LGPD: arquivos de comprovante só até RECEIPT_RETENTION_DAYS
+                db.commit()
+        except Exception:
+            db.rollback()
+            log.exception("Erro ao apagar comprovantes antigos")
         for shop in db.scalars(select(Shop)).all():
             try:
                 send_reminders(db, shop)

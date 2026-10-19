@@ -284,8 +284,12 @@ def cancel_subscription(sid: int, shop: Shop = Depends(staff_shop), db: Session 
 
 # ---------------------------------------------------------------- cobranças
 
-def charge_out(ch: Charge) -> S.ChargeOut:
-    return S.ChargeOut(id=ch.id, uuid=ch.uuid, kind=ch.kind, customer_id=ch.customer_id,
+def charge_out(ch: Charge, receipt=None, with_receipt: bool = True) -> S.ChargeOut:
+    from sqlalchemy.orm import object_session
+    from ..services import receipts
+    if with_receipt and receipt is None:
+        receipt = receipts.latest_for(object_session(ch), charge_id=ch.id)
+    return S.ChargeOut(receipt=S.ReceiptOut.model_validate(receipt) if receipt else None,id=ch.id, uuid=ch.uuid, kind=ch.kind, customer_id=ch.customer_id,
                        customer_name=ch.customer.name or ch.customer.phone, subscription_id=ch.subscription_id,
                        customer_package_id=ch.customer_package_id, due_date=ch.due_date, amount=ch.amount,
                        status=ch.status, gateway=ch.gateway, brcode=ch.brcode, sent_at=ch.sent_at,
@@ -300,24 +304,27 @@ def list_charges(status: str | None = Query(None, pattern="^(pending|paid|cancel
         q = q.where(Charge.status == status)
     q = q.order_by(Charge.customer_reported_at.is_(None), Charge.due_date.desc()) if status == PayStatus.PENDING \
         else q.order_by(Charge.created_at.desc())
-    return [charge_out(c) for c in db.scalars(q.limit(200))]
+    from ..models import ReceiptResult
+    from ..services import receipts
+    rows = list(db.scalars(q.limit(200)))
+    latest = receipts.latest_by_target(db, [c.id for c in rows], charges=True)
+    out = [charge_out(c, latest.get(c.id), with_receipt=False) for c in rows]
+    if status == PayStatus.PENDING:  # comprovante que confere no topo
+        out.sort(key=lambda x: not (x.receipt and x.receipt.result == ReceiptResult.OK))
+    return out
 
 
 @router.post("/charges/{chid}/confirm", response_model=S.ChargeOut, tags=["subscriptions"])
 def confirm_charge(chid: int, user: User = Depends(staff_user), db: Session = Depends(get_db)):
-    from ..services.fmt import money
-    from ..services.whatsapp import send_text
+    from ..models import ReceiptDecision
+    from ..services import receipts
     shop = user.shop
     ch = _own(db, Charge, chid, shop)
-    was = ch.status
     try:
-        billing.confirm_charge(db, shop, ch, user)
+        billing.confirm_and_notify(db, shop, ch, user)
     except billing.BillingError as e:
         raise HTTPException(409, str(e))
-    if was != PayStatus.PAID:
-        what = "a mensalidade" if ch.kind == "subscription" else "o pacote"
-        send_text(db, shop, ch.customer.phone, f"✅ Recebemos o seu Pix de {money(ch.amount)} referente a {what}. "
-                                               "Obrigado!")
+    receipts.settle(db, ReceiptDecision.CONFIRMED, user, charge_id=ch.id)
     db.commit()
     return charge_out(ch)
 

@@ -6,12 +6,14 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, or_, select
 
 from ..config import now_local
-from ..models import AccessStatus, Appointment, ApptStatus, Barber, Block, Customer, PayStatus, Review
-from ..services import approvals
+from ..models import (
+    AccessStatus, Appointment, ApptStatus, Barber, Block, Customer, PayStatus, ReceiptDecision, ReceiptResult, Review,
+)
+from ..services import approvals, receipts
 from ..services import scheduling as sch
 from ..services.fmt import appt_summary, day_label, dt_label, money
-from ..services.payments import confirm_payment, pending_payments
-from ..services.whatsapp import phones_match, send_text
+from ..services.payments import confirm_and_notify, pending_payments
+from ..services.whatsapp import phones_match
 from .context import RESET_WORDS, Ctx, pick
 
 STATUS_ICON = {
@@ -191,15 +193,23 @@ def st_search(ctx: Ctx) -> None:
 
 # ---------------------------------------------------------------- Pix
 
+RESULT_ICON = {ReceiptResult.OK: "🟢 comprovante confere", ReceiptResult.DIVERGENT: "🟠 comprovante divergente",
+               ReceiptResult.UNREADABLE: "⚪ comprovante ilegível"}
+
+
 def list_pix(ctx: Ctx) -> None:
     pays = pending_payments(ctx.db, ctx.shop)
     if not pays:
         ctx.say("Nenhum Pix pendente. 👍")
         return
+    latest = receipts.latest_by_target(ctx.db, [p.id for p in pays])
+    pays.sort(key=lambda p: not (latest.get(p.id) and latest[p.id].result == ReceiptResult.OK))  # confere no topo
     lines = []
     for i, p in enumerate(pays, 1):
         a = p.appointment
-        flag = " - 💸 cliente disse que pagou" if p.customer_reported_at else ""
+        r = latest.get(p.id)
+        flag = f" - {RESULT_ICON[r.result]}" if r and r.result in RESULT_ICON else (
+            " - 💸 cliente disse que pagou" if p.customer_reported_at else "")
         lines.append(f"*{i}* - {a.customer.name} | {money(p.amount)} | {dt_label(a.start)}{flag}")
     ctx.go("o_pix", payment_ids=[p.id for p in pays])
     ctx.say("⏳ *Pix pendentes*\n\n" + "\n".join(lines) + "\n\nResponda com o número para *confirmar o recebimento*.")
@@ -217,11 +227,40 @@ def st_pix(ctx: Ctx) -> None:
         ctx.say("Esse pagamento não está mais pendente.")
         ctx.go("o_menu")
         return
-    confirm_payment(ctx.db, pay)
-    a = pay.appointment
-    send_text(ctx.db, ctx.shop, a.customer.phone,
-              f"✅ Recebemos o seu Pix de {money(pay.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈")
-    ctx.say(f"Pagamento de {a.customer.name} confirmado e cliente avisado. ✅")
+    confirm_and_notify(ctx.db, ctx.shop, pay)
+    receipts.settle(ctx.db, ReceiptDecision.CONFIRMED, payment_id=pay.id)
+    ctx.say(f"Pagamento de {pay.appointment.customer.name} confirmado e cliente avisado. ✅")
+    ctx.go("o_menu")
+
+
+def st_receipt(ctx: Ctx) -> None:
+    """Resposta ao alerta de comprovante: 1 confirma, 2 recusa (ou desfaz a confirmação automática)."""
+    from ..models import PaymentReceipt
+    r = ctx.db.get(PaymentReceipt, ctx.get("receipt_id") or 0)
+    sent = ctx.get("receipt_alert_at")
+    stale = not sent or datetime.fromisoformat(sent) < now_local() - receipts.OWNER_REPLY_WINDOW
+    if r is None or r.shop_id != ctx.shop.id or ctx.low not in ("1", "2") or stale:
+        ctx.go("o_menu")
+        st_menu(ctx)
+        return
+    t = receipts.target_of(ctx.db, r)
+    who = (t.customer.name or t.customer.phone) if t else "cliente"
+    try:
+        if r.decision == ReceiptDecision.AUTO_CONFIRMED:
+            if ctx.low != "2":
+                ctx.say("Esse Pix já foi confirmado automaticamente. Responda *2* para desfazer ou *menu*.")
+                return
+            receipts.undo_auto(ctx.db, ctx.shop, r)
+            ctx.say(f"↩️ Confirmação automática de {who} desfeita: o pagamento voltou para pendente e o cliente foi "
+                    "avisado.")
+        elif ctx.low == "1":
+            receipts.confirm(ctx.db, ctx.shop, r)
+            ctx.say(f"Pagamento de {who} confirmado e cliente avisado. ✅")
+        else:
+            receipts.reject(ctx.db, ctx.shop, r)
+            ctx.say(f"❌ Comprovante de {who} recusado. O cliente recebeu uma mensagem para conferir o pagamento.")
+    except receipts.ReceiptError as e:
+        ctx.say(str(e))
     ctx.go("o_menu")
 
 
@@ -367,6 +406,7 @@ STATES = {
     "o_free_day": st_free_day,
     "o_search": st_search,
     "o_pix": st_pix,
+    "o_receipt": st_receipt,
     "o_block": st_block,
     "o_approve_pick": st_approve_pick,
     "o_approve_action": st_approve_action,

@@ -5,13 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { api, apiUrl, authHeaders, download, saveFile } from '../api';
 import { IS_WEB } from '../storage';
 import { confirmPix } from '../components/AppointmentCard';
+import { ReceiptReview } from '../components/ReceiptReview';
 import { ago, dtLabel, money, phoneLabel } from '../format';
 import { PAY_LIST } from '../status';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { Badge, BottomSheet, Button, Card, confirm, Empty, Loading, Screen, SegmentedControl, run, useLoad } from '../ui';
 
-// Comprovante mandado no WhatsApp: imagem (com o login no cabeçalho) ou PDF (baixa e abre)
+// Comprovante antigo (guardado antes da leitura por IA): imagem (com o login no cabeçalho) ou PDF (baixa e abre)
 function Receipt({ p }) {
   const { c, s } = useTheme();
   const [open, setOpen] = useState(false);
@@ -57,11 +58,28 @@ export function PaymentsScreen({ navigation }) {
   const [status, setStatus] = useState('pending');
   const pays = useLoad(() => api.get('/payments', { status }), [status]);
 
+  // Com comprovante ainda sem decisão, confirmar e recusar passam por ele (fica registrado no histórico do cliente)
+  const openReceipt = (p) => (p.receipt && !p.receipt.decision ? p.receipt : null);
   const reject = (p) => confirm('Recusar este Pix?',
     `O pagamento de ${money(p.amount)} vira expirado e ${p.customer_name || 'o cliente'} recebe uma mensagem neutra `
-    + 'dizendo que o Pix não foi localizado. O horário continua marcado.',
-    () => run(async () => { await api.post(`/payments/${p.id}/reject`); pays.reload(); }, 'Pix recusado. O cliente foi avisado.'),
+    + (openReceipt(p) ? 'pedindo para conferir o pagamento ou falar com vocês.' : 'dizendo que o Pix não foi localizado.')
+    + ' O horário continua marcado.',
+    () => run(async () => {
+      const r = openReceipt(p);
+      await api.post(r ? `/receipts/${r.id}/reject` : `/payments/${p.id}/reject`);
+      pays.reload();
+    }, 'Pix recusado. O cliente foi avisado.'),
     'Recusar', true);
+  const accept = (p) => {
+    const r = openReceipt(p);
+    if (!r) return confirmPix({ ...p, payment_id: p.id, price: p.amount }, pays.reload);
+    return confirm('Confirmar recebimento?',
+      `Confira no extrato se o Pix de ${money(p.amount)} de ${p.customer_name || 'cliente'} caiu na conta. `
+      + 'O comprovante sozinho não garante o pagamento.',
+      () => run(async () => { await api.post(`/receipts/${r.id}/confirm`); pays.reload(); },
+        'Pix confirmado. O cliente foi avisado.'),
+      'Recebi');
+  };
 
   return (
     <Screen onRefresh={pays.reload} refreshing={pays.loading && !!pays.data}>
@@ -75,8 +93,9 @@ export function PaymentsScreen({ navigation }) {
       ) : null}
       {(pays.data || []).map((p) => {
         const reported = p.customer_reported_at && p.status === 'pending';
+        const ok = p.status === 'pending' && p.receipt?.result === 'confere';
         return (
-          <Card key={p.id} style={reported && { borderColor: c.status.warning, borderWidth: 2 }}>
+          <Card key={p.id} style={(ok || reported) && { borderColor: ok ? c.status.success : c.status.warning, borderWidth: 2 }}>
             <View style={[s.row, { alignItems: 'flex-start', gap: SPACE(3) }]}>
               <View style={{ flex: 1 }}>
                 <Text style={s.bodyBold} numberOfLines={1}>{p.customer_name || phoneLabel(p.customer_phone)}</Text>
@@ -89,15 +108,16 @@ export function PaymentsScreen({ navigation }) {
             </View>
             <View style={[s.row, { gap: SPACE(1.5), marginVertical: SPACE(3), flexWrap: 'wrap' }]}>
               <Badge info={PAY_LIST[p.status]} />
-              {reported ? <Badge info={{ label: `Cliente disse que pagou ${ago(p.customer_reported_at)}`, tone: 'warning', icon: 'chatbubble-ellipses-outline' }} /> : null}
+              {p.kind === 'deposit' ? <Badge info={{ label: 'Sinal', tone: 'info', icon: 'shield-checkmark-outline' }} /> : null}
+              {reported && !p.receipt ? <Badge info={{ label: `Cliente disse que pagou ${ago(p.customer_reported_at)}`, tone: 'warning', icon: 'chatbubble-ellipses-outline' }} /> : null}
               {p.status === 'pending' ? <Text style={s.caption}>Pendente {ago(p.created_at)}</Text> : null}
             </View>
-            <Receipt p={p} />
+            {p.receipt ? <ReceiptReview receipt={p.receipt} paid={p.status === 'paid'} onChanged={pays.reload} />
+              : <Receipt p={p} />}
             {p.status === 'pending' ? (
               <>
                 <View style={[s.row, { gap: SPACE(2) }]}>
-                  <Button title="Confirmar" icon="checkmark-circle" style={{ flex: 1 }}
-                          onPress={() => confirmPix({ ...p, payment_id: p.id, price: p.amount }, pays.reload)} />
+                  <Button title="Confirmar" icon="checkmark-circle" style={{ flex: 1 }} onPress={() => accept(p)} />
                   <Button title="Recusar" icon="close-circle-outline" kind="danger" style={{ flex: 1 }} onPress={() => reject(p)} />
                 </View>
                 <View style={[s.row, { gap: SPACE(2) }]}>

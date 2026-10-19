@@ -43,7 +43,7 @@ class LLMResult:
 
 
 class LLMError(Exception):
-    """Falha do provedor. kind: quota (429), timeout, invalid (resposta sem texto nem ferramenta), other."""
+    """Falha do provedor. kind: quota (429), unavailable (5xx), timeout, invalid (resposta sem texto nem ferramenta), other."""
 
     def __init__(self, kind: str, detail: str = ""):
         super().__init__(f"{kind}: {detail}"[:300])
@@ -60,4 +60,9 @@ class LLMProvider(Protocol):
 
     def transcribe(self, audio: bytes, mime_type: str, model: str, timeout: float) -> LLMResult:
         """Transcreve um áudio (português) e devolve o texto em LLMResult.text."""
+        ...
+
+    def read_document(self, system: str, prompt: str, data: bytes, mime_type: str, schema: dict, model: str,
+                      timeout: float) -> LLMResult:
+        """Lê uma imagem ou PDF e devolve em LLMResult.text um JSON no formato de schema (JSON Schema)."""
         ...

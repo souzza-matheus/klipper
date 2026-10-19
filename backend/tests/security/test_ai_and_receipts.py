@@ -9,8 +9,8 @@ from app.ai.fake import FakeProvider, last_tool_result
 from app.ai.provider import ToolCall
 from app.bot.router import handle_incoming
 from app.config import now_local, settings
-from app.models import AIUsage, Appointment, ApptStatus, Payment, PayStatus
-from app.services import payments
+from app.models import AIUsage, Appointment, ApptStatus, Charge, Payment, PayStatus
+from app.services import payments, receipts  # noqa: F401
 from app.services import whatsapp as wa
 
 from .conftest import PNG
@@ -141,17 +141,19 @@ def receipt(two, monkeypatch):
     def store(mime, data, extra=None):
         monkeypatch.setattr(wa, "media_base64", lambda shop, media: (mime, data))
         media = {"key": {"id": "R1"}, "message": {"imageMessage": {"fileName": "../../../etc/passwd", **(extra or {})}}}
-        n = payments.save_receipt(two.db, two.a.shop, two.a.customer.phone, media)
+        n = int(receipts.handle_media(two.db, two.a.shop, two.a.customer.phone, media) is not None)
         two.db.commit()
         two.db.expire_all()
         return n, two.db.get(Payment, two.a.payment.id)
     two.a.payment.receipt_mime = two.a.payment.receipt_data = None
+    for ch in two.db.scalars(select(Charge).where(Charge.customer_id == two.a.customer.id)):
+        ch.status = PayStatus.PAID  # só o Pix do agendamento em aberto: o comprovante vai direto para ele
     two.db.commit()
     return store
 
 
 @pytest.mark.parametrize("mime,data", [
-    ("image/png", b"\x89PNG\r\n\x1a\n" + b"0" * (payments.MAX_RECEIPT_BYTES + 1)),   # grande demais
+    ("image/png", b"\x89PNG\r\n\x1a\n" + b"0" * (settings.receipt_max_bytes + 1)),   # grande demais
     ("text/html", b"<html><script>alert(1)</script></html>"),                     # tipo não permitido
     ("image/png", b"<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>"),  # finge ser imagem
     ("image/svg+xml", b"<svg onload=alert(1)></svg>"),
@@ -160,7 +162,7 @@ def receipt(two, monkeypatch):
 ])
 def test_bad_receipts_are_refused(receipt, mime, data):
     n, p = receipt(mime, data)
-    assert n == 0 and p.receipt_data is None
+    assert n == 0 and p.receipt_mime is None
 
 
 def test_good_receipt_is_stored_with_real_type_and_safe_name(two, receipt):
@@ -184,9 +186,20 @@ def test_receipt_download_needs_token_and_owner(two):
 def test_receipt_only_attaches_to_senders_own_pending_payments(two, monkeypatch):
     monkeypatch.setattr(wa, "media_base64", lambda shop, media: ("image/png", PNG))
     # O "Outro AAA" não tem Pix pendente: o comprovante dele não vai para o Pix do "Cliente AAA"
-    assert payments.save_receipt(two.db, two.a.shop, two.a.other_customer.phone, {"key": {}, "message": {}}) == 0
+    assert receipts.handle_media(two.db, two.a.shop, two.a.other_customer.phone, {"key": {}, "message": {}}) is None
     # O mesmo número na barbearia B não alcança pagamentos de A
-    assert payments.save_receipt(two.db, two.b.shop, two.a.customer.phone, {"key": {}, "message": {}}) == 0
+    assert receipts.handle_media(two.db, two.b.shop, two.a.customer.phone, {"key": {}, "message": {}}) is None
     two.db.commit()
     two.db.expire_all()
     assert two.db.get(Payment, two.a.payment.id).receipt_at.date() <= now_local().date() + timedelta(days=1)
+
+
+def test_receipt_file_is_isolated_between_shops(two):
+    """O arquivo do comprovante lido pela IA: só a própria barbearia baixa (B recebe 404, sem dizer que existe)."""
+    ra, rb = two.a.extra["receipt"], two.b.extra["receipt"]
+    got = two.ca.get(f"/api/receipts/{ra.id}/file")
+    assert got.status_code == 200 and got.content == PNG
+    assert two.cb.get(f"/api/receipts/{ra.id}/file").status_code == 404
+    assert two.cb.get(f"/api/receipts/{ra.id}").status_code == 404
+    assert two.ca.get(f"/api/receipts/{rb.id}/file").status_code == 404
+    assert two.anon.get(f"/api/receipts/{ra.id}/file").status_code == 401

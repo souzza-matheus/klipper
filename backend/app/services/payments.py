@@ -6,31 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import now_local
-from ..models import Appointment, Customer, PayMethod, PayStatus, Payment, Shop
-from .fmt import appt_summary, money
+from ..models import Appointment, PayMethod, PayStatus, Payment, Shop
+from .fmt import appt_summary, dt_label, money
 from .pix import build_brcode, new_txid
 
 log = logging.getLogger("payments")
-
-# Comprovante: só JPEG, PNG, WebP, GIF ou PDF, até 5 MB. O tipo vem dos bytes do arquivo, não do que foi
-# declarado (um SVG ou HTML com o tipo "image/png" é recusado).
-MAX_RECEIPT_BYTES = 5 * 1024 * 1024
-
-
-def sniff_receipt(data: bytes) -> str | None:
-    """Tipo real do arquivo pelos primeiros bytes, ou None se não for um formato aceito."""
-    if data.startswith(b"\xff\xd8\xff"):
-        return "image/jpeg"
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "image/png"
-    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "image/webp"
-    if data.startswith((b"GIF87a", b"GIF89a")):
-        return "image/gif"
-    if data.startswith(b"%PDF-"):
-        return "application/pdf"
-    return None
-
 
 def pix_ready(shop: Shop) -> bool:
     """Pix ligado e com chave válida (uma chave inválida nunca vira código Pix quebrado para o cliente)."""
@@ -93,42 +73,27 @@ def confirm_payment(db: Session, pay: Payment) -> bool:
     return False
 
 
+def confirmed_text(pay: Payment, deposit_ok: bool) -> str:
+    a = pay.appointment
+    if pay.kind == "deposit":
+        return (f"✅ Recebemos o sinal de {money(pay.amount)}! Seu horário de {dt_label(a.start)} está confirmado. "
+                "O valor do sinal é descontado no atendimento." if deposit_ok else
+                f"✅ Recebemos o sinal de {money(pay.amount)} do horário de {dt_label(a.start)}.")
+    return f"✅ Recebemos o seu Pix de {money(pay.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈"
+
+
+def confirm_and_notify(db: Session, shop: Shop, pay: Payment) -> None:
+    """Confirma (app, bot do dono ou comprovante) e avisa o cliente."""
+    from .whatsapp import send_text
+    deposit_ok = confirm_payment(db, pay)
+    send_text(db, shop, pay.appointment.customer.phone, confirmed_text(pay, deposit_ok))
+
+
 def reject_payment(db: Session, pay: Payment) -> None:
     """O dono não achou o Pix no extrato: o pagamento expira e o atendimento volta a ser pago no local."""
     pay.status = PayStatus.EXPIRED
     if pay.kind != "deposit":
         pay.appointment.payment_status = PayStatus.EXPIRED
-
-
-def save_receipt(db: Session, shop: Shop, phone: str, media: dict) -> int:
-    """Guarda o comprovante (imagem ou PDF) mandado pelo cliente nos Pix pendentes dele. Devolve quantos recebeu.
-    media: {"key": ..., "message": ...} do evento messages.upsert, usado para baixar o arquivo na Evolution API."""
-    from .whatsapp import EvolutionError, mask_phone, media_base64
-    customer = db.scalar(select(Customer).where(Customer.shop_id == shop.id, Customer.phone == phone))
-    if customer is None:
-        return 0
-    pays = db.scalars(select(Payment).join(Appointment).where(
-        Payment.shop_id == shop.id, Payment.status == PayStatus.PENDING, Appointment.customer_id == customer.id,
-    )).all()
-    if not pays:
-        return 0
-    try:
-        mime, data = media_base64(shop, media)
-    except EvolutionError:
-        log.exception("Não foi possível baixar o comprovante de %s", mask_phone(phone))
-        return 0
-    if len(data) > MAX_RECEIPT_BYTES:
-        log.warning("Comprovante de ...%s ignorado: %d bytes (limite %d)", phone[-4:], len(data), MAX_RECEIPT_BYTES)
-        return 0
-    real = sniff_receipt(data)
-    if real is None or not mime.startswith(("image/", "application/pdf")):
-        log.info("Anexo de ...%s ignorado: não é imagem nem PDF (declarado: %s)", phone[-4:], mime[:40])
-        return 0
-    mime = real
-    now = now_local()
-    for pay in pays:
-        pay.receipt_mime, pay.receipt_data, pay.receipt_at = mime[:60], data, now
-    return len(pays)
 
 
 def pending_payments(db: Session, shop: Shop) -> list[Payment]:

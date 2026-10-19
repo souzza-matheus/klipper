@@ -208,23 +208,35 @@ def test_receipt_from_whatsapp_is_stored_and_served(env, api, monkeypatch):
 
 
 def test_receipt_limits(env, monkeypatch):
+    from app.services import receipts
     db, shop, barbers, services, client, rival = env
     pay = _pix(db, shop, client, barbers["João"], services["Corte"], datetime.combine(next_weekday(), time(10)))
     media = {"key": {"id": "X"}, "message": {}}
     monkeypatch.setattr(wa, "media_base64", lambda s, m: ("audio/ogg", PNG))
-    assert payments.save_receipt(db, shop, CLIENT, media) == 0
+    assert receipts.handle_media(db, shop, CLIENT, media) is None
     monkeypatch.setattr(wa, "media_base64",
-                        lambda s, m: ("image/png", b"0" * (payments.MAX_RECEIPT_BYTES + 1)))
-    assert payments.save_receipt(db, shop, CLIENT, media) == 0
-    monkeypatch.setattr(wa, "media_base64", lambda s, m: ("application/pdf", b"%PDF-1.4"))
-    assert payments.save_receipt(db, shop, RIVAL, media) == 0  # rival não tem Pix pendente
-    assert payments.save_receipt(db, shop, CLIENT, media) == 1
+                        lambda s, m: ("image/png", b"\x89PNG\r\n\x1a\n" + b"0" * settings.receipt_max_bytes))
+    assert receipts.handle_media(db, shop, CLIENT, media) is None
+    monkeypatch.setattr(wa, "media_base64", lambda s, m: ("application/pdf", _pdf(1)))
+    assert receipts.handle_media(db, shop, RIVAL, media) is None  # rival não tem Pix pendente
+    assert receipts.handle_media(db, shop, CLIENT, media) is not None
     assert db.get(Payment, pay.id).receipt_mime == "application/pdf"
 
     def boom(s, m):
         raise wa.EvolutionError("fora do ar")
     monkeypatch.setattr(wa, "media_base64", boom)
-    assert payments.save_receipt(db, shop, CLIENT, media) == 0
+    assert receipts.handle_media(db, shop, CLIENT, media) is None
+
+
+def _pdf(pages: int) -> bytes:
+    import io
+    from pypdf import PdfWriter
+    w = PdfWriter()
+    for _ in range(pages):
+        w.add_blank_page(width=200, height=200)
+    buf = io.BytesIO()
+    w.write(buf)
+    return buf.getvalue()
 
 
 def test_media_base64_calls_evolution(monkeypatch):

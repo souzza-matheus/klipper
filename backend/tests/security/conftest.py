@@ -99,7 +99,16 @@ def build_world(db, shop: Shop, tag: str, email: str, password: str, phone_prefi
     conflict = CustomerConflict(shop_id=shop.id, customer_a_id=a, customer_b_id=b, notes=f"Briga {tag}")
     db.add_all([review, expense, rule, settlement, block, conflict])
     db.commit()
-    extra = {"second_barber": second, **build_crm(db, shop, tag, barber, service, customer, a1)}
+    from app.models import PaymentReceipt
+    from app.services import receipts
+    receipt = PaymentReceipt(shop_id=shop.id, customer_id=customer.id, payment_id=pay.id, file_hash=tag * 8,
+                             mime="image/png", size_bytes=len(PNG), file_path=receipts.store_file(shop, PNG),
+                             read_status="ok", amount=pay.amount, receiver_name=f"Recebedor {tag}", result="confere",
+                             checks=[])
+    db.add(receipt)
+    db.commit()
+    extra = {"second_barber": second, "receipt": receipt,
+             **build_crm(db, shop, tag, barber, service, customer, a1)}
     return World(shop=shop, user_email=email, password=password, barber=barber, service=service, customer=customer,
                  other_customer=other, appt=a1, pending_appt=pending, done_appt=done, payment=pay, review=review,
                  expense=expense, rule=rule, settlement=settlement, block=block, conflict=conflict, extra=extra)

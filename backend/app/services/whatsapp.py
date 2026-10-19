@@ -305,23 +305,39 @@ def connection_state(shop: Shop) -> str:
         return "erro"
 
 
+def _decode_b64(raw: str) -> bytes:
+    raw = raw.split(",", 1)[-1]  # aceita com ou sem o prefixo data:...;base64,
+    try:
+        return base64.b64decode(raw, validate=False)
+    except (binascii.Error, ValueError) as exc:
+        raise EvolutionError("A Evolution API devolveu uma mídia inválida.") from exc
+
+
 def media_base64(shop: Shop, media: dict) -> tuple[str, bytes]:
-    """Baixa a mídia de uma mensagem recebida (POST /chat/getBase64FromMediaMessage). Manda a mensagem inteira
-    (key + message) para a Evolution não precisar procurar no banco dela. Devolve (mimetype, bytes)."""
+    """Baixa a mídia de uma mensagem recebida. Devolve (mimetype, bytes).
+
+    - Se o webhook já trouxe o arquivo (opção "base64" do webhook, nos dois modos), usa direto, sem outra chamada.
+    - Senão, POST /chat/getBase64FromMediaMessage/{instância} com a mensagem inteira (key + message + messageType):
+      no modo QR Code (Baileys) a Evolution baixa e decifra a mídia do WhatsApp sem procurar no banco dela; no modo
+      oficial (WHATSAPP-BUSINESS / Cloud API) ela usa messageType para achar o id da mídia e baixa da Graph API
+      (GET /{versão}/{media-id} e depois a URL devolvida). O tipo vem em "mimetype".
+    O tipo devolvido é só o declarado: quem usa confere pelos bytes."""
+    declared = (media.get("mimetype") or "application/octet-stream").split(";")[0].strip()
+    inline = (media.get("message") or {}).get("base64") or media.get("base64")
+    if isinstance(inline, str) and inline:
+        return declared, _decode_b64(inline)
     if not settings.evolution_url:
         raise EvolutionError("Modo simulação: não há mídia para baixar.")
+    body = {"key": media.get("key") or {}, "message": media.get("message") or {}}
+    if media.get("messageType"):
+        body["messageType"] = media["messageType"]
     r = _call("POST", f"/chat/getBase64FromMediaMessage/{shop.evolution_instance}", timeout=60,
-              json={"message": {"key": media.get("key") or {}, "message": media.get("message") or {}},
-                    "convertToMp4": False})
+              json={"message": body, "convertToMp4": False})
     data = _json(r)
     if r.status_code >= 400 or not data.get("base64"):
         raise _fail(r, "baixar a mídia")
-    raw = data["base64"].split(",", 1)[-1]  # aceita com ou sem o prefixo data:...;base64,
-    try:
-        content = base64.b64decode(raw, validate=False)
-    except (binascii.Error, ValueError) as exc:
-        raise EvolutionError("A Evolution API devolveu uma mídia inválida.") from exc
-    return (data.get("mimetype") or "application/octet-stream").split(";")[0].strip(), content
+    content = _decode_b64(data["base64"])
+    return (data.get("mimetype") or declared).split(";")[0].strip(), content
 
 
 def _phone_jid(data: dict) -> str:
@@ -335,6 +351,17 @@ def _phone_jid(data: dict) -> str:
     return ""
 
 
+def _timestamp(raw) -> int:
+    """messageTimestamp em segundos. Vem como número, texto ou Long do protobuf ({"low": ..., "high": ...});
+    0 quando falta ou é inválido (aí a mensagem é aceita)."""
+    if isinstance(raw, dict):
+        raw = (raw.get("high") or 0) * 2**32 + (raw.get("low") or 0)
+    try:
+        return int(raw or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def parse_webhook(payload: dict) -> dict | None:
     """Extrai (instância, telefone, texto, nome) de um evento messages.upsert. Ignora grupos e mensagens próprias."""
     event = (payload.get("event") or "").lower().replace("_", ".")
@@ -346,6 +373,11 @@ def parse_webhook(payload: dict) -> dict | None:
     key = data.get("key") or {}
     jid = key.get("remoteJid", "")
     if key.get("fromMe") or jid.endswith("@g.us") or "status@broadcast" in jid:
+        return None
+    sent_at = _timestamp(data.get("messageTimestamp"))
+    if sent_at and time.time() - sent_at > settings.webhook_max_message_age_seconds:
+        # Histórico reenviado ao conectar (ou fila de quando o servidor estava fora): não responde
+        log.info("Mensagem antiga ignorada (%ds atrás) de %s", time.time() - sent_at, mask_phone(jid))
         return None
     message = data.get("message") or {}
     text = (
@@ -375,8 +407,9 @@ def parse_webhook(payload: dict) -> dict | None:
         "text": text.strip(),
         "name": data.get("pushName", ""),
     }
-    if media_msg:  # imagem ou documento: pode ser o comprovante do Pix
-        out["media"] = {"key": key, "message": message, "mimetype": media_msg.get("mimetype", "")}
+    if media_msg:  # imagem ou documento: pode ser o comprovante do Pix (no modo oficial o tipo vem em mime_type)
+        out["media"] = {"key": key, "message": message, "messageType": data.get("messageType", ""),
+                        "mimetype": media_msg.get("mimetype") or media_msg.get("mime_type") or ""}
     if audio_msg and text == "[áudio]":  # transcrito pela IA, se estiver ligada (app.api.webhook)
         out["audio"] = {"key": key, "message": message, "mimetype": audio_msg.get("mimetype", "audio/ogg"),
                         "seconds": int(audio_msg.get("seconds") or 0)}

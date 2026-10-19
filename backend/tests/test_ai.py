@@ -279,10 +279,43 @@ def test_quota_retries_with_fallback_model(env, fake):
     assert [(r.model, r.ok) for r in rows] == [(settings.ai_model, False), (settings.ai_fallback_model, True)]
 
 
+def test_overloaded_model_retries_with_fallback_model(env, fake):
+    # 503 "high demand" no modelo principal: o reserva responde em vez de cair no menu
+    db, *_ = env
+    fake.script = [LLMError("unavailable", "HTTP 503"), "O corte custa R$ 40,00."]
+    assert "R$ 40,00" in say(db, "quanto tá o corte?")
+    assert [c["model"] for c in fake.calls] == [settings.ai_model, settings.ai_fallback_model]
+
+
+def test_timeout_on_main_model_retries_with_fallback_model(env, fake):
+    # O principal estourou o tempo (pico de demanda): o reserva responde em vez de cair no menu
+    db, *_ = env
+    fake.script = [LLMError("timeout", "read timed out"), "O corte custa R$ 40,00."]
+    assert "R$ 40,00" in say(db, "corte")
+    assert [c["model"] for c in fake.calls] == [settings.ai_model, settings.ai_fallback_model]
+
+
 def test_quota_on_both_models_goes_to_menu(env, fake):
     db, *_ = env
     fake.script = [LLMError("quota"), LLMError("quota")]
     assert "Bem-vindo" in say(db, "oi")
+
+
+def test_both_models_overloaded_retries_before_menu(env, fake, monkeypatch):
+    # 503 nos dois modelos ao mesmo tempo: espera e tenta de novo em vez de largar o cliente no menu
+    db, *_ = env
+    monkeypatch.setattr(settings, "ai_unavailable_retry_delay_seconds", 0)
+    fake.script = [LLMError("unavailable"), LLMError("unavailable"), "O corte custa R$ 40,00."]
+    assert "R$ 40,00" in say(db, "quanto tá o corte?")
+    assert [c["model"] for c in fake.calls] == [settings.ai_model, settings.ai_fallback_model, settings.ai_model]
+
+
+def test_both_models_overloaded_after_retry_goes_to_menu(env, fake, monkeypatch):
+    db, *_ = env
+    monkeypatch.setattr(settings, "ai_unavailable_retry_delay_seconds", 0)
+    fake.script = [LLMError("unavailable")] * 4
+    assert "Bem-vindo" in say(db, "oi")
+    assert len(fake.calls) == 4
 
 
 def test_tool_call_limit_forces_text_answer(env, fake, monkeypatch):
@@ -498,7 +531,7 @@ def test_gemini_adapter_builds_requests_and_parses_responses(monkeypatch):
     r2 = p.generate("instruções", msgs, tools.SPECS, "gemini-teste", 15, 300)
     assert r2.text == "Corte: R$ 40,00" and not r2.tool_calls
     _, contents, _ = sent[1]
-    assert [c.role for c in contents] == ["user", "model", "tool"]
+    assert [c.role for c in contents] == ["user", "model", "user"]
     assert contents[1] is r1.raw  # conteúdo original volta intacto (assinaturas de raciocínio)
     assert contents[2].parts[0].function_response.name == "list_services"
 
@@ -508,3 +541,32 @@ def test_gemini_adapter_builds_requests_and_parses_responses(monkeypatch):
     with pytest.raises(LLMError) as e:
         p.generate("x", [Message(role="user", text="oi")], [], "gemini-teste", 15, 300)
     assert e.value.kind == "quota"
+
+    def overloaded(model, contents, config):
+        raise errors.ServerError(503, {"error": {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}})
+    monkeypatch.setattr(p._client.models, "generate_content", overloaded)
+    with pytest.raises(LLMError) as e:
+        p.generate("x", [Message(role="user", text="oi")], [], "gemini-teste", 15, 300)
+    assert e.value.kind == "unavailable"
+
+
+def test_gemini_adapter_retries_with_more_tokens_when_thinking_eats_the_limit(monkeypatch):
+    # O raciocínio gastou todo o max_output_tokens e não sobrou texto: repete com folga em vez de falhar
+    from google.genai import types
+    from app.ai.gemini import GeminiProvider
+    from app.ai.provider import Message
+    p = GeminiProvider("chave-falsa")
+    limits = []
+    replies = [
+        types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(role="model", parts=[]),
+                                                                  finish_reason=types.FinishReason.MAX_TOKENS)]),
+        types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(role="model", parts=[
+            types.Part(text="Fechado, 11:00!")]))]),
+    ]
+
+    def fake_generate(model, contents, config):
+        limits.append(config.max_output_tokens)
+        return replies.pop(0)
+    monkeypatch.setattr(p._client.models, "generate_content", fake_generate)
+    r = p.generate("x", [Message(role="user", text="pode ser às 11")], [], "gemini-teste", 15, 300)
+    assert r.text == "Fechado, 11:00!" and limits == [300, 1200]

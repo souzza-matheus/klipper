@@ -42,6 +42,12 @@ ROUTE_CASES = {
     ("POST", "/api/payments/{pid}/confirm"): (lambda t: {"pid": t.b.payment.id}, None),
     ("POST", "/api/payments/{pid}/reject"): (lambda t: {"pid": t.b.payment.id}, None),
     ("GET", "/api/payments/{pid}/receipt"): (lambda t: {"pid": t.b.payment.id}, None),
+    # comprovante lido pela IA: dados, arquivo e ações só da própria loja
+    ("GET", "/api/receipts/{rid}"): (lambda t: {"rid": X(t, "receipt").id}, None),
+    ("GET", "/api/receipts/{rid}/file"): (lambda t: {"rid": X(t, "receipt").id}, None),
+    ("POST", "/api/receipts/{rid}/confirm"): (lambda t: {"rid": X(t, "receipt").id}, None),
+    ("POST", "/api/receipts/{rid}/reject"): (lambda t: {"rid": X(t, "receipt").id}, None),
+    ("POST", "/api/receipts/{rid}/undo"): (lambda t: {"rid": X(t, "receipt").id}, None),
     ("GET", "/api/commission-rules/{rid}"): (lambda t: {"rid": t.b.rule.id}, None),
     ("PUT", "/api/commission-rules/{rid}"): (lambda t: {"rid": t.b.rule.id}, rule_body),
     ("DELETE", "/api/commission-rules/{rid}"): (lambda t: {"rid": t.b.rule.id}, None),

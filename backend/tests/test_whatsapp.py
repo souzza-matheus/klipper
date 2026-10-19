@@ -61,3 +61,20 @@ def test_ignora_grupo_proprias_status_e_outros_eventos():
 def test_anexo_sem_legenda():
     msg = parse_webhook(_upsert({"remoteJid": "5531977776666@s.whatsapp.net"}, {"imageMessage": {"mimetype": "image/jpeg"}}))
     assert msg["text"] == "[anexo]"
+
+
+def test_ignora_mensagem_antiga_reenviada_ao_conectar():
+    # Ao conectar, a Evolution reenvia as conversas anteriores: o bot não pode responder quem escreveu antes
+    import time
+    jid = {"remoteJid": "5531977776666@s.whatsapp.net"}
+    assert parse_webhook(_upsert(jid, messageTimestamp=int(time.time()) - 3600)) is None
+    assert parse_webhook(_upsert(jid, messageTimestamp=str(int(time.time()) - 3600))) is None
+    assert parse_webhook(_upsert(jid, messageTimestamp={"low": int(time.time()) - 3600, "high": 0})) is None
+
+
+def test_aceita_mensagem_recente_ou_sem_horario():
+    import time
+    jid = {"remoteJid": "5531977776666@s.whatsapp.net"}
+    assert parse_webhook(_upsert(jid, messageTimestamp=int(time.time()) - 5))["text"] == "oi"
+    assert parse_webhook(_upsert(jid, messageTimestamp="lixo"))["text"] == "oi"
+    assert parse_webhook(_upsert(jid))["text"] == "oi"

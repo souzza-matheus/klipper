@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, undefer
+from sqlalchemy.orm import Session, object_session, undefer
 
 from .. import schemas as S
 from ..auth import (
@@ -15,16 +15,17 @@ from ..security import login_limiter, same_secret
 from ..config import now_local, settings
 from ..db import get_db
 from ..models import (
-    Appointment, ApptStatus, Barber, Block, Customer, DepositStatus, PayStatus, Payment, Review, Role, Service, Shop,
-    User, WorkingHour,
+    Appointment, ApptStatus, Barber, Block, Customer, DepositStatus, PayStatus, Payment, PaymentReceipt,
+    ReceiptDecision, ReceiptResult, Review, Role, Service, Shop, User, WorkingHour,
 )
-from ..permissions import is_pro, own_barber_id, owner_shop, served_by, staff_shop, team_user
+from ..permissions import is_pro, own_barber_id, owner_shop, owner_user, served_by, staff_shop, staff_user, team_user
 from ..sync_events import soft_delete
 from ..services import scheduling as sch
 from ..services import whatsapp as wa
 from ..services.approvals import approval_deadline
 from ..services.fmt import appt_summary, dt_label, money
-from ..services.payments import confirm_payment, reject_payment
+from ..services import receipts
+from ..services.payments import confirm_and_notify, reject_payment
 from ..services.pix import valid_pix_key
 
 router = APIRouter()
@@ -645,18 +646,27 @@ def update_customer(cid: int, body: S.CustomerIn, shop: Shop = Depends(staff_sho
 
 # ---------------------------------------------------------------- pagamentos
 
-def pay_out(p: Payment) -> S.PaymentOut:
+def receipt_out(r: PaymentReceipt | None) -> S.ReceiptOut | None:
+    return S.ReceiptOut.model_validate(r) if r is not None else None
+
+
+def pay_out(p: Payment, receipt: PaymentReceipt | None = None, with_receipt: bool = True) -> S.PaymentOut:
     a = p.appointment
+    if with_receipt and receipt is None:
+        receipt = receipts.latest_for(object_session(p), payment_id=p.id)
     return S.PaymentOut(id=p.id, appointment_id=p.appointment_id, amount=p.amount, status=p.status, brcode=p.brcode,
-                        created_at=p.created_at, customer_reported_at=p.customer_reported_at,
+                        kind=p.kind, created_at=p.created_at, customer_reported_at=p.customer_reported_at,
                         confirmed_at=p.confirmed_at, customer_name=a.customer.name, appointment_start=a.start,
                         customer_phone=a.customer.phone, service_name=a.service.name, barber_name=a.barber.name,
-                        has_receipt=p.receipt_mime is not None, receipt_mime=p.receipt_mime, receipt_at=p.receipt_at)
+                        has_receipt=p.receipt_mime is not None or receipt is not None,
+                        receipt_mime=receipt.mime if receipt else p.receipt_mime,
+                        receipt_at=receipt.created_at if receipt else p.receipt_at, receipt=receipt_out(receipt))
 
 
 @router.get("/payments", response_model=list[S.PaymentOut], tags=["payments"])
 def list_payments(status: str | None = None, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
-    """Pendentes vêm primeiro os que o cliente disse que pagou, depois pelo horário do atendimento."""
+    """Pendentes: primeiro os com comprovante que confere, depois os que o cliente disse que pagou, depois pelo
+    horário do atendimento."""
     q = select(Payment).join(Appointment).where(Payment.shop_id == shop.id)
     if status:
         q = q.where(Payment.status == status)
@@ -664,34 +674,34 @@ def list_payments(status: str | None = None, shop: Shop = Depends(staff_shop), d
         q = q.order_by(Payment.customer_reported_at.is_(None), Appointment.start)
     else:
         q = q.order_by(Payment.created_at.desc())
-    return [pay_out(p) for p in db.scalars(q.limit(200))]
+    pays = list(db.scalars(q.limit(200)))
+    latest = receipts.latest_by_target(db, [p.id for p in pays])
+    out = [pay_out(p, latest.get(p.id), with_receipt=False) for p in pays]
+    if status == PayStatus.PENDING:  # sort estável: mantém a ordem acima dentro de cada grupo
+        out.sort(key=lambda x: not (x.receipt and x.receipt.result == ReceiptResult.OK))
+    return out
 
 
 @router.post("/payments/{pid}/confirm", response_model=S.PaymentOut, tags=["payments"])
-def confirm(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
-    p = _own(db, Payment, pid, shop)
+def confirm(pid: int, user: User = Depends(staff_user), db: Session = Depends(get_db)):
+    p = _own(db, Payment, pid, user.shop)
     if p.status == PayStatus.PAID:
         return pay_out(p)
-    deposit_ok = confirm_payment(db, p)
-    a = p.appointment
-    if p.kind == "deposit":
-        msg = (f"✅ Recebemos o sinal de {money(p.amount)}! Seu horário de {dt_label(a.start)} está confirmado. "
-               "O valor do sinal é descontado no atendimento." if deposit_ok else
-               f"✅ Recebemos o sinal de {money(p.amount)} do horário de {dt_label(a.start)}.")
-    else:
-        msg = f"✅ Recebemos o seu Pix de {money(p.amount)}! Seu horário de {dt_label(a.start)} está pago. Até lá! 💈"
-    wa.send_text(db, shop, a.customer.phone, msg)
+    confirm_and_notify(db, user.shop, p)
+    receipts.settle(db, ReceiptDecision.CONFIRMED, user, payment_id=p.id)
     db.commit()
     return pay_out(p)
 
 
 @router.post("/payments/{pid}/reject", response_model=S.PaymentOut, tags=["payments"])
-def reject(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
+def reject(pid: int, user: User = Depends(staff_user), db: Session = Depends(get_db)):
     """O Pix não caiu: marca como expirado e avisa o cliente com uma mensagem neutra. O horário continua marcado."""
+    shop = user.shop
     p = _own(db, Payment, pid, shop)
     if p.status != PayStatus.PENDING:
         raise HTTPException(409, "Esse pagamento não está mais pendente.")
     reject_payment(db, p)
+    receipts.settle(db, ReceiptDecision.REJECTED, user, payment_id=p.id)
     a = p.appointment
     wa.send_text(db, shop, a.customer.phone,
                  f"Não localizamos o seu Pix de {money(p.amount)} referente ao horário de {dt_label(a.start)}. "
@@ -701,21 +711,85 @@ def reject(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get
     return pay_out(p)
 
 
-@router.get("/payments/{pid}/receipt", tags=["payments"])
-def payment_receipt(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
-    """Comprovante que o cliente mandou no WhatsApp (imagem ou PDF)."""
-    p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid)) \
-        if 0 < pid <= MAX_ID else None
-    if p is None or p.shop_id != shop.id or not p.receipt_data:
-        raise HTTPException(404, "Comprovante não encontrado")
-    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
-           "application/pdf": "pdf"}.get(p.receipt_mime, "bin")
-    return Response(p.receipt_data, media_type=p.receipt_mime or "application/octet-stream", headers={
+RECEIPT_EXT = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+               "application/pdf": "pdf"}
+
+
+def _file_response(data: bytes, mime: str | None, name: str) -> Response:
+    ext = RECEIPT_EXT.get(mime or "", "bin")
+    return Response(data, media_type=mime or "application/octet-stream", headers={
         "Cache-Control": "private, max-age=3600",
-        "Content-Disposition": f'inline; filename="comprovante-{p.id}.{ext}"',
+        "Content-Disposition": f'inline; filename="{name}.{ext}"',
         # nada dentro do arquivo roda no navegador (PDF com script, etc.)
         "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
     })
+
+
+@router.get("/payments/{pid}/receipt", tags=["payments"])
+def payment_receipt(pid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
+    """Último comprovante que o cliente mandou no WhatsApp (imagem ou PDF). Dono e recepção da própria loja."""
+    p = db.scalar(select(Payment).options(undefer(Payment.receipt_data)).where(Payment.id == pid)) \
+        if 0 < pid <= MAX_ID else None
+    if p is None or p.shop_id != shop.id:
+        raise HTTPException(404, "Comprovante não encontrado")
+    r = receipts.latest_for(db, payment_id=p.id)
+    data = receipts.read_file(r) if r else None
+    if data is not None:
+        return _file_response(data, r.mime, f"comprovante-{p.id}")
+    if not p.receipt_data:  # comprovantes antigos, guardados no banco
+        raise HTTPException(404, "Comprovante não encontrado")
+    return _file_response(p.receipt_data, p.receipt_mime, f"comprovante-{p.id}")
+
+
+# ---------------------------------------------------------------- comprovantes (pré-conferência)
+
+def _receipt(db: Session, rid: int, shop: Shop) -> PaymentReceipt:
+    return _own(db, PaymentReceipt, rid, shop)
+
+
+@router.get("/receipts/{rid}", response_model=S.ReceiptOut, tags=["payments"])
+def get_receipt(rid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
+    return _receipt(db, rid, shop)
+
+
+@router.get("/receipts/{rid}/file", tags=["payments"])
+def receipt_file(rid: int, shop: Shop = Depends(staff_shop), db: Session = Depends(get_db)):
+    """O arquivo do comprovante: só autenticado, só dono e recepção, só da própria loja. Depois do prazo de
+    retenção o arquivo some (404) e ficam só os dados lidos."""
+    r = _receipt(db, rid, shop)
+    data = receipts.read_file(r)
+    if data is None:
+        raise HTTPException(404, "Comprovante não encontrado")
+    return _file_response(data, r.mime, f"comprovante-{r.id}")
+
+
+def _receipt_action(fn, rid: int, user: User, db: Session) -> PaymentReceipt:
+    r = _receipt(db, rid, user.shop)
+    try:
+        fn(db, user.shop, r, user)
+    except receipts.ReceiptError as e:
+        raise HTTPException(409, str(e))
+    db.commit()
+    return r
+
+
+@router.post("/receipts/{rid}/confirm", response_model=S.ReceiptOut, tags=["payments"])
+def confirm_receipt(rid: int, user: User = Depends(staff_user), db: Session = Depends(get_db)):
+    """Confirma o pagamento do comprovante (segue o fluxo de sempre: cliente avisado, horário pago, sinal, pacote
+    ou mensalidade liberados)."""
+    return _receipt_action(receipts.confirm, rid, user, db)
+
+
+@router.post("/receipts/{rid}/reject", response_model=S.ReceiptOut, tags=["payments"])
+def reject_receipt(rid: int, user: User = Depends(staff_user), db: Session = Depends(get_db)):
+    """O dinheiro não caiu: o cliente recebe uma mensagem neutra pedindo para conferir o pagamento."""
+    return _receipt_action(receipts.reject, rid, user, db)
+
+
+@router.post("/receipts/{rid}/undo", response_model=S.ReceiptOut, tags=["payments"])
+def undo_receipt(rid: int, user: User = Depends(owner_user), db: Session = Depends(get_db)):
+    """Desfaz uma confirmação automática (só o dono): o pagamento volta para pendente e o cliente é avisado."""
+    return _receipt_action(receipts.undo_auto, rid, user, db)
 
 
 # ---------------------------------------------------------------- avaliações e relatórios

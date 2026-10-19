@@ -23,6 +23,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # A Evolution guarda no Redis as chaves de criptografia do WhatsApp (sessões e pre-keys). Sem persistência,
+    # um "docker compose down" apaga as chaves e o WhatsApp conecta, mas não consegue ler as mensagens recebidas.
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -81,6 +86,9 @@ services:
     # Porta no seu PC (BACKEND_PORT no .env); dentro do Docker o backend continua na 8000
     ports:
       - "${BACKEND_PORT:-8002}:8000"
+    # Comprovantes de Pix (fora de qualquer pasta pública; apagados depois de RECEIPT_RETENTION_DAYS)
+    volumes:
+      - receipts:/app/data/receipts
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"]
       interval: 10s
@@ -90,4 +98,6 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   evolution_instances:
+  receipts:
