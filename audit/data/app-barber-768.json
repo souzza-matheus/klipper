@@ -1,0 +1,911 @@
+{
+  "theme": "barber",
+  "width": 768,
+  "axe": [
+    {
+      "label": "01-login",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "03-hoje",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "04-agendamento-detalhe",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 21
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "06-agenda-timeline",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 28
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "07-agendamento-rapido",
+      "violations": [],
+      "passes": 44,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "09-agenda-profissionais",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 29
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "10-agenda-mes",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 19
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "12-novo-agendamento",
+      "violations": [],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 8
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "13-caixa",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "label": "14-comanda",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 17
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "16-pix-pendentes",
+      "violations": [],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 26
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "19-clientes",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 29
+        }
+      ]
+    },
+    {
+      "label": "20-ficha-cliente",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 11
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "22-produtos-estoque",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 13
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "23-produto-detalhe",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 10
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "24-pacotes",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 10
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "25-assinaturas",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 17
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "26-lista-espera",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 13
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "27-relatorios",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 7
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "28-avaliacoes",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 89
+        },
+        {
+          "id": "color-contrast",
+          "count": 49
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "29-equipe",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 9
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "30-servicos",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 14
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "31-bloqueios",
+      "violations": [],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 11
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "32-financeiro",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "label": "33-configuracoes",
+      "violations": [],
+      "passes": 44,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 11
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "34-whatsapp",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 12
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "35-mais",
+      "violations": [],
+      "passes": 36,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 34
+        }
+      ]
+    }
+  ],
+  "measure": {
+    "01-login": {
+      "smallTargets": [
+        {
+          "el": "input \"E-mail\"",
+          "w": 694,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Senha\"",
+          "w": 694,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "03-hoje": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "04-agendamento-detalhe": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "06-agenda-timeline": {
+      "smallTargets": [
+        {
+          "el": "button \"10:30 Ricardo Freitas, até 11:00, Corte, João\"",
+          "w": 708,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Otávio Barbosa, até 12:00, Corte, João\"",
+          "w": 353,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Eduardo Marques, até 12:00, Corte, Pedro\"",
+          "w": 353,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 Paulo Duarte, até 14:30, Corte, João\"",
+          "w": 708,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"17:00 Wellington Mendes, até 17:30, Barba, João\"",
+          "w": 353,
+          "h": 36,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "07-agendamento-rapido": {
+      "smallTargets": [
+        {
+          "el": "input \"Nome ou telefone\"",
+          "w": 684,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "09-agenda-profissionais": {
+      "smallTargets": [
+        {
+          "el": "button \"10:30 Ricardo Freitas, até 11:00, Corte, João\"",
+          "w": 350,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Otávio Barbosa, até 12:00, Corte, João\"",
+          "w": 350,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 Paulo Duarte, até 14:30, Corte, João\"",
+          "w": 350,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"17:00 Wellington Mendes, até 17:30, Barba, João\"",
+          "w": 350,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Eduardo Marques, até 12:00, Corte, Pedro\"",
+          "w": 350,
+          "h": 36,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "10-agenda-mes": {
+      "smallTargets": [],
+      "smallText": {
+        "10px": {
+          "count": 3,
+          "samples": [
+            ""
+          ]
+        },
+        "11px": {
+          "count": 1,
+          "samples": [
+            ""
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "12-novo-agendamento": {
+      "smallTargets": [
+        {
+          "el": "input \"WhatsApp do cliente\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "13-caixa": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "14-comanda": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "16-pix-pendentes": {
+      "smallTargets": [
+        {
+          "el": "button \" Ver dados lidos e conferências\"",
+          "w": 700,
+          "h": 17,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "19-clientes": {
+      "smallTargets": [
+        {
+          "el": "input \"Buscar por nome ou telefone\"",
+          "w": 686,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "20-ficha-cliente": {
+      "smallTargets": [
+        {
+          "el": "input \"Nome\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button \"Adicionar cliente incompatível\"",
+          "w": 127,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "22-produtos-estoque": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "23-produto-detalhe": {
+      "smallTargets": [
+        {
+          "el": "input \"Nome\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Unidade\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Custo\"",
+          "w": 684,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Estoque mínimo (avisa abaixo disso)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Quantidade (un)\"",
+          "w": 676,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Observação\"",
+          "w": 676,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "24-pacotes": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "25-assinaturas": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "26-lista-espera": {
+      "smallTargets": [
+        {
+          "el": "button \"1º Rafael Silva Corte · das 17:00 · (00) 91257-556\"",
+          "w": 702,
+          "h": 38,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "27-relatorios": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "28-avaliacoes": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "29-equipe": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "30-servicos": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "31-bloqueios": {
+      "smallTargets": [
+        {
+          "el": "input \"Data\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Início\"",
+          "w": 337,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Fim\"",
+          "w": 337,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Motivo\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "32-financeiro": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "33-configuracoes": {
+      "smallTargets": [
+        {
+          "el": "input \"Nome\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Telefone fixo\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Instagram\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"WhatsApp pessoal do dono\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Chave Pix\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome do recebedor (até 25 letras)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Cidade (até 15 letras)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Lembrete antes do horário (min)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pode cancelar até (horas antes)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pesquisa após o fim do atendimento (min)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Intervalo entre horários (min)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Antecedência mínima para agendar (min)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Agenda aberta para os próximos (dias)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pix pendente expira em (horas)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Hora do resumo diário (0-23)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pausa do bot ao pedir atendente (horas)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pedido para aprovar expira em (horas)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Distância padrão entre clientes incompatíveis (min\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Lista de espera: vaga reservada por (min)\"",
+          "w": 710,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "34-whatsapp": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "35-mais": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    }
+  },
+  "errors": [],
+  "console": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ]
+}

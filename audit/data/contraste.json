@@ -1,0 +1,2742 @@
+[
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#94A3B8",
+    "bg": "#1E293B",
+    "ratio": 5.71,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "accentText na superfície",
+    "fg": "#38BDF8",
+    "bg": "#1E293B",
+    "ratio": 6.83,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#707F94",
+    "bg": "#273449",
+    "ratio": 3.08,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#94A3B8",
+    "bg": "#1E293B",
+    "ratio": 5.71,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#38BDF8",
+    "bg": "#0D2742",
+    "ratio": 7.07,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#F8FAFC",
+    "bg": "#1A3750",
+    "ratio": 11.76,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#94A3B8",
+    "bg": "#1A3750",
+    "ratio": 4.8,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#94A3B8",
+    "bg": "#1F4040",
+    "ratio": 4.39,
+    "min": 4.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#94A3B8",
+    "bg": "#353F4F",
+    "ratio": 4.15,
+    "min": 4.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#707F94",
+    "bg": "#353F4F",
+    "ratio": 2.61,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#353F4F",
+    "bg": "#1E293B",
+    "ratio": 1.38,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#334155",
+    "bg": "#0F172A",
+    "ratio": 1.72,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#353F4F",
+    "ratio": 6.1,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#353F4F",
+    "ratio": 6.3,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#94A3B8",
+    "bg": "#1E293B",
+    "ratio": 5.71,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#273449",
+    "ratio": 7.53,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#273449",
+    "ratio": 7.2,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#707F94",
+    "bg": "#1E293B",
+    "ratio": 3.59,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#707F94",
+    "bg": "#0F172A",
+    "ratio": 4.38,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#0284C7",
+    "bg": "#1E293B",
+    "ratio": 3.57,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#0284C7",
+    "bg": "#F97316",
+    "ratio": 1.46,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "brand",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#334155",
+    "bg": "#0F172A",
+    "ratio": 1.72,
+    "min": 1.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#A3A3A3",
+    "bg": "#1E1E1E",
+    "ratio": 6.61,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "accentText na superfície",
+    "fg": "#F59E0B",
+    "bg": "#1E1E1E",
+    "ratio": 7.76,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#747474",
+    "bg": "#2A2A2A",
+    "ratio": 3.07,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#A3A3A3",
+    "bg": "#1E1E1E",
+    "ratio": 6.61,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#F59E0B",
+    "bg": "#342711",
+    "ratio": 6.77,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#F5F5F5",
+    "bg": "#1A2D37",
+    "ratio": 13.06,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#A3A3A3",
+    "bg": "#1A2D37",
+    "ratio": 5.65,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#A3A3A3",
+    "bg": "#1F3728",
+    "ratio": 5.09,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#A3A3A3",
+    "bg": "#353535",
+    "ratio": 4.86,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#747474",
+    "bg": "#353535",
+    "ratio": 2.62,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#353535",
+    "bg": "#1E1E1E",
+    "ratio": 1.36,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#2E2E2E",
+    "bg": "#121212",
+    "ratio": 1.38,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#353535",
+    "ratio": 7.04,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#353535",
+    "ratio": 7.27,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#A3A3A3",
+    "bg": "#1E1E1E",
+    "ratio": 6.61,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#2A2A2A",
+    "ratio": 8.61,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#2A2A2A",
+    "ratio": 8.24,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#747474",
+    "bg": "#1E1E1E",
+    "ratio": 3.57,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#747474",
+    "bg": "#121212",
+    "ratio": 4.01,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#F59E0B",
+    "bg": "#1E1E1E",
+    "ratio": 7.76,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#F59E0B",
+    "bg": "#F97316",
+    "ratio": 1.31,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-dark",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#2E2E2E",
+    "bg": "#121212",
+    "ratio": 1.38,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "accentText na superfície",
+    "fg": "#92400E",
+    "bg": "#FFFFFF",
+    "ratio": 7.09,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#858585",
+    "bg": "#FFFFFF",
+    "ratio": 3.69,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#92400E",
+    "bg": "#F7EAD2",
+    "ratio": 5.96,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#171717",
+    "bg": "#D9EDF7",
+    "ratio": 14.86,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#5F5F5F",
+    "bg": "#D9EDF7",
+    "ratio": 5.29,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#5F5F5F",
+    "bg": "#DEF6E7",
+    "ratio": 5.61,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#5F5F5F",
+    "bg": "#EEEFF0",
+    "ratio": 5.55,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#858585",
+    "bg": "#EEEFF0",
+    "ratio": 3.21,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#EEEFF0",
+    "bg": "#FFFFFF",
+    "ratio": 1.15,
+    "min": 1.2,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#E7E5E0",
+    "bg": "#F7F7F5",
+    "ratio": 1.17,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#166534",
+    "bg": "#EEEFF0",
+    "ratio": 6.19,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#9A3412",
+    "bg": "#EEEFF0",
+    "ratio": 6.35,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#166534",
+    "bg": "#FFFFFF",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#858585",
+    "bg": "#FFFFFF",
+    "ratio": 3.69,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#858585",
+    "bg": "#F7F7F5",
+    "ratio": 3.44,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#F59E0B",
+    "bg": "#FFFFFF",
+    "ratio": 2.15,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#F59E0B",
+    "bg": "#F97316",
+    "ratio": 1.31,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "barbershop-light",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#E7E5E0",
+    "bg": "#F7F7F5",
+    "ratio": 1.17,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "accentText na superfície",
+    "fg": "#F472B6",
+    "bg": "#1C1D21",
+    "ratio": 6.36,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#6F727A",
+    "bg": "#26282D",
+    "ratio": 3.06,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#F472B6",
+    "bg": "#321A28",
+    "ratio": 6.03,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#F5F5F7",
+    "bg": "#182C3A",
+    "ratio": 13.21,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#A4A7AE",
+    "bg": "#182C3A",
+    "ratio": 5.97,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#A4A7AE",
+    "bg": "#1D362A",
+    "ratio": 5.4,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#A4A7AE",
+    "bg": "#333438",
+    "ratio": 5.16,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#6F727A",
+    "bg": "#333438",
+    "ratio": 2.58,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#333438",
+    "bg": "#1C1D21",
+    "ratio": 1.35,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#333438",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#333438",
+    "ratio": 7.37,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#26282D",
+    "ratio": 8.85,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#26282D",
+    "ratio": 8.46,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#6F727A",
+    "bg": "#1C1D21",
+    "ratio": 3.5,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#6F727A",
+    "bg": "#111214",
+    "ratio": 3.89,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#EC4899",
+    "bg": "#1C1D21",
+    "ratio": 4.77,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#EC4899",
+    "bg": "#F97316",
+    "ratio": 1.26,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-dark",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#6B5F63",
+    "bg": "#FFFFFF",
+    "ratio": 6.1,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "accentText na superfície",
+    "fg": "#BE185D",
+    "bg": "#FFFFFF",
+    "ratio": 6.04,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#877F83",
+    "bg": "#FFFFFF",
+    "ratio": 3.89,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#6B5F63",
+    "bg": "#FFFFFF",
+    "ratio": 6.1,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#BE185D",
+    "bg": "#F8DBE7",
+    "ratio": 4.68,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#1F1A1C",
+    "bg": "#D9EDF7",
+    "ratio": 14.24,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#6B5F63",
+    "bg": "#D9EDF7",
+    "ratio": 5.06,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#6B5F63",
+    "bg": "#DEF6E7",
+    "ratio": 5.36,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#6B5F63",
+    "bg": "#EEEFF0",
+    "ratio": 5.3,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#877F83",
+    "bg": "#EEEFF0",
+    "ratio": 3.38,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#EEEFF0",
+    "bg": "#FFFFFF",
+    "ratio": 1.15,
+    "min": 1.2,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#EFE4E6",
+    "bg": "#FAF5F5",
+    "ratio": 1.15,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#166534",
+    "bg": "#EEEFF0",
+    "ratio": 6.19,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#9A3412",
+    "bg": "#EEEFF0",
+    "ratio": 6.35,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#6B5F63",
+    "bg": "#FFFFFF",
+    "ratio": 6.1,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#166534",
+    "bg": "#FFFFFF",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#877F83",
+    "bg": "#FFFFFF",
+    "ratio": 3.89,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#877F83",
+    "bg": "#FAF5F5",
+    "ratio": 3.61,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#EC4899",
+    "bg": "#FFFFFF",
+    "ratio": 3.53,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#EC4899",
+    "bg": "#F97316",
+    "ratio": 1.26,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "beauty-light",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#EFE4E6",
+    "bg": "#FAF5F5",
+    "ratio": 1.15,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "accentText na superfície",
+    "fg": "#22D3EE",
+    "bg": "#1C1D21",
+    "ratio": 9.32,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#6F727A",
+    "bg": "#26282D",
+    "ratio": 3.06,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#22D3EE",
+    "bg": "#0F2B31",
+    "ratio": 8.24,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#F5F5F7",
+    "bg": "#182C3A",
+    "ratio": 13.21,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#A4A7AE",
+    "bg": "#182C3A",
+    "ratio": 5.97,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#A4A7AE",
+    "bg": "#1D362A",
+    "ratio": 5.4,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#A4A7AE",
+    "bg": "#333438",
+    "ratio": 5.16,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#6F727A",
+    "bg": "#333438",
+    "ratio": 2.58,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#333438",
+    "bg": "#1C1D21",
+    "ratio": 1.35,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#333438",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#333438",
+    "ratio": 7.37,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#26282D",
+    "ratio": 8.85,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#26282D",
+    "ratio": 8.46,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#6F727A",
+    "bg": "#1C1D21",
+    "ratio": 3.5,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#6F727A",
+    "bg": "#111214",
+    "ratio": 3.89,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#06B6D4",
+    "bg": "#1C1D21",
+    "ratio": 6.94,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#06B6D4",
+    "bg": "#F97316",
+    "ratio": 1.15,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-dark",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#556170",
+    "bg": "#FFFFFF",
+    "ratio": 6.31,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "accentText na superfície",
+    "fg": "#0E7490",
+    "bg": "#FFFFFF",
+    "ratio": 5.36,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#7C8794",
+    "bg": "#FFFFFF",
+    "ratio": 3.65,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#556170",
+    "bg": "#FFFFFF",
+    "ratio": 6.31,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#0E7490",
+    "bg": "#D4F0F6",
+    "ratio": 4.49,
+    "min": 4.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#0F172A",
+    "bg": "#D9EDF7",
+    "ratio": 14.8,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#556170",
+    "bg": "#D9EDF7",
+    "ratio": 5.23,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#556170",
+    "bg": "#DEF6E7",
+    "ratio": 5.54,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#556170",
+    "bg": "#EEEFF0",
+    "ratio": 5.48,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#7C8794",
+    "bg": "#EEEFF0",
+    "ratio": 3.17,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#EEEFF0",
+    "bg": "#FFFFFF",
+    "ratio": 1.15,
+    "min": 1.2,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#E2E8F0",
+    "bg": "#F8FAFC",
+    "ratio": 1.18,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#166534",
+    "bg": "#EEEFF0",
+    "ratio": 6.19,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#9A3412",
+    "bg": "#EEEFF0",
+    "ratio": 6.35,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#556170",
+    "bg": "#FFFFFF",
+    "ratio": 6.31,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#166534",
+    "bg": "#FFFFFF",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#7C8794",
+    "bg": "#FFFFFF",
+    "ratio": 3.65,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#7C8794",
+    "bg": "#F8FAFC",
+    "ratio": 3.49,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#06B6D4",
+    "bg": "#FFFFFF",
+    "ratio": 2.43,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#06B6D4",
+    "bg": "#F97316",
+    "ratio": 1.15,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "petshop-light",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#E2E8F0",
+    "bg": "#F8FAFC",
+    "ratio": 1.18,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "accentText na superfície",
+    "fg": "#38BDF8",
+    "bg": "#1C1D21",
+    "ratio": 7.86,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#6F727A",
+    "bg": "#26282D",
+    "ratio": 3.06,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#38BDF8",
+    "bg": "#0F232F",
+    "ratio": 7.53,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#F5F5F7",
+    "bg": "#182C3A",
+    "ratio": 13.21,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#A4A7AE",
+    "bg": "#182C3A",
+    "ratio": 5.97,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#A4A7AE",
+    "bg": "#1D362A",
+    "ratio": 5.4,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#A4A7AE",
+    "bg": "#333438",
+    "ratio": 5.16,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#6F727A",
+    "bg": "#333438",
+    "ratio": 2.58,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#333438",
+    "bg": "#1C1D21",
+    "ratio": 1.35,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#333438",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#333438",
+    "ratio": 7.37,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#A4A7AE",
+    "bg": "#1C1D21",
+    "ratio": 6.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#26282D",
+    "ratio": 8.85,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#26282D",
+    "ratio": 8.46,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#6F727A",
+    "bg": "#1C1D21",
+    "ratio": 3.5,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#6F727A",
+    "bg": "#111214",
+    "ratio": 3.89,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#0284C7",
+    "bg": "#1C1D21",
+    "ratio": 4.11,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#0284C7",
+    "bg": "#F97316",
+    "ratio": 1.46,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-dark",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#2C2E33",
+    "bg": "#111214",
+    "ratio": 1.38,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#4F6463",
+    "bg": "#FFFFFF",
+    "ratio": 6.3,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "accentText na superfície",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#7A8896",
+    "bg": "#FFFFFF",
+    "ratio": 3.63,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#4F6463",
+    "bg": "#FFFFFF",
+    "ratio": 6.3,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#0369A1",
+    "bg": "#CCEBF2",
+    "ratio": 4.73,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#0F2A2E",
+    "bg": "#D9EDF7",
+    "ratio": 12.51,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#4F6463",
+    "bg": "#D9EDF7",
+    "ratio": 5.22,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#4F6463",
+    "bg": "#DEF6E7",
+    "ratio": 5.53,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#4F6463",
+    "bg": "#EEEFF0",
+    "ratio": 5.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#7A8896",
+    "bg": "#EEEFF0",
+    "ratio": 3.15,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#EEEFF0",
+    "bg": "#FFFFFF",
+    "ratio": 1.15,
+    "min": 1.2,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#D5EFEA",
+    "bg": "#F0FDFA",
+    "ratio": 1.16,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#166534",
+    "bg": "#EEEFF0",
+    "ratio": 6.19,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#9A3412",
+    "bg": "#EEEFF0",
+    "ratio": 6.35,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#4F6463",
+    "bg": "#FFFFFF",
+    "ratio": 6.3,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#166534",
+    "bg": "#FFFFFF",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#7A8896",
+    "bg": "#FFFFFF",
+    "ratio": 3.63,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#7A8896",
+    "bg": "#F0FDFA",
+    "ratio": 3.48,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#0284C7",
+    "bg": "#FFFFFF",
+    "ratio": 4.1,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#0284C7",
+    "bg": "#F97316",
+    "ratio": 1.46,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "clinic-light",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#D5EFEA",
+    "bg": "#F0FDFA",
+    "ratio": 1.16,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#B4B4BC",
+    "bg": "#27272A",
+    "ratio": 7.23,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "accentText na superfície",
+    "fg": "#84CC16",
+    "bg": "#27272A",
+    "ratio": 7.54,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#8B8B92",
+    "bg": "#3F3F46",
+    "ratio": 3.09,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#B4B4BC",
+    "bg": "#27272A",
+    "ratio": 7.23,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#84CC16",
+    "bg": "#28331A",
+    "ratio": 6.73,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#FAFAFA",
+    "bg": "#213542",
+    "ratio": 12.17,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#B4B4BC",
+    "bg": "#213542",
+    "ratio": 6.17,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#B4B4BC",
+    "bg": "#263F32",
+    "ratio": 5.54,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#B4B4BC",
+    "bg": "#3D3D40",
+    "ratio": 5.26,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#8B8B92",
+    "bg": "#3D3D40",
+    "ratio": 3.2,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#3D3D40",
+    "bg": "#27272A",
+    "ratio": 1.38,
+    "min": 1.2,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#3F3F46",
+    "bg": "#18181B",
+    "ratio": 1.7,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#4ADE80",
+    "bg": "#3D3D40",
+    "ratio": 6.21,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#FDBA74",
+    "bg": "#3D3D40",
+    "ratio": 6.42,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#B4B4BC",
+    "bg": "#27272A",
+    "ratio": 7.23,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#7DD3FC",
+    "bg": "#3F3F46",
+    "ratio": 6.26,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#4ADE80",
+    "bg": "#3F3F46",
+    "ratio": 5.99,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#8B8B92",
+    "bg": "#27272A",
+    "ratio": 4.4,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#8B8B92",
+    "bg": "#18181B",
+    "ratio": 5.24,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#84CC16",
+    "bg": "#27272A",
+    "ratio": 7.54,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#84CC16",
+    "bg": "#F97316",
+    "ratio": 1.42,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-dark",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#3F3F46",
+    "bg": "#18181B",
+    "ratio": 1.7,
+    "min": 1.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "texto secundário (textMuted) na superfície",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "accentText na superfície",
+    "fg": "#4D7C0F",
+    "bg": "#FFFFFF",
+    "ratio": 4.99,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "borda de controle (chips, campos) no bottom sheet (surfaceElevated)",
+    "fg": "#858585",
+    "bg": "#FFFFFF",
+    "ratio": 3.69,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "placeholder/textMuted dentro de campo no sheet",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "banner de sincronização com erro: onDanger sobre dangerFill (A10)",
+    "fg": "#FFFFFF",
+    "bg": "#B91C1C",
+    "ratio": 6.47,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "banner \"pedido para aprovar\": accentText sobre accentSoft no fundo",
+    "fg": "#4D7C0F",
+    "bg": "#E6F1D4",
+    "ratio": 4.26,
+    "min": 4.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "bloco da agenda (agendado): texto 14px sobre info 15%",
+    "fg": "#171717",
+    "bg": "#D9EDF7",
+    "ratio": 14.86,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "bloco da agenda: serviço 13px (textMuted) sobre info 15%",
+    "fg": "#5F5F5F",
+    "bg": "#D9EDF7",
+    "ratio": 5.29,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "bloco da agenda (confirmado): serviço 13px (textMuted) sobre verde 15%",
+    "fg": "#5F5F5F",
+    "bg": "#DEF6E7",
+    "ratio": 5.61,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "bloco da agenda (atendido): nome 14px (textMuted) sobre neutralBg",
+    "fg": "#5F5F5F",
+    "bg": "#EEEFF0",
+    "ratio": 5.55,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "barra lateral do bloco \"atendido\" (border) sobre neutralBg",
+    "fg": "#858585",
+    "bg": "#EEEFF0",
+    "ratio": 3.21,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "fundo fora do expediente (neutralBg) x expediente (surface)",
+    "fg": "#EEEFF0",
+    "bg": "#FFFFFF",
+    "ratio": 1.15,
+    "min": 1.2,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "hachura de bloqueio (divider) sobre background",
+    "fg": "#E7E5E0",
+    "bg": "#F7F7F5",
+    "ratio": 1.17,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "barra de ocupação verde do mês (statusText) sobre a trilha (A26)",
+    "fg": "#166534",
+    "bg": "#EEEFF0",
+    "ratio": 6.19,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "barra de ocupação laranja do mês (statusText) sobre a trilha (A26)",
+    "fg": "#9A3412",
+    "bg": "#EEEFF0",
+    "ratio": 6.35,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "dia fechado do calendário (textMuted, sem opacidade) sobre surface (A26)",
+    "fg": "#5F5F5F",
+    "bg": "#FFFFFF",
+    "ratio": 6.39,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "borda do toast info (statusText) sobre surfaceElevated",
+    "fg": "#0369A1",
+    "bg": "#FFFFFF",
+    "ratio": 5.93,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "borda do toast sucesso (statusText) sobre surfaceElevated",
+    "fg": "#166534",
+    "bg": "#FFFFFF",
+    "ratio": 7.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "interruptor desligado: trilha (border) x bolinha (surface)",
+    "fg": "#858585",
+    "bg": "#FFFFFF",
+    "ratio": 3.69,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "símbolo do estado vazio (border) sobre background",
+    "fg": "#858585",
+    "bg": "#F7F7F5",
+    "ratio": 3.44,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "accent puro como ícone/indicador (BrandSymbol do topo, barra do bloco) sobre surface",
+    "fg": "#84CC16",
+    "bg": "#FFFFFF",
+    "ratio": 1.98,
+    "min": 3,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "accent (marca) x warning (Pix pendente): diferença entre as duas cores",
+    "fg": "#84CC16",
+    "bg": "#F97316",
+    "ratio": 1.42,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "app",
+    "theme": "fitness-light",
+    "what": "divider dos cards sobre background (contorno do card)",
+    "fg": "#E7E5E0",
+    "bg": "#F7F7F5",
+    "ratio": 1.17,
+    "min": 1.5,
+    "ok": false
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "texto de destaque do h1 (.hl #0284C7, texto grande) sobre o fundo",
+    "fg": "#0284C7",
+    "bg": "#0F172A",
+    "ratio": 4.36,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "número dos passos (.steps__n #0284C7, 36px) sobre #0F172A",
+    "fg": "#0284C7",
+    "bg": "#0F172A",
+    "ratio": 4.36,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "borda dos botões de nicho (--control #64748B) sobre o fundo (L09)",
+    "fg": "#64748B",
+    "bg": "#0F172A",
+    "ratio": 3.75,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "borda do botão \"Ver como funciona\" (.btn--ghost --control #64748B) (L09)",
+    "fg": "#64748B",
+    "bg": "#0F172A",
+    "ratio": 3.75,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "borda do botão de menu (--control #64748B) (L09)",
+    "fg": "#64748B",
+    "bg": "#0F172A",
+    "ratio": 3.75,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "texto secundário (#94A3B8) sobre #1E293B (seções alternadas)",
+    "fg": "#94A3B8",
+    "bg": "#1E293B",
+    "ratio": 5.71,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "texto secundário (#94A3B8) sobre #0F172A",
+    "fg": "#94A3B8",
+    "bg": "#0F172A",
+    "ratio": 6.96,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "CTA verde: #0F172A sobre #22C55E",
+    "fg": "#0F172A",
+    "bg": "#22C55E",
+    "ratio": 7.83,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "valor da calculadora (#22C55E) sobre #1E293B",
+    "fg": "#22C55E",
+    "bg": "#1E293B",
+    "ratio": 6.42,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "bolha do robô (#E9EDEF sobre #202C33)",
+    "fg": "#E9EDEF",
+    "bg": "#202C33",
+    "ratio": 12.13,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "nota do simulador (#AEBAC1 sobre #1F2C34, 12px)",
+    "fg": "#AEBAC1",
+    "bg": "#1F2C34",
+    "ratio": 7.22,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "opção do simulador: borda accent-text barbearia (#F59E0B) sobre #111B21",
+    "fg": "#F59E0B",
+    "bg": "#111B21",
+    "ratio": 8.13,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "mockup: texto cinza (#9CA3AF) sobre card #1E293B",
+    "fg": "#9CA3AF",
+    "bg": "#1E293B",
+    "ratio": 5.76,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "mockup: selo \"Sinal pago\" (#4ADE80) sobre verde 15% em #1E293B",
+    "fg": "#4ADE80",
+    "bg": "#1F4040",
+    "ratio": 6.46,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "mockup: selo \"Aguardando sinal\" (#FDBA74) sobre laranja 15%",
+    "fg": "#FDBA74",
+    "bg": "#3F3435",
+    "ratio": 7.1,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "mockup: faixa offline (#422006 sobre #FDE68A)",
+    "fg": "#422006",
+    "bg": "#FDE68A",
+    "ratio": 11.7,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "mockup web: grupo \"Gestão\" (#94A3B8 sobre #0F172A, 11px) (L17)",
+    "fg": "#94A3B8",
+    "bg": "#0F172A",
+    "ratio": 6.96,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "plano em destaque: borda #0284C7 sobre #1E293B",
+    "fg": "#0284C7",
+    "bg": "#1E293B",
+    "ratio": 3.57,
+    "min": 3,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "badge do topo (#38BDF8 sobre azul 15% em #0F172A)",
+    "fg": "#38BDF8",
+    "bg": "#0D2742",
+    "ratio": 7.07,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "link do rodapé (#F8FAFC sobre #0F172A)",
+    "fg": "#F8FAFC",
+    "bg": "#0F172A",
+    "ratio": 17.06,
+    "min": 4.5,
+    "ok": true
+  },
+  {
+    "scope": "landing",
+    "theme": "landing",
+    "what": "aviso das páginas legais (#FED7AA sobre laranja 12%)",
+    "fg": "#FED7AA",
+    "bg": "#2B2228",
+    "ratio": 11.39,
+    "min": 4.5,
+    "ok": true
+  }
+]

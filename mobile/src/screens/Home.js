@@ -9,7 +9,7 @@ import { Symbol as BrandSymbol } from '../brand/Logo';
 import { AppointmentCard, QuickActions } from '../components/AppointmentCard';
 import { toMin } from '../components/DayGrid';
 import { dayLabel, hm, money, todayISO } from '../format';
-import { SPACE } from '../theme';
+import { SPACE, TYPE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { Banner, Empty, IconButton, Loading, Screen, Section, Stat, useLoad } from '../ui';
 
@@ -63,7 +63,8 @@ export function HomeScreen({ navigation }) {
       }]}>
         <BrandSymbol size={36} color={c.accent} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: font.extrabold, fontSize: 20, color: c.text }} numberOfLines={1}>
+          <Text style={{ fontFamily: font.extrabold, fontSize: TYPE.heading, color: c.text }} numberOfLines={1}
+                role="heading" aria-level={1}>
             {shopName || ' '}
           </Text>
           <Text style={s.caption}>{dayLabel(day)}</Text>

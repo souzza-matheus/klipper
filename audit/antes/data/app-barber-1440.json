@@ -1,0 +1,3148 @@
+{
+  "theme": "barber",
+  "width": 1440,
+  "axe": [
+    {
+      "label": "01-login",
+      "violations": [
+        {
+          "id": "autocomplete-valid",
+          "impact": "serious",
+          "help": "autocomplete attribute must be used correctly",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "input[autocomplete=\"password\"]",
+              "summary": "Fix all of the following:\n  the autocomplete attribute is incorrectly formatted",
+              "html": "<input autocomplete=\"password\" autocapitalize=\"sentences\" autocorrect=\"on\" dir=\"auto\" enterkeyhint=\"go\" rows=\"1\" spellcheck=\"true\" virtualkeyboardpolic...=\"auto"
+            }
+          ]
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-1loqt21",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Servidor http://127....\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"flex-direction: row;...\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "help": "Page should contain a level-one heading",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Page must have a level-one heading",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".r-1npgj5g",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-1npgj5g r-128mmef r-a023e6\" style=\"margin-top: 16px; text-align: center;\">Agendamento pelo WhatsApp, do seu jeito.</div>"
+            },
+            {
+              "target": ".r-150rngu > .css-g5y9jx > .css-g5y9jx:nth-child(2)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx\" style=\"margin-bottom: 16px;\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(3)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx\" style=\"margin-bottom: 16px;\">"
+            }
+          ]
+        }
+      ],
+      "passes": 28,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "03-hoje",
+      "violations": [
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(2)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"14:00, Renan Rodrigues, Corte com João, R$ 40,00, Agendado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1edft r-occ4"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(3)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:00, Wellington Mendes, Barba com João, R$ 30,00, Confirmado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1edft r-"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(4)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:30, Renan Fernandes, Barba com Pedro, R$ 30,00, Confirmado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1edft r-o"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(5)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"17:00, Ricardo Nascimento, Corte + Barba com João, R$ 65,00, Agendado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(5)",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<button aria-label=\"17:00, Ricardo Nascimento, Corte + Barba com João, R$ 65,00, Agendado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(7)",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<button aria-label=\"18:00, Arthur Lima, Corte + Barba com Pedro, R$ 65,00, Agendado\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-n1edft r"
+            }
+          ]
+        },
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "help": "Page should contain a level-one heading",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Page must have a level-one heading",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 27,
+          "nodes": [
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 28,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 36
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "04-agendamento-detalhe",
+      "violations": [
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 28,
+          "nodes": [
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "label": "06-agenda-timeline",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .css-g5y9jx > .css-g5y9jx > .r-1loqt21.r-1otgn73.css-g5y9jx:nth-child(15)",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Horários de Todos. Toque num horário vago para agendar\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"position: absolute; inset: 0"
+            },
+            {
+              "target": "div[aria-label=\"Agora\"]",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Agora\" class=\"css-g5y9jx r-633pao\" style=\"position: absolute; left: 46px; right: 0px; top: 166.2px; flex-direction: row; align-items: center;\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 7,
+          "nodes": [
+            {
+              "target": "button:nth-child(16)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"09:00 a 10:00, Thiag...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(17)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Antôn...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(18)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(19)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"14:00 a 14:30, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(20)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:00 a 16:30, Welli...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(21)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:30 a 17:00, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(22)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"17:00 a 18:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 30,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 33,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 99
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "07-agendamento-rapido",
+      "violations": [
+        {
+          "id": "aria-dialog-name",
+          "impact": "serious",
+          "help": "ARIA dialog and alertdialog nodes should have an accessible name",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-1niwhzg",
+              "summary": "Fix any of the following:\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute",
+              "html": "<div aria-modal=\"true\" class=\"css-g5y9jx r-1p0dtai r-1d2f490 r-1xcajam r-zchlnj r-ipm5af r-1niwhzg\" role=\"dialog\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .css-g5y9jx > .css-g5y9jx > .r-1loqt21.r-1otgn73.css-g5y9jx:nth-child(15)",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Horários de Todos. Toque num horário vago para agendar\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"position: absolute; inset: 0"
+            },
+            {
+              "target": "div[aria-label=\"Agora\"]",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Agora\" class=\"css-g5y9jx r-633pao\" style=\"position: absolute; left: 46px; right: 0px; top: 166.2px; flex-direction: row; align-items: center;\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 6,
+          "nodes": [
+            {
+              "target": ".r-18u37iz.css-g5y9jx > .css-g5y9jx > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".r-18u37iz.css-g5y9jx > .css-g5y9jx > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".r-18u37iz.css-g5y9jx > .css-g5y9jx > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 7,
+          "nodes": [
+            {
+              "target": "button:nth-child(16)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"09:00 a 10:00, Thiag...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(17)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Antôn...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(18)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(19)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"14:00 a 14:30, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(20)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:00 a 16:30, Welli...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(21)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:30 a 17:00, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(22)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"17:00 a 18:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 30,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 103
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "09-agenda-profissionais",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .css-g5y9jx:nth-child(1) > .r-1loqt21.r-1otgn73.css-g5y9jx:nth-child(13)",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Horários de João. Toque num horário vago para agendar\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"position: absolute; inset: 0p"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73.css-g5y9jx:nth-child(13)",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Horários de Pedro. Toque num horário vago para agendar\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"position: absolute; inset: 0"
+            },
+            {
+              "target": "div[aria-label=\"Agora\"]",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Agora\" class=\"css-g5y9jx r-633pao\" style=\"position: absolute; left: 46px; right: 0px; top: 206.2px; flex-direction: row; align-items: center;\">"
+            }
+          ]
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 7,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(1) > button:nth-child(14)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"09:00 a 10:00, Thiag...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(1) > button:nth-child(15)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Antôn...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(1) > button:nth-child(16)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"14:00 a 14:30, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(17)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:00 a 16:30, Welli...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": "button:nth-child(18)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"17:00 a 18:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(2) > button:nth-child(14)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"10:30 a 11:00, Ricar...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(2) > button:nth-child(15)",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"16:30 a 17:00, Renan...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"position: absolute; ...\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 31,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 32,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 98
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "10-agenda-mes",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(14) > button > .r-1awozwy.r-18u37iz.css-g5y9jx > .css-146c3p1[dir=\"auto\"]",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #747474, background color: #1e1e1e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-size: 16px; font-family: PlusJakartaSans_600SemiBold; color: rgb(245, 245, 245);\">11</div>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(21) > button > .r-1awozwy.r-18u37iz.css-g5y9jx > .css-146c3p1[dir=\"auto\"]",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #747474, background color: #1e1e1e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-size: 16px; font-family: PlusJakartaSans_600SemiBold; color: rgb(245, 245, 245);\">18</div>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(28) > button > .r-1awozwy.r-18u37iz.css-g5y9jx > .css-146c3p1[dir=\"auto\"]",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #747474, background color: #1e1e1e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-size: 16px; font-family: PlusJakartaSans_600SemiBold; color: rgb(245, 245, 245);\">25</div>"
+            }
+          ]
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "impact": "serious",
+          "help": "Elements must have their visible text as part of their accessible name",
+          "count": 23,
+          "nodes": [
+            {
+              "target": "button[aria-label=\"Quinta · 01/10: 8 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Quinta · 01/10: 8 at...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": "button[aria-label=\"Sexta · 02/10: 7 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Sexta · 02/10: 7 ate...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": "button[aria-label=\"Sábado · 03/10: 4 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Sábado · 03/10: 4 at...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .css-g5y9jx:nth-child(7) > button",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Domingo · 04/10: 0 a...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(8) > button",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Segunda · 05/10: 8 a...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": "button[aria-label=\"Terça · 06/10: 7 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Terça · 06/10: 7 ate...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": "button[aria-label=\"Quarta · 07/10: 6 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Quarta · 07/10: 6 at...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            },
+            {
+              "target": "button[aria-label=\"Quinta · 08/10: 8 atendimentos\"]",
+              "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name",
+              "html": "<button aria-label=\"Quinta · 08/10: 8 at...\" role=\"button\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" type=\"button\" style=\"border-radius: 10px;...\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 29,
+          "nodes": [
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-150rngu.r-eqz5dr.r-1wbh5a2 > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 32,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 93
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "12-novo-agendamento",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490 > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 6,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(3) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(3) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(3) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(4) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(4) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(4) > .css-g5y9jx:nth-child(2) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 25,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 80
+        }
+      ]
+    },
+    {
+      "label": "13-caixa",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 31,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 29,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 129
+        }
+      ]
+    },
+    {
+      "label": "14-comanda",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 36,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 135
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "16-pix-pendentes",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-1p0dtai.r-1d2f490.r-u8s1d:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Ver comprovante em tela cheia\"]",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Ver comprovante em tela cheia\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 42,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 190
+        }
+      ]
+    },
+    {
+      "label": "20-ficha-cliente",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(5) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 2,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Aprovação manual obrigatória\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Aprovação manual obrigatória\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 0.5;\">"
+            },
+            {
+              "target": "div[aria-label=\"Bloqueado\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Bloqueado\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 2,
+          "nodes": [
+            {
+              "target": ".r-7q8q6z > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input disabled=\"\" role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" "
+            },
+            {
+              "target": ".r-lrvibr.r-1loqt21.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" checked=\"\" s"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Bloqueado\"]",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Bloqueado\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 34,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 229
+        }
+      ]
+    },
+    {
+      "label": "22-produtos-estoque",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 27,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 205
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "23-produto-detalhe",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 27,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 205
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "24-pacotes",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 26,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 203
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "25-assinaturas",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".css-g5y9jx:nth-child(5) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(5) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(5) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(4)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 28,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 43,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 213
+        }
+      ]
+    },
+    {
+      "label": "26-lista-espera",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-nsbfu8 > .r-1loqt21.r-1otgn73[role=\"switch\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Mostrar também quem já saiu da fila\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\""
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-nsbfu8 > .r-1loqt21.r-1otgn73[role=\"switch\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-lrvibr.r-1loqt21.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-nsbfu8 > .r-1loqt21.r-1otgn73[role=\"switch\"]",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Mostrar também quem já saiu da fila\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\""
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 29,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": "div[aria-label=\"Hoje\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-nsbfu8 > .r-1loqt21.r-1otgn73[role=\"switch\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-lrvibr.r-1loqt21.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Target has insufficient size (40px by 20px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 20px instead of at least 24px.",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            }
+          ]
+        }
+      ],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 207
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "label": "27-relatorios",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 24,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 201
+        }
+      ]
+    },
+    {
+      "label": "28-avaliacoes",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 3,
+          "nodes": [
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx:nth-child(1) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx:nth-child(1) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx:nth-child(1) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 24,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 89
+        },
+        {
+          "id": "color-contrast",
+          "count": 243
+        }
+      ]
+    },
+    {
+      "label": "29-equipe",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 29,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 204
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "30-servicos",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 25,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 208
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "31-bloqueios",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 4,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 4,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Dia inteiro\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Dia inteiro\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(1)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21...\" style=\"flex-direction: row;...\">"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(6) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(3)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Dia inteiro\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Dia inteiro\"]",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Dia inteiro\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 34,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Dia inteiro\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Target has insufficient size (40px by 20px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 20px instead of at least 24px.",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            }
+          ]
+        }
+      ],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 205
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "label": "33-configuracoes",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 5,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(5) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" aria-hidden=\"true\" style=\"background-color: rgb(18, 18, 18);\">"
+            }
+          ]
+        },
+        {
+          "id": "aria-progressbar-name",
+          "impact": "serious",
+          "help": "ARIA progressbar nodes must have an accessible name",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[role=\"progressbar\"]",
+              "summary": "Fix any of the following:\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute",
+              "html": "<div role=\"progressbar\" class=\"css-g5y9jx\" style=\"height: 8px; border-radius: 4px; background-color: rgba(255, 255, 255, 0.1); margin-top: 8px;\"><div class=\"css"
+            }
+          ]
+        },
+        {
+          "id": "aria-required-attr",
+          "impact": "critical",
+          "help": "Required ARIA attributes must be provided",
+          "count": 18,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Atender com IA\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Atender com IA\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            },
+            {
+              "target": "div[aria-label=\"Entender mensagens de áudio\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Entender mensagens de áudio\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 0.5;\">"
+            },
+            {
+              "target": "div[aria-label=\"Barbearia, tema escuro\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Barbearia, tema escuro\" role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"width: 48%; min-height: 112px; border-radius: 1"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(2) > .css-g5y9jx:nth-child(3) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Salão de beleza e estética, tema claro\" role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" ...>"
+            },
+            {
+              "target": "div[aria-label=\"Pet shop, tema claro\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Pet shop, tema claro\" role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"width: 48%; min-height: 112px; border-radius: 14p"
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(3) > .r-1loqt21.r-1otgn73[role=\"radio\"]:nth-child(4)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Clínica e consultório, tema claro\" role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"width: 48%; min-height: 112px; borde"
+            },
+            {
+              "target": "div[aria-label=\"Estúdio fitness, tema escuro\"]",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Estúdio fitness, tema escuro\" role=\"radio\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"width: 48%; min-height: 112px; border-rad"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx:nth-child(4) > .r-1loqt21.r-1otgn73[role=\"switch\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Required ARIA attribute not present: aria-checked",
+              "html": "<div aria-label=\"Oferecer pagamento via Pix no bot\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Entender mensagens de áudio\"] > .r-r5qtcx.r-n6v787.r-vaa0vc",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.69 (foreground color: #616161, background color: #1e1e1e, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-vaa0vc r-r5qtcx r-n6v787\">Transcreve áudios de até 2 minutos e responde como se fosse texto.</div>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 5,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Atender com IA\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            },
+            {
+              "target": "div[aria-label=\"Entender mensagens de áudio\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-7q8q6z.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input disabled=\"\" role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" "
+            },
+            {
+              "target": ".css-g5y9jx:nth-child(4) > .r-1loqt21.r-1otgn73[role=\"switch\"]:nth-child(2) > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" checked=\"\" s"
+            },
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"switch\"]:nth-child(9) > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            },
+            {
+              "target": "div[aria-label=\"Enviar pesquisa de satisfação\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" checked=\"\" s"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "count": 4,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Atender com IA\"]",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Atender com IA\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx:nth-child(4) > .r-1loqt21.r-1otgn73[role=\"switch\"]:nth-child(2)",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Oferecer pagamento via Pix no bot\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            },
+            {
+              "target": ".r-1loqt21.r-1otgn73[role=\"switch\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Confirmar automaticamente comprovantes que conferem\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12"
+            },
+            {
+              "target": "div[aria-label=\"Enviar pesquisa de satisfação\"]",
+              "summary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them.",
+              "html": "<div aria-label=\"Enviar pesquisa de satisfação\" role=\"switch\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"margin-bottom: 12px; opacity: 1;\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 25,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Atender com IA\"] > .r-1awozwy.r-18u37iz.css-g5y9jx > .r-1loqt21.r-lrvibr.css-g5y9jx > .r-30o5oe.r-crgep1.r-t60dpp",
+              "summary": "Fix any of the following:\n  Target has insufficient size (40px by 20px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 20px instead of at least 24px.",
+              "html": "<input role=\"switch\" class=\"r-30o5oe r-1p0dtai r-1pi2tsx r-1d2f490 r-crgep1 r-t60dpp r-u8s1d r-zchlnj r-ipm5af r-13qz1uu r-1ei5mc7\" type=\"checkbox\" style=\"\">"
+            }
+          ]
+        }
+      ],
+      "passes": 43,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 249
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "label": "34-whatsapp",
+      "violations": [
+        {
+          "id": "aria-hidden-focus",
+          "impact": "serious",
+          "help": "ARIA hidden element must not be focusable or contain focusable elements",
+          "count": 5,
+          "nodes": [
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(1) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(2) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(3) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(4) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" style=\"background-color: rgb(18, 18, 18);\" aria-hidden=\"true\">"
+            },
+            {
+              "target": ".r-633pao.r-1p0dtai.r-1d2f490:nth-child(5) > .r-13awgt0.css-g5y9jx[aria-hidden=\"true\"]",
+              "summary": "Fix all of the following:\n  Focusable content should be disabled, be removed from the DOM, or not be hidden with aria-hidden\n  Focusable content should have tabindex=\"-1\", be removed from the DOM, or not be hidden with aria-hidden",
+              "html": "<div class=\"css-g5y9jx r-13awgt0\" aria-hidden=\"true\" style=\"background-color: rgb(18, 18, 18);\">"
+            }
+          ]
+        },
+        {
+          "id": "landmark-one-main",
+          "impact": "moderate",
+          "help": "Document should have one main landmark",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "html",
+              "summary": "Fix all of the following:\n  Document does not have a main landmark",
+              "html": "<html lang=\"pt-BR\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 27,
+          "nodes": [
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-8akbws.r-krxsd3.r-1qsk4np",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-8akbws r-krxsd3 r-dnmrzs r-1qsk4np r-1udbk01\" style=\"-webkit-line-clamp: 2; font-family: PlusJakartaSans_700Bold; font-size"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .r-3s2u2q.r-1iln25a.r-1udh08x",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a\" style=\"font-family: PlusJakartaSans_500Medium; font-size: 13px; color: rgb(1"
+            },
+            {
+              "target": ".r-1loqt21[aria-label=\"Hoje\"][role=\"link\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Hoje\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: 4"
+            },
+            {
+              "target": "div[aria-label=\"Agenda\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Agenda\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height:"
+            },
+            {
+              "target": "div[aria-label=\"Caixa\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Caixa\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-height: "
+            },
+            {
+              "target": "div[aria-label=\"Clientes\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Clientes\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": "div[aria-label=\"Finanças\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div aria-label=\"Finanças\" role=\"link\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\" style=\"flex-direction: row; align-items: center; gap: 12px; min-heigh"
+            },
+            {
+              "target": ".r-eqz5dr.r-11yh6sk.r-1rnoaur > .css-g5y9jx > .css-146c3p1[dir=\"auto\"]:nth-child(9)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div dir=\"auto\" class=\"css-146c3p1\" style=\"font-family: PlusJakartaSans_700Bold; font-size: 12px; color: rgb(163, 163, 163); text-transform: uppercase; letter-s"
+            }
+          ]
+        }
+      ],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 250
+        }
+      ]
+    }
+  ],
+  "measure": {},
+  "errors": [
+    "clientes: locator.click: Timeout 6000ms exceeded.",
+    "clientes vazio: locator.click: Timeout 6000ms exceeded.",
+    "financeiro: locator.click: Timeout 6000ms exceeded.",
+    "offline: locator.click: Timeout 6000ms exceeded."
+  ],
+  "console": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

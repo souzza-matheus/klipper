@@ -145,7 +145,9 @@ function Charges({ list, onChanged }) {
       </Text>
       {ch.receipt ? (
         <View style={{ marginTop: SPACE(3) }}>
-          <ReceiptReview receipt={ch.receipt} paid={ch.status === 'paid'} onChanged={onChanged} />
+          <ReceiptReview receipt={ch.receipt} paid={ch.status === 'paid'} onChanged={onChanged}
+                         onConfirm={ch.status === 'pending' ? () => confirmCh(ch) : null}
+                         onReject={ch.status === 'pending' && openReceipt(ch) ? () => rejectReceipt(ch) : null} />
         </View>
       ) : null}
       <View style={[s.row, { gap: SPACE(2), marginTop: SPACE(3), flexWrap: 'wrap' }]}>

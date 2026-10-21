@@ -1,0 +1,658 @@
+{
+  "axe": [
+    {
+      "label": "landing 375px",
+      "violations": [
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "help": "Scrollable region must have keyboard access",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".compare",
+              "summary": "Fix any of the following:\n  Element should have focusable content\n  Element should be focusable",
+              "html": "<div class=\"compare\">"
+            }
+          ]
+        }
+      ],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 63
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 375px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "landing 768px",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".w-group",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.75 (foreground color: #64748b, background color: #0f172a, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<span class=\"w-group\">Gestão</span>"
+            }
+          ]
+        }
+      ],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 52
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 768px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "landing 1440px",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": ".w-group",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.75 (foreground color: #64748b, background color: #0f172a, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+              "html": "<span class=\"w-group\">Gestão</span>"
+            }
+          ]
+        }
+      ],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 52
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 1440px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "measure": {
+    "375": {
+      "smallTargets": [
+        {
+          "el": "a.skip \"Pular para o conteúdo\"",
+          "w": 199,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button.sim__reset.js-sim-reset \"Recomeçar a conversa\"",
+          "w": 44,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button.opt \"Oi\"",
+          "w": 46,
+          "h": 47,
+          "inline": false
+        },
+        {
+          "el": "input \"12\"",
+          "w": 297,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"50\"",
+          "w": 297,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"22\"",
+          "w": 297,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"10\"",
+          "w": 297,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        },
+        {
+          "el": "a \"Política de Privacidade\"",
+          "w": 174,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Termos de Uso\"",
+          "w": 112,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a.js-cta \"Fale conosco no WhatsApp\"",
+          "w": 235,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"[EMAIL]\"",
+          "w": 84,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 50,
+          "samples": [
+            "online",
+            "Oi, quero agendar",
+            "Olá, Carlos! Bem-vindo à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3"
+          ]
+        },
+        "12px": {
+          "count": 19,
+          "samples": [
+            "Rafael Souza",
+            "Lucas Lima",
+            "Bruno Alves",
+            "Diego Rocha",
+            "online",
+            "Toque em uma resposta para conversar com",
+            "Corte + Barba",
+            "R$ 65,00"
+          ]
+        },
+        "10px": {
+          "count": 11,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "N",
+            "novo agendamento"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "768": {
+      "smallTargets": [
+        {
+          "el": "a.skip \"Pular para o conteúdo\"",
+          "w": 199,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button.sim__reset.js-sim-reset \"Recomeçar a conversa\"",
+          "w": 44,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button.opt \"Oi\"",
+          "w": 46,
+          "h": 47,
+          "inline": false
+        },
+        {
+          "el": "input \"12\"",
+          "w": 690,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"50\"",
+          "w": 690,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"22\"",
+          "w": 690,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"10\"",
+          "w": 690,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        },
+        {
+          "el": "a \"Política de Privacidade\"",
+          "w": 174,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Termos de Uso\"",
+          "w": 112,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a.js-cta \"Fale conosco no WhatsApp\"",
+          "w": 235,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"[EMAIL]\"",
+          "w": 84,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 34,
+          "samples": [
+            "online",
+            "Hoje",
+            "Previsto",
+            "Agenda de hoje",
+            "Corte",
+            "Corte + Barba",
+            "Barba",
+            "Lucas Lima"
+          ]
+        },
+        "12px": {
+          "count": 35,
+          "samples": [
+            "Oi, quero agendar",
+            "Olá, Carlos! Bem-vindo à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3",
+            "- Serviços e preços"
+          ]
+        },
+        "10px": {
+          "count": 16,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "Produtos e estoque",
+            "Pacotes",
+            "Clube de assinatura"
+          ]
+        },
+        "9px": {
+          "count": 1,
+          "samples": [
+            "Gestão"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "1440": {
+      "smallTargets": [
+        {
+          "el": "a.skip \"Pular para o conteúdo\"",
+          "w": 199,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "a \"Como funciona\"",
+          "w": 118,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Recursos\"",
+          "w": 71,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Gestão\"",
+          "w": 57,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Preços\"",
+          "w": 54,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Dúvidas\"",
+          "w": 62,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a.btn.btn--cta \"Testar grátis\"",
+          "w": 126,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button.sim__reset.js-sim-reset \"Recomeçar a conversa\"",
+          "w": 44,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button.opt \"Oi\"",
+          "w": 46,
+          "h": 47,
+          "inline": false
+        },
+        {
+          "el": "input \"12\"",
+          "w": 528,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"50\"",
+          "w": 528,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"22\"",
+          "w": 528,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "input \"10\"",
+          "w": 528,
+          "h": 32,
+          "inline": false
+        },
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        },
+        {
+          "el": "a \"Política de Privacidade\"",
+          "w": 174,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"Termos de Uso\"",
+          "w": 112,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a.js-cta \"Fale conosco no WhatsApp\"",
+          "w": 235,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "a \"[EMAIL]\"",
+          "w": 84,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 34,
+          "samples": [
+            "online",
+            "Hoje",
+            "Previsto",
+            "Agenda de hoje",
+            "Corte",
+            "Corte + Barba",
+            "Barba",
+            "Lucas Lima"
+          ]
+        },
+        "12px": {
+          "count": 35,
+          "samples": [
+            "Oi, quero agendar",
+            "Olá, Carlos! Bem-vindo à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3",
+            "- Serviços e preços"
+          ]
+        },
+        "10px": {
+          "count": 16,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "Produtos e estoque",
+            "Pacotes",
+            "Clube de assinatura"
+          ]
+        },
+        "9px": {
+          "count": 1,
+          "samples": [
+            "Gestão"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 1440
+    }
+  },
+  "console": [],
+  "cta": {
+    "375": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ],
+    "768": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ],
+    "1440": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ]
+  },
+  "firstScreen": {
+    "375": {
+      "heroCtaTop": 512,
+      "heroCtaBottom": 564,
+      "vh": 812,
+      "ctaVisible": true,
+      "headerCtaVisible": false,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 954
+    },
+    "768": {
+      "heroCtaTop": 452,
+      "heroCtaBottom": 504,
+      "vh": 1024,
+      "ctaVisible": true,
+      "headerCtaVisible": false,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 750
+    },
+    "1440": {
+      "heroCtaTop": 551,
+      "heroCtaBottom": 618,
+      "vh": 900,
+      "ctaVisible": true,
+      "headerCtaVisible": true,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 216
+    }
+  }
+}

@@ -10,10 +10,11 @@ import {
   createNavigationContainerRef, DarkTheme, DefaultTheme, NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { preloadWebFonts } from './src/webFonts';
+import { startWebA11y } from './src/webA11y';
 
 import { api, clearSession, loadSession, refreshSession, saveAppearance, setUnauthorizedHandler } from './src/api';
 import { LogoVertical } from './src/brand/Logo';
@@ -23,9 +24,9 @@ import { startNet } from './src/net';
 import { setOfflineSession, startOffline, stopOffline } from './src/offline/manager';
 import { shortcutFor, tabsFor } from './src/roles';
 import { SessionProvider, useWide } from './src/session';
-import { BRAND_THEME } from './src/theme';
+import { BRAND_THEME, TYPE } from './src/theme';
 import { ThemeProvider, useTheme } from './src/ThemeProvider';
-import { DialogHost, ToastHost } from './src/ui';
+import { DialogHost, IconButton, ToastHost } from './src/ui';
 import Login from './src/screens/Login';
 import { HomeScreen } from './src/screens/Home';
 import { AgendaScreen, ApprovalsScreen, AppointmentScreen, NewAppointmentScreen } from './src/screens/Agenda';
@@ -130,12 +131,25 @@ const ROOTS = {
   Comissoes: ['CommissionsHome', CommissionsScreen, 'Minhas comissões'],
 };
 
+// Na web o "Voltar" padrão do cabeçalho tem 30 x 30 px: troca por um botão de 48 px
+function webBack(opts, c) {
+  if (Platform.OS !== 'web') return opts;
+  return ({ navigation }) => ({
+    ...opts,
+    headerLeft: ({ canGoBack }) => (canGoBack ? (
+      <IconButton icon="arrow-back" label="Voltar" color={c.accentText} onPress={() => navigation.goBack()} />
+    ) : null),
+  });
+}
+
 function TabStack({ tab, onLogout, shopName }) {
   const opts = useStackOpts();
-  const { v } = useTheme();
+  const { v, c } = useTheme();
   const root = ROOTS[tab];
+  // role="main": a área de conteúdo é o ponto de referência principal da página (leitor de tela e axe)
   return (
-    <Stack.Navigator screenOptions={opts}>
+    <View role="main" aria-label="Conteúdo" style={{ flex: 1 }}>
+    <Stack.Navigator screenOptions={webBack(opts, c)}>
       {tab === 'Mais' ? (
         <Stack.Screen name="MoreHome" options={{ title: 'Mais' }}>
           {(props) => <MoreScreen {...props} onLogout={onLogout} shopName={shopName} />}
@@ -148,6 +162,7 @@ function TabStack({ tab, onLogout, shopName }) {
         <Stack.Screen key={name} name={name} component={comp} options={{ title }} />
       ))}
     </Stack.Navigator>
+    </View>
   );
 }
 
@@ -185,14 +200,20 @@ function Tabs({ onLogout, session }) {
       <SyncBanner onOpen={(screen) => navRef.isReady() && navRef.navigate('Mais', { screen })} />
       <Tab.Navigator
         tabBar={wide ? (props) => <Sidebar {...props} role={session.role} shopName={session.shop}
-                                             userName={session.name} /> : undefined}
+                                             userName={session.name} /> : (props) => (
+          <View role="navigation" aria-label="Abas"><BottomTabBar {...props} /></View>
+        )}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarPosition: wide ? 'left' : 'bottom',
           tabBarActiveTintColor: c.accentText,
           tabBarInactiveTintColor: c.textMuted,
           tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.divider, minHeight: 64 },
-          tabBarLabelStyle: { fontFamily: font.semibold, fontSize: 12 },
+          // 13 px (piso da escala). O item da aba tem padding fixo de 5 px dos lados (React Navigation) e o texto
+          // do react-native-web tem max-width 100%: a margem negativa e o maxWidth devolvem esse espaço ao rótulo,
+          // e "Finanças" cabe nas 6 abas de um celular de 375 px
+          tabBarLabelStyle: { fontFamily: font.semibold, fontSize: TYPE.caption, marginHorizontal: -4, alignSelf: 'stretch',
+                            maxWidth: '120%', textAlign: 'center' },
           tabBarAllowFontScaling: false,
           tabBarItemStyle: { paddingVertical: 4 },
           tabBarIcon: ({ color, focused }) => {
@@ -249,6 +270,7 @@ export default function App() {
   const fontsLoaded = loaded && webFontsReady;
   const [session, setSession] = useState(null);
 
+  useEffect(() => startWebA11y(), []);
   useEffect(() => {
     const stopNet = startNet();
     loadSession().then(setSession);

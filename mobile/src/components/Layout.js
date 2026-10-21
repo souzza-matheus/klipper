@@ -5,9 +5,9 @@ import { Wordmark } from '../brand/Logo';
 import { label as keypadLabel, press } from '../keypad';
 import { moreItemsFor, ROLE_LABEL, SHORTCUTS, can } from '../roles';
 import { filterRows, nextSort, sortRows } from '../table';
-import { SPACE, TOUCH } from '../theme';
+import { SPACE, TOUCH, TYPE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { haptic } from '../ui';
+import { a11yState, haptic } from '../ui';
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -18,7 +18,7 @@ function SideItem({ icon, label, focused, onPress, small }) {
   const [hover, setHover] = useState(false);
   return (
     <Pressable onPress={onPress} onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)}
-               accessibilityRole="link" accessibilityState={{ selected: focused }} accessibilityLabel={label}
+               accessibilityRole="link" aria-current={focused ? 'page' : undefined} accessibilityLabel={label}
                style={{
                  flexDirection: 'row', alignItems: 'center', gap: SPACE(3), minHeight: small ? 40 : 46,
                  paddingHorizontal: SPACE(3), borderRadius: 10, marginBottom: 2,
@@ -34,13 +34,14 @@ function SideItem({ icon, label, focused, onPress, small }) {
 
 // tabBar do navegador de abas quando a tela é larga: logo, abas, "Gestão" (itens do Mais) e atalhos
 export function Sidebar({ state, navigation, descriptors, role, shopName, userName }) {
-  const { c, font, v, mode } = useTheme();
+  const { c, s, font, v, mode } = useTheme();
   const more = moreItemsFor(role, v, Platform.OS === 'web').filter((m) => !['About', 'ChangePassword'].includes(m.route));
   const current = state.routes[state.index];
   const nested = current.state ? current.state.routes[current.state.index]?.name : null;
-  const shortcuts = Platform.OS === 'web' ? SHORTCUTS.filter((s) => can(role, s.feature)) : [];
+  const shortcuts = Platform.OS === 'web' ? SHORTCUTS.filter((sc) => can(role, sc.feature)) : [];
   return (
-    <View style={{ width: SIDEBAR_WIDTH, backgroundColor: c.surface, borderRightWidth: 1, borderRightColor: c.divider }}>
+    <View role="navigation" aria-label="Menu principal"
+          style={{ width: SIDEBAR_WIDTH, backgroundColor: c.surface, borderRightWidth: 1, borderRightColor: c.divider }}>
       <ScrollView contentContainerStyle={{ padding: SPACE(4), paddingBottom: SPACE(6) }}>
         <View style={{ marginBottom: SPACE(2), marginTop: SPACE(1) }}>
           <Wordmark height={30} variant={mode === 'light' ? 'light' : 'dark'} />
@@ -60,8 +61,8 @@ export function Sidebar({ state, navigation, descriptors, role, shopName, userNa
                       onPress={() => navigation.navigate(r.name)} />
           );
         })}
-        <Text style={{ fontFamily: font.bold, fontSize: 12, color: c.textMuted, textTransform: 'uppercase',
-                       letterSpacing: 0.6, marginTop: SPACE(5), marginBottom: SPACE(2), paddingHorizontal: SPACE(3) }}>
+        <Text style={[s.section, { marginTop: SPACE(5), marginBottom: SPACE(2), paddingHorizontal: SPACE(3) }]}
+              accessibilityRole="header">
           Gestão
         </Text>
         {more.map((m) => (
@@ -73,15 +74,14 @@ export function Sidebar({ state, navigation, descriptors, role, shopName, userNa
                   onPress={() => navigation.navigate('Mais', { screen: 'MoreHome' })} />
         {shortcuts.length ? (
           <View style={{ marginTop: SPACE(5), paddingHorizontal: SPACE(3) }}>
-            <Text style={{ fontFamily: font.bold, fontSize: 12, color: c.textMuted, textTransform: 'uppercase',
-                           letterSpacing: 0.6, marginBottom: SPACE(2) }}>Atalhos</Text>
-            {shortcuts.map((s) => (
-              <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE(2), marginBottom: 6 }}>
+            <Text style={[s.section, { marginBottom: SPACE(2) }]} accessibilityRole="header">Atalhos</Text>
+            {shortcuts.map((sc) => (
+              <View key={sc.key} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE(2), marginBottom: 6 }}>
                 <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: 6, minWidth: 24, alignItems: 'center',
                                paddingHorizontal: 6, paddingVertical: 1 }}>
-                  <Text style={{ fontFamily: font.bold, fontSize: 12, color: c.text }}>{s.key.toUpperCase()}</Text>
+                  <Text style={{ fontFamily: font.bold, fontSize: TYPE.caption, color: c.text }}>{sc.key.toUpperCase()}</Text>
                 </View>
-                <Text style={{ fontFamily: font.medium, fontSize: 13, color: c.textMuted }}>{s.label}</Text>
+                <Text style={s.caption}>{sc.label}</Text>
               </View>
             ))}
           </View>
@@ -221,7 +221,7 @@ export function BigButton({ icon, label, onPress, tone, selected, disabled }) {
   const on = selected;
   return (
     <Pressable onPress={() => { haptic.tap(); onPress(); }} disabled={disabled} accessibilityRole="button"
-               accessibilityLabel={label} accessibilityState={{ selected: !!on, disabled: !!disabled }}
+               accessibilityLabel={label} {...a11yState({ disabled: !!disabled })} aria-pressed={!!on}
                style={({ pressed }) => ({
                  flexBasis: '30%', flexGrow: 1, minHeight: 76, minWidth: TOUCH * 2, borderRadius: radius.card,
                  alignItems: 'center', justifyContent: 'center', gap: 6, padding: SPACE(2),

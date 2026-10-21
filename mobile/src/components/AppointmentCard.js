@@ -7,7 +7,7 @@ import { hm, money, PAY_METHODS, payMethodLabel, phoneLabel } from '../format';
 import { ACCESS, PAY, STATUS } from '../status';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { useSession } from '../session';
+import { useSession, useWide } from '../session';
 import { Badge, BottomSheet, Button, Card, Chips, confirm, run } from '../ui';
 
 export function confirmPix(a, onDone) {
@@ -92,18 +92,25 @@ export function QuickActions({ a, visible, onClose, onChanged, navigation }) {
   );
 }
 
-// Card de agendamento: horário grande, nome em destaque, serviço, profissional, valor e status
+// Card de agendamento (aba Hoje): horário grande, nome em destaque, serviço, profissional, valor e status.
+// Só os selos que mudam o que fazer agora: sem o de origem (WhatsApp) e sem "Pix expirado" (fica na ficha e na
+// lista de Pix). No celular o valor vai para a linha de baixo, para não cortar o nome.
 export function AppointmentCard({ a, navigation, onChanged, onLongPress }) {
   const { c, s, font } = useTheme();
+  const wide = useWide();
   const cancelled = a.status === 'cancelled';
   const pixPending = a.payment_status === 'pending' && a.payment_id && !cancelled;
   const name = a.customer_name || phoneLabel(a.customer_phone);
   return (
+    // sem accessibilityLabel: o nome do botão é o próprio texto do card, na ordem em que aparece
     <Card onPress={() => navigation.navigate('Appointment', { id: a.id, item: a })}
           onLongPress={onLongPress ? () => onLongPress(a) : undefined}
-          accessibilityLabel={`${hm(a.start)}, ${name}, ${a.service_name} com ${a.barber_name}, ${money(a.price)}, ${STATUS[a.status]?.label || ''}`}
           style={[cancelled && { opacity: 0.55 },
-                  a.status === 'pending_approval' && { borderLeftWidth: 4, borderLeftColor: c.accent }]}>
+                  a.status === 'pending_approval' && { borderLeftWidth: 4, borderLeftColor: c.accent }]}
+          actions={pixPending ? (
+            <Button title="Confirmar Pix" icon="checkmark-circle-outline" kind="secondary" compact
+                    onPress={() => confirmPix(a, onChanged)} style={{ marginTop: SPACE(3) }} />
+          ) : null}>
       <View style={[s.row, { alignItems: 'flex-start', gap: SPACE(3) }]}>
         <View style={{ minWidth: 68 }}>
           <Text style={{ fontFamily: font.extrabold, fontSize: 24, color: c.text }} maxFontSizeMultiplier={1.3}>
@@ -113,27 +120,23 @@ export function AppointmentCard({ a, navigation, onChanged, onLongPress }) {
         </View>
         <View style={{ flex: 1 }}>
           <View style={[s.row, { gap: SPACE(2) }]}>
-            <Text style={[s.bodyBold, { flex: 1 }]} numberOfLines={1}>{name}</Text>
-            <Text style={[s.bodyBold, { color: c.text }]}>{money(a.price)}</Text>
+            <Text style={[s.bodyBold, { flex: 1 }]} numberOfLines={wide ? 1 : 2}>{name}</Text>
+            {wide ? <Text style={[s.bodyBold, { color: c.text }]}>{money(a.price)}</Text> : null}
           </View>
-          <Text style={[s.muted, { marginTop: 2 }]} numberOfLines={2}>{a.service_name} · {a.barber_name}</Text>
+          <Text style={[s.muted, { marginTop: 2 }]} numberOfLines={2}>
+            {a.service_name} · {a.barber_name}{wide ? '' : ` · ${money(a.price)}`}
+          </Text>
           <View style={[s.row, { gap: SPACE(1.5), marginTop: SPACE(2), flexWrap: 'wrap' }]}>
             <Badge info={STATUS[a.status]} />
             <Badge info={a.customer_reported_paid && a.payment_status === 'pending'
-              ? { label: 'Disse que pagou', tone: 'warning', icon: 'chatbubble-ellipses-outline' } : PAY[a.payment_status]} />
+              ? { label: 'Disse que pagou', tone: 'warning', icon: 'chatbubble-ellipses-outline' }
+              : a.payment_status === 'expired' ? null : PAY[a.payment_status]} />
             {!cancelled ? <Badge info={ACCESS[a.customer_access_status]} /> : null}
             {a.status === 'completed' && a.payment_method ? <Badge info={{ label: payMethodLabel(a.payment_method), tone: 'neutral' }} /> : null}
             <PendingBadge item={a} />
-            {a.created_via === 'bot' && a.status !== 'completed' ? (
-              <Badge info={{ label: 'WhatsApp', tone: 'neutral', icon: 'logo-whatsapp' }} />
-            ) : null}
           </View>
         </View>
       </View>
-      {pixPending ? (
-        <Button title="Confirmar Pix" icon="checkmark-circle-outline" kind="secondary" compact
-                onPress={() => confirmPix(a, onChanged)} style={{ marginTop: SPACE(3) }} />
-      ) : null}
     </Card>
   );
 }

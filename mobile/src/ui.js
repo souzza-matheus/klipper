@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Symbol as BrandSymbol } from './brand/Logo';
 import { onDataChange } from './offline/manager';
-import { NICHE_INFO, SPACE, TOUCH } from './theme';
+import { NICHE_INFO, SPACE, TOUCH, TYPE } from './theme';
 import { useTheme } from './ThemeProvider';
 import { useWide } from './session';
 
@@ -48,12 +48,29 @@ export const haptic = {
   error: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {}),
 };
 
+// Estado de acessibilidade nos dois formatos: accessibilityState (celular) e aria-* (o react-native-web 0.21 ignora
+// o accessibilityState; sem aria-checked/aria-selected o leitor de tela não diz o que está escolhido).
+export function a11yState({ checked, selected, disabled, busy, expanded } = {}) {
+  const state = {};
+  const aria = {};
+  const put = (k, v) => { if (v !== undefined) { state[k] = !!v; aria[`aria-${k}`] = !!v; } };
+  put('checked', checked);
+  put('selected', selected);
+  put('disabled', disabled);
+  put('busy', busy);
+  put('expanded', expanded);
+  return { accessibilityState: state, ...aria };
+}
+
 // Toast: avisos curtos de sucesso e erro. Alert fica só para confirmar ações destrutivas.
-let toastListener = null;
+// Pilha de hosts: o aviso vai para o de cima. Cada BottomSheet aberto tem o próprio host, porque o Modal fica por
+// cima da raiz e escondia os erros de ações feitas dentro dele.
+const toastHosts = [];
 export function toast(message, kind = 'success') {
   if (kind === 'success') haptic.success();
   else if (kind === 'error') haptic.error();
-  if (toastListener) toastListener({ message, kind, id: Date.now() });
+  const host = toastHosts[toastHosts.length - 1];
+  if (host) host({ message, kind, id: Date.now() });
   else ask(kind === 'error' ? 'Ops' : 'Pronto', message);
 }
 
@@ -90,7 +107,7 @@ export function DialogHost() {
   if (!d) return null;
   const press = (b) => { setD(null); b.onPress?.(); };
   return (
-    <Modal transparent visible animationType="fade" onRequestClose={() => setD(null)}>
+    <Modal transparent visible animationType="fade" onRequestClose={() => setD(null)} aria-label={d.title}>
       <View style={{ flex: 1, backgroundColor: c.overlay, alignItems: 'center', justifyContent: 'center',
                      padding: SPACE(4) }}>
         <View accessibilityRole="alert" style={{
@@ -118,21 +135,34 @@ export function DialogHost() {
             ))}
           </View>
         </View>
+        <ToastHost placement="top" />
       </View>
     </Modal>
   );
 }
 
-export function ToastHost() {
-  const { c, s, font } = useTheme();
+// placement "top": dentro de sheets e diálogos, para não cobrir o botão principal do rodapé.
+// active=false tira o host da pilha (sheet fechando); um aviso que estava na tela continua no host de baixo.
+export function ToastHost({ placement = 'bottom', active = true }) {
+  const { c, s, font, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const wide = useWide();
   const [item, setItem] = useState(null);
+  const current = useRef(null);
+  current.current = item;
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    toastListener = (t) => setItem(t);
-    return () => { toastListener = null; };
-  }, []);
+    if (!active) return undefined;
+    const host = (t) => setItem(t);
+    toastHosts.push(host);
+    return () => {
+      const i = toastHosts.lastIndexOf(host);
+      if (i >= 0) toastHosts.splice(i, 1);
+      const left = current.current;
+      if (left && toastHosts.length) toastHosts[toastHosts.length - 1]({ ...left, id: Date.now() });
+      setItem(null);
+    };
+  }, [active]);
   useEffect(() => {
     if (!item) return undefined;
     Animated.timing(anim, { toValue: 1, duration: 180, useNativeDriver: true }).start();
@@ -148,16 +178,18 @@ export function ToastHost() {
   return (
     <Animated.View pointerEvents="box-none" style={{
       position: 'absolute', left: wide ? undefined : SPACE(4), right: SPACE(4), width: wide ? 440 : undefined,
-      bottom: insets.bottom + (wide ? SPACE(6) : SPACE(20)),
-      opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+      ...(placement === 'top' ? { top: insets.top + SPACE(4) } : { bottom: insets.bottom + (wide ? SPACE(6) : SPACE(20)) }),
+      opacity: anim, zIndex: 1000,
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [placement === 'top' ? -20 : 20, 0] }) }],
     }}>
-      <Pressable accessibilityRole="alert" accessibilityLiveRegion="polite" onPress={() => setItem(null)}
+      <Pressable accessibilityRole="alert" accessibilityLiveRegion={item.kind === 'error' ? 'assertive' : 'polite'}
+                 accessibilityHint="Toque para fechar" onPress={() => setItem(null)} testID="toast"
                  style={[s.row, {
-                   backgroundColor: c.surfaceElevated, borderRadius: 14, padding: SPACE(4), gap: SPACE(3),
-                   borderWidth: 1, borderColor: c.status[tone], minHeight: TOUCH,
+                   backgroundColor: c.surfaceElevated, borderRadius: radius.card, padding: SPACE(4), gap: SPACE(3),
+                   borderWidth: 1, borderColor: c.statusText[tone], minHeight: TOUCH,
                  }]}>
         <Ionicons name={icon} size={24} color={c.statusText[tone]} />
-        <Text style={{ flex: 1, color: c.text, fontFamily: font.semibold, fontSize: 15 }}>{item.message}</Text>
+        <Text style={{ flex: 1, color: c.text, fontFamily: font.semibold, fontSize: TYPE.label }}>{item.message}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -223,17 +255,20 @@ export function Screen({ children, onRefresh, refreshing, scroll = true, style, 
   );
 }
 
-export function Card({ children, style, onPress, onLongPress, accessibilityLabel }) {
+// actions: botões do card. Ficam FORA da área tocável (botão dentro de botão não funciona no teclado nem no
+// leitor de tela: axe nested-interactive).
+export function Card({ children, style, onPress, onLongPress, accessibilityLabel, actions }) {
   const { s, c } = useTheme();
-  if (!onPress && !onLongPress) return <View style={[s.card, style]}>{children}</View>;
-  return (
+  if (!onPress && !onLongPress) return <View style={[s.card, style]}>{children}{actions}</View>;
+  const press = (
     <Pressable onPress={onPress} onLongPress={onLongPress ? () => { haptic.tap(); onLongPress(); } : undefined}
                delayLongPress={350} accessibilityRole="button" accessibilityLabel={accessibilityLabel}
                android_ripple={{ color: c.neutralBg }}
-               style={({ pressed }) => [s.card, style, pressed && { opacity: 0.85 }]}>
+               style={({ pressed }) => [actions ? null : [s.card, style], pressed && { opacity: 0.85 }]}>
       {children}
     </Pressable>
   );
+  return actions ? <View style={[s.card, style]}>{press}{actions}</View> : press;
 }
 
 export function T({ variant = 'body', style, children, ...props }) {
@@ -259,6 +294,25 @@ export function Section({ title, children, right }) {
   );
 }
 
+// Valor grande que cabe no card. adjustsFontSizeToFit não existe no react-native-web: lá a fonte diminui pelo
+// tamanho do texto e, se ainda não couber, quebra em 2 linhas em vez de cortar ("R$ 24…").
+export function fitValue(value, base = TYPE.title) {
+  const n = String(value ?? '').length;
+  if (Platform.OS !== 'web' || n <= 9) return { fontSize: base };
+  return { fontSize: Math.max(TYPE.label, Math.round(base - (n - 9) * 1.5)) };
+}
+
+export function StatValue({ value, style }) {
+  const { s } = useTheme();
+  const web = Platform.OS === 'web';
+  return (
+    <Text style={[s.statValue, web && fitValue(value, s.statValue.fontSize), style]} numberOfLines={web ? 2 : 1}
+          adjustsFontSizeToFit={!web} maxFontSizeMultiplier={1.3}>
+      {value}
+    </Text>
+  );
+}
+
 export function Stat({ label, value, icon, tone }) {
   const { s, c } = useTheme();
   return (
@@ -267,7 +321,7 @@ export function Stat({ label, value, icon, tone }) {
         {icon ? <Ionicons name={icon} size={16} color={tone ? c.statusText[tone] : c.accentText} /> : null}
         <Text style={[s.caption, { flexShrink: 1 }]} numberOfLines={2}>{label}</Text>
       </View>
-      <Text style={s.statValue} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>{value}</Text>
+      <StatValue value={value} />
     </View>
   );
 }
@@ -290,15 +344,15 @@ export function Button({
     <Pressable
       onPress={() => { if (haptics && k !== 'ghost') haptic.tap(); onPress && onPress(); }}
       disabled={off} accessibilityRole="button" accessibilityLabel={accessibilityLabel || title}
-      accessibilityState={{ disabled: !!off, busy: !!loading }}
+      {...a11yState({ disabled: !!off, busy: !!loading })}
       style={({ pressed }) => [{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE(2),
-        borderRadius: radius.input + 2, minHeight: compact ? 40 : 52, paddingHorizontal: SPACE(compact ? 3 : 4),
+        borderRadius: radius.input + 2, minHeight: compact ? TOUCH : 52, paddingHorizontal: SPACE(compact ? 3 : 4),
         paddingVertical: SPACE(compact ? 2 : 3), marginBottom: compact ? 0 : SPACE(2.5), borderWidth: 1.5,
         backgroundColor: pressed ? look.pressed : look.bg, borderColor: look.border, opacity: off && !loading ? 0.45 : 1,
       }, style]}>
       {loading ? <ActivityIndicator color={look.fg} /> : icon ? <Ionicons name={icon} size={20} color={look.fg} /> : null}
-      <Text style={{ color: look.fg, fontFamily: font.bold, fontSize: compact ? 15 : 17, flexShrink: 1, textAlign: 'center' }}
+      <Text style={{ color: look.fg, fontFamily: font.bold, fontSize: compact ? TYPE.label : TYPE.body, flexShrink: 1, textAlign: 'center' }}
             maxFontSizeMultiplier={1.4}>
         {title}
       </Text>
@@ -362,7 +416,7 @@ export function Field({ label, hint, error, mask, onChangeText, value, prefix, s
                     focus && { borderColor: c.accentText, borderWidth: 2 }, error && { borderColor: c.statusText.danger }]}>
         {prefix || (mask === 'money' ? <Text style={[s.body, { color: c.textMuted, marginRight: SPACE(1) }]}>R$</Text> : null)}
         <TextInput
-          placeholderTextColor={c.textMuted} accessibilityLabel={label || props.placeholder}
+          placeholderTextColor={c.textMuted} accessibilityLabel={label || props.placeholder} aria-invalid={error ? true : undefined}
           keyboardType={m?.keyboardType} placeholder={m?.placeholder}
           {...props}
           value={shown}
@@ -374,31 +428,55 @@ export function Field({ label, hint, error, mask, onChangeText, value, prefix, s
           maxFontSizeMultiplier={1.5}
         />
       </View>
-      {error ? <Text style={[s.caption, { color: c.statusText.danger, marginTop: SPACE(1) }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[s.caption, { color: c.statusText.danger, marginTop: SPACE(1), fontFamily: font.semibold }]}
+              accessibilityRole="alert" accessibilityLiveRegion="assertive">
+          {error}
+        </Text>
+      ) : null}
       {hint && !error ? <Text style={[s.caption, { marginTop: SPACE(1) }]}>{hint}</Text> : null}
     </View>
   );
 }
 
+// Desenho do interruptor na web: o <input> do Switch do react-native-web ficava sem nome, dentro de outro controle
+// e com 40 x 20 px (axe: label, nested-interactive, target-size). Quem recebe o toque e o foco é o Pressable de fora.
+function SwitchLook({ on }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ width: 44, height: 26, borderRadius: 13, padding: 3, justifyContent: 'center',
+                   backgroundColor: on ? c.accentFill : c.border }}>
+      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: on ? c.onAccent : c.surface,
+                     alignSelf: on ? 'flex-end' : 'flex-start' }} />
+    </View>
+  );
+}
+
+// Desligado (disabled): o controle fica apagado, mas a dica continua legível (ela explica por que está desligado)
 export function Toggle({ label, value, onValueChange, hint, disabled }) {
   const { c, s } = useTheme();
   return (
     <Pressable onPress={() => !disabled && onValueChange(!value)} accessibilityRole="switch"
-               accessibilityState={{ checked: !!value, disabled: !!disabled }} accessibilityLabel={label}
-               style={{ marginBottom: SPACE(3), opacity: disabled ? 0.5 : 1 }}>
+               {...a11yState({ checked: !!value, disabled: !!disabled })} accessibilityLabel={label}
+               accessibilityHint={hint} style={{ marginBottom: SPACE(3) }}>
       <View style={[s.row, { minHeight: TOUCH, gap: SPACE(3) }]}>
-        <Text style={[s.body, { flex: 1 }]}>{label}</Text>
-        <Switch value={!!value} onValueChange={onValueChange} disabled={disabled}
-                trackColor={{ true: c.accentFill, false: c.border }} thumbColor={value ? c.onAccent : c.surface}
-                ios_backgroundColor={c.border} />
+        <Text style={[s.body, { flex: 1 }, disabled && { color: c.textMuted }]}>{label}</Text>
+        {Platform.OS === 'web' ? <View style={{ opacity: disabled ? 0.5 : 1 }}><SwitchLook on={!!value} /></View> : (
+          <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
+                style={{ opacity: disabled ? 0.5 : 1 }}>
+            <Switch value={!!value} disabled={disabled}
+                    trackColor={{ true: c.accentFill, false: c.border }} thumbColor={value ? c.onAccent : c.surface}
+                    ios_backgroundColor={c.border} />
+          </View>
+        )}
       </View>
       {hint ? <Text style={s.caption}>{hint}</Text> : null}
     </Pressable>
   );
 }
 
-export function Chips({ options, value, onChange, multi = false }) {
-  const { c, font } = useTheme();
+export function Chips({ options, value, onChange, multi = false, label }) {
+  const { c, font, radius } = useTheme();
   const isOn = (v) => (multi ? (value || []).includes(v) : value === v);
   const toggle = (v) => {
     haptic.tap();
@@ -407,19 +485,21 @@ export function Chips({ options, value, onChange, multi = false }) {
     return onChange(cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]);
   };
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE(2), marginBottom: SPACE(4) }}>
+    <View accessibilityRole={multi ? 'group' : 'radiogroup'} accessibilityLabel={label}
+          style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE(2), marginBottom: SPACE(4) }}>
       {options.map((o) => {
         const on = isOn(o.value);
         return (
-          <Pressable key={String(o.value)} onPress={() => toggle(o.value)} hitSlop={4}
-                     accessibilityRole={multi ? 'checkbox' : 'radio'} accessibilityState={{ checked: on }}
+          <Pressable key={String(o.value)} onPress={() => toggle(o.value)}
+                     accessibilityRole={multi ? 'checkbox' : 'radio'} {...a11yState({ checked: on })}
+                     accessibilityLabel={o.label}
                      style={{
-                       flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: 44,
-                       borderWidth: on ? 2 : 1, borderColor: on ? c.accentText : c.border, borderRadius: 999,
+                       flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: TOUCH,
+                       borderWidth: on ? 2 : 1, borderColor: on ? c.accentText : c.border, borderRadius: radius.pill,
                        paddingHorizontal: SPACE(4), backgroundColor: on ? c.accentSoft : c.surface,
                      }}>
             {on ? <Ionicons name="checkmark" size={16} color={c.accentText} /> : null}
-            <Text style={{ fontSize: 15, fontFamily: on ? font.bold : font.medium, color: on ? c.accentText : c.text }}
+            <Text style={{ fontSize: TYPE.label, fontFamily: on ? font.bold : font.medium, color: on ? c.accentText : c.text }}
                   maxFontSizeMultiplier={1.4}>
               {o.label}
             </Text>
@@ -434,20 +514,20 @@ export function SegmentedControl({ options, value, onChange, style }) {
   const { c, font, radius } = useTheme();
   return (
     <View accessibilityRole="tablist" style={[{
-      flexDirection: 'row', backgroundColor: c.surface, borderRadius: radius.input + 2, padding: 4,
+      flexDirection: 'row', backgroundColor: c.surface, borderRadius: radius.input + 2, padding: 2,
       borderWidth: 1, borderColor: c.border, marginBottom: SPACE(3),
     }, style]}>
       {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable key={o.value} onPress={() => { haptic.tap(); onChange(o.value); }} accessibilityRole="tab"
-                     accessibilityState={{ selected: on }} accessibilityLabel={o.label}
+                     {...a11yState({ selected: on })} accessibilityLabel={o.label}
                      style={{
-                       flex: 1, minHeight: 44, borderRadius: radius.input, alignItems: 'center', justifyContent: 'center',
+                       flex: 1, minHeight: TOUCH, borderRadius: radius.input, alignItems: 'center', justifyContent: 'center',
                        flexDirection: 'row', gap: SPACE(1.5), backgroundColor: on ? c.accentFill : 'transparent',
                      }}>
             {o.icon ? <Ionicons name={o.icon} size={16} color={on ? c.onAccent : c.textMuted} /> : null}
-            <Text style={{ fontFamily: font.bold, fontSize: 15, color: on ? c.onAccent : c.textMuted }}
+            <Text style={{ fontFamily: font.bold, fontSize: TYPE.label, color: on ? c.onAccent : c.textMuted }}
                   numberOfLines={1} maxFontSizeMultiplier={1.3}>
               {o.label}
             </Text>
@@ -624,7 +704,8 @@ export function BottomSheet({ visible, onClose, title, children, footer, scroll 
   if (!mounted) return null;
   const Body = scroll ? ScrollView : View;
   return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+    <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent
+           aria-label={title}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: c.overlay, opacity: y }}>
           <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar" />
@@ -655,6 +736,7 @@ export function BottomSheet({ visible, onClose, title, children, footer, scroll 
             </View>
           ) : null}
         </Animated.View>
+        <ToastHost placement="top" active={visible} />
       </KeyboardAvoidingView>
     </Modal>
   );

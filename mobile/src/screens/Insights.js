@@ -20,7 +20,7 @@ export function ReviewsScreen() {
         <Chips value={barber} onChange={setBarber}
                options={[{ value: null, label: 'Todos' }, ...barbers.data.map((b) => ({ value: b.id, label: b.name }))]} />
       ) : null}
-      <View style={[s.row, { gap: SPACE(2), marginBottom: SPACE(4) }]}>
+      <View style={[s.row, { gap: SPACE(2), marginBottom: SPACE(4), flexWrap: 'wrap' }]}>
         <Stat label="Nota média" value={avg ? avg.toFixed(1) : '-'} icon="star-outline" />
         <Stat label="Avaliações" value={items.length} />
         <Stat label="Notas 1 e 2" value={items.filter((r) => r.rating <= 2).length} />

@@ -112,7 +112,9 @@ export function PaymentsScreen({ navigation }) {
               {reported && !p.receipt ? <Badge info={{ label: `Cliente disse que pagou ${ago(p.customer_reported_at)}`, tone: 'warning', icon: 'chatbubble-ellipses-outline' }} /> : null}
               {p.status === 'pending' ? <Text style={s.caption}>Pendente {ago(p.created_at)}</Text> : null}
             </View>
-            {p.receipt ? <ReceiptReview receipt={p.receipt} paid={p.status === 'paid'} onChanged={pays.reload} />
+            {p.receipt ? <ReceiptReview receipt={p.receipt} paid={p.status === 'paid'} onChanged={pays.reload}
+                                        onConfirm={p.status === 'pending' ? () => accept(p) : null}
+                                        onReject={p.status === 'pending' ? () => reject(p) : null} />
               : <Receipt p={p} />}
             {p.status === 'pending' ? (
               <>

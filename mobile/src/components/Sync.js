@@ -46,8 +46,8 @@ export function SyncBanner({ onOpen }) {
       : `${plural(st.pending, 'alteração aguardando', 'alterações aguardando')} envio`;
   }
   if (!tone) return null;
-  const bg = { warning: c.status.warning, danger: c.status.danger, info: c.accentSoft }[tone];
-  const fg = { warning: c.onWarning, danger: '#FFFFFF', info: c.accentText }[tone];
+  const bg = { warning: c.status.warning, danger: c.dangerFill, info: c.accentSoft }[tone];
+  const fg = { warning: c.onWarning, danger: c.onDanger, info: c.accentText }[tone];
   return (
     <Pressable onPress={() => onOpen(target)} accessibilityRole="button" accessibilityHint="Abre os detalhes da sincronização"
                style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE(2), paddingHorizontal: SPACE(4),

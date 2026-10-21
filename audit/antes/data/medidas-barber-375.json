@@ -1,0 +1,1552 @@
+{
+  "theme": "barber",
+  "width": 375,
+  "axe": [],
+  "measure": {
+    "01-login": {
+      "smallTargets": [
+        {
+          "el": "input \"E-mail\"",
+          "w": 301,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Senha\"",
+          "w": 301,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button \"Servidor http://127.0.0.1:8100. Toque para trocar\"",
+          "w": 327,
+          "h": 41,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "03-hoje": {
+      "smallTargets": [],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "04-agendamento-detalhe": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "06-agenda-timeline": {
+      "smallTargets": [
+        {
+          "el": "div \"Timeline\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barbeiros\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Mês\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" Todos\"",
+          "w": 102,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"João\"",
+          "w": 68,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pedro\"",
+          "w": 78,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Antônio Moreira, Corte, João\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Ricardo Nunes, Corte, Pedro\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 a 14:30, Renan Rodrigues, Corte, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:00 a 16:30, Wellington Mendes, Barba, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:30 a 17:00, Renan Fernandes, Barba, Pedro\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 24,
+          "samples": [
+            "Corte + Barba",
+            "· João",
+            "10:30",
+            "Antônio Moreira",
+            "Ricardo Nunes",
+            "14:00",
+            "Renan Rodrigues",
+            "16:00"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "07-agendamento-rapido": {
+      "smallTargets": [
+        {
+          "el": "input \"Nome ou telefone\"",
+          "w": 291,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button \"Cadastrar novo cliente\"",
+          "w": 343,
+          "h": 41,
+          "inline": false
+        },
+        {
+          "el": "div \"Corte · 30 min · R$ 40,00\"",
+          "w": 213,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barba · 30 min · R$ 30,00\"",
+          "w": 214,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Corte + Barba · 60 min · R$ 65,00\"",
+          "w": 268,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "09-agenda-profissionais": {
+      "smallTargets": [
+        {
+          "el": "div \"Timeline\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barbeiros\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Mês\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Antônio Moreira, Corte, João\"",
+          "w": 154,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 a 14:30, Renan Rodrigues, Corte, João\"",
+          "w": 154,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:00 a 16:30, Wellington Mendes, Barba, João\"",
+          "w": 154,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Ricardo Nunes, Corte, Pedro\"",
+          "w": 154,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:30 a 17:00, Renan Fernandes, Barba, Pedro\"",
+          "w": 154,
+          "h": 36,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 20,
+          "samples": [
+            "Corte + Barba",
+            "10:30",
+            "Antônio Moreira",
+            "14:00",
+            "Renan Rodrigues",
+            "16:00",
+            "Wellington Mendes",
+            "Ricardo Nunes"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "10-agenda-mes": {
+      "smallTargets": [
+        {
+          "el": "div \"Timeline\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barbeiros\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Mês\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \"Quinta · 01/10: 8 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sexta · 02/10: 7 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sábado · 03/10: 4 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Domingo · 04/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Segunda · 05/10: 8 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Terça · 06/10: 7 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quarta · 07/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quinta · 08/10: 8 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sexta · 09/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sábado · 10/10: 4 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Domingo · 11/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Segunda · 12/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Terça · 13/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quarta · 14/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quinta · 15/10: 8 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sexta · 16/10: 6 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sábado · 17/10: 5 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Domingo · 18/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Ontem · seg 19/10: 10 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Hoje · ter 20/10: 9 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Amanhã · qua 21/10: 7 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quinta · 22/10: 7 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sexta · 23/10: 11 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sábado · 24/10: 3 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Domingo · 25/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Segunda · 26/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Terça · 27/10: 7 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quarta · 28/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Quinta · 29/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sexta · 30/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        },
+        {
+          "el": "button \"Sábado · 31/10: 0 atendimentos\"",
+          "w": 43,
+          "h": 64,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 33,
+          "samples": [
+            "8",
+            "7",
+            "4",
+            "6",
+            "5",
+            "10",
+            "9",
+            "11"
+          ]
+        },
+        "10px": {
+          "count": 3,
+          "samples": [
+            ""
+          ]
+        },
+        "11px": {
+          "count": 1,
+          "samples": [
+            ""
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "12-novo-agendamento": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "input \"WhatsApp do cliente\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \"Corte · R$ 40,00\"",
+          "w": 154,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barba · R$ 30,00\"",
+          "w": 155,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Corte + Barba · R$ 65,00\"",
+          "w": 209,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" Qualquer um\"",
+          "w": 152,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"João\"",
+          "w": 68,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pedro\"",
+          "w": 78,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "13-caixa": {
+      "smallTargets": [
+        {
+          "el": "button \"Abrir comanda\"",
+          "w": 162,
+          "h": 41,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "14-comanda": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "button \"Ficha\"",
+          "w": 93,
+          "h": 41,
+          "inline": false
+        },
+        {
+          "el": "button \"Estornar Corte + Barba\"",
+          "w": 87,
+          "h": 40,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "16-pix-pendentes": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"Pendentes\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pagos\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Expirados\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Todos\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \" Ver dados lidos e conferências\"",
+          "w": 307,
+          "h": 17,
+          "inline": false
+        },
+        {
+          "el": "button \"Agendamento\"",
+          "w": 150,
+          "h": 41,
+          "inline": false
+        },
+        {
+          "el": "button \"Agendamento\"",
+          "w": 151,
+          "h": 41,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "19-clientes": {
+      "smallTargets": [
+        {
+          "el": "input \"Buscar por nome ou telefone\"",
+          "w": 293,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \"Todos\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Aprovação\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Bloqueados\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "20-ficha-cliente": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button \"Adicionar cliente incompatível\"",
+          "w": 127,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "22-produtos-estoque": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "23-produto-detalhe": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \"Venda\"",
+          "w": 80,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" Uso interno\"",
+          "w": 141,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Os dois\"",
+          "w": 89,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "input \"Unidade\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Custo\"",
+          "w": 291,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Estoque mínimo (avisa abaixo disso)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \" Entrada\"",
+          "w": 115,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Uso interno\"",
+          "w": 116,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Ajuste\"",
+          "w": 79,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "input \"Quantidade (un)\"",
+          "w": 283,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Observação\"",
+          "w": 283,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "24-pacotes": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "25-assinaturas": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"Assinantes\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Cobranças\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Planos\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" Todas\"",
+          "w": 101,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Em dia\"",
+          "w": 82,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Atrasada\"",
+          "w": 98,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Cancelada\"",
+          "w": 112,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "26-lista-espera": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "27-relatorios": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"Hoje\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"7 dias\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"30 dias\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Próx. 7\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "28-avaliacoes": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \" Todos\"",
+          "w": 102,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"João\"",
+          "w": 68,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pedro\"",
+          "w": 78,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "29-equipe": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "30-servicos": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "31-bloqueios": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "input \"Data\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Início\"",
+          "w": 216,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Fim\"",
+          "w": 216,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Motivo\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \" Barbearia inteira\"",
+          "w": 177,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"João\"",
+          "w": 68,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pedro\"",
+          "w": 78,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "32-financeiro": {
+      "smallTargets": [
+        {
+          "el": "div \" Este mês\"",
+          "w": 123,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Mês passado\"",
+          "w": 129,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"7 dias\"",
+          "w": 75,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Personalizado\"",
+          "w": 135,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 11,
+          "samples": [
+            "+87,6% vs. anterior",
+            "+8,1% vs. anterior",
+            "+559,8% vs. anterior",
+            "+16,3% vs. anterior",
+            "Toque em um dia para ver os valores.",
+            "Hoje",
+            "Agenda",
+            "Caixa"
+          ]
+        },
+        "10px": {
+          "count": 3,
+          "samples": [
+            "0",
+            "1k",
+            "2k"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "33-configuracoes": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"Automático\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Escuro\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Claro\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Telefone fixo\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Instagram\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"WhatsApp pessoal do dono\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \"CPF\"",
+          "w": 64,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"CNPJ\"",
+          "w": 71,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" E-mail\"",
+          "w": 106,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Celular\"",
+          "w": 84,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Aleatória\"",
+          "w": 98,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "input \"Chave Pix\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome do recebedor (até 25 letras)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Cidade (até 15 letras)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "div \" Sem sinal\"",
+          "w": 126,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Valor fixo\"",
+          "w": 99,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"% do serviço\"",
+          "w": 127,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "input \"Lembrete antes do horário (min)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pode cancelar até (horas antes)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pesquisa após o fim do atendimento (min)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Intervalo entre horários (min)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Antecedência mínima para agendar (min)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Agenda aberta para os próximos (dias)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pix pendente expira em (horas)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Hora do resumo diário (0-23)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pausa do bot ao pedir atendente (horas)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Pedido para aprovar expira em (horas)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Distância padrão entre clientes incompatíveis (min\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Lista de espera: vaga reservada por (min)\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "34-whatsapp": {
+      "smallTargets": [
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"QR Code\"",
+          "w": 167,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Código de pareamento\"",
+          "w": 167,
+          "h": 44,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "35-mais": {
+      "smallTargets": [],
+      "smallText": {
+        "12px": {
+          "count": 6,
+          "samples": [
+            "Hoje",
+            "Agenda",
+            "Caixa",
+            "Clientes",
+            "Finanças",
+            "Mais"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  "errors": [],
+  "console": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

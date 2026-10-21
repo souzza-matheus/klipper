@@ -8,7 +8,7 @@ import { Stars } from './Agenda';
 import { useDebounced } from '../components/QuickBook';
 import { dmy, dtLabel, gapLabel, money, phoneLabel } from '../format';
 import { ACCESS, PAY, STATUS } from '../status';
-import { SPACE } from '../theme';
+import { SPACE, TOUCH } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { useSession } from '../session';
 import { DataTable } from '../components/Layout';
@@ -41,7 +41,16 @@ export function CustomersScreen({ navigation, route }) {
         ]} />
       ) : null}
       {!list.data ? <Loading error={list.error} onRetry={list.reload} /> : null}
-      {list.data && !items.length ? <Empty icon="people-outline" text={`Nenhum ${v.customer} encontrado.`} /> : null}
+      {list.data && !items.length ? (
+        <Empty icon="people-outline" text={q.trim() ? `Nenhum ${v.customer} encontrado para "${q.trim()}".` : `Nenhum ${v.customer} encontrado.`}
+               action={q.trim() && can('newAppointment') ? {
+                 // o cadastro do cliente acontece no primeiro agendamento
+                 title: `Cadastrar "${q.trim()}" e agendar`, icon: 'person-add-outline',
+                 onPress: () => navigation.navigate('NewAppointment', {
+                   prefill: /^[\d\s()+-]+$/.test(q.trim()) ? { phone: q.trim() } : { name: q.trim() },
+                 }),
+               } : null} />
+      ) : null}
       {items.length && wide ? (
         <DataTable rows={items} searchKeys={['name', 'phone']} placeholder="Filtrar resultados"
                    onRowPress={(x) => navigation.navigate('Customer', { id: x.id })} initialSort={{ key: 'name', dir: 'asc' }}
@@ -238,7 +247,7 @@ function ConflictsSection({ d, navigation }) {
           <Pressable key={x.id} onPress={() => setSheet({ edit: x })} onLongPress={() => navigation.push('Customer', { id: x.other_customer_id })}
                      accessibilityRole="button" accessibilityHint="Toque para editar; segure para abrir a ficha"
                      style={{
-                       flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: 44, paddingHorizontal: SPACE(3),
+                       flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: TOUCH, paddingHorizontal: SPACE(3),
                        borderRadius: 999, borderWidth: 1, borderColor: c.statusText.danger, backgroundColor: c.statusBg.danger,
                      }}>
             <Ionicons name={x.conflict_action === 'approval' ? 'shield-checkmark-outline' : 'ban-outline'} size={16} color={c.statusText.danger} />
@@ -249,7 +258,7 @@ function ConflictsSection({ d, navigation }) {
         ))}
         <Pressable onPress={() => setSheet({})} accessibilityRole="button" accessibilityLabel={`Adicionar ${v.customer} incompatível`}
                    style={{
-                     flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: 44, paddingHorizontal: SPACE(4),
+                     flexDirection: 'row', alignItems: 'center', gap: SPACE(1.5), minHeight: TOUCH, paddingHorizontal: SPACE(4),
                      borderRadius: 999, borderWidth: 1, borderColor: c.border, borderStyle: 'dashed',
                    }}>
           <Ionicons name="add" size={18} color={c.accentText} />
@@ -291,7 +300,7 @@ export function CustomerScreen({ route, navigation }) {
         <Banner tone="info" icon="cloud-offline-outline" title="Sem internet: dados do aparelho"
                 text={`Histórico e totais contam só os ${v.services} dos últimos 30 dias e dos próximos 60.`} />
       ) : null}
-      <View style={[s.row, { gap: SPACE(2), marginBottom: SPACE(4) }]}>
+      <View style={[s.row, { gap: SPACE(2), marginBottom: SPACE(4), flexWrap: 'wrap' }]}>
         <Stat label={v.Services} value={d.visits} />
         <Stat label="Faltas" value={d.no_shows} tone={d.no_shows ? 'danger' : undefined} icon={d.no_shows ? 'alert-circle-outline' : undefined} />
         <Stat label="Total gasto" value={money(d.total_spent)} />

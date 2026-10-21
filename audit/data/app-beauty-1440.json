@@ -1,0 +1,218 @@
+{
+  "theme": "beauty",
+  "width": 1440,
+  "axe": [
+    {
+      "label": "03-hoje",
+      "violations": [],
+      "passes": 33,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "04-agendamento-detalhe",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "06-agenda-timeline",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 39
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "07-agendamento-rapido",
+      "violations": [],
+      "passes": 44,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 43
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "09-agenda-profissionais",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 39
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "10-agenda-mes",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 30
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "13-caixa",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "label": "14-comanda",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 29
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "16-pix-pendentes",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 36
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "19-clientes",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "label": "20-ficha-cliente",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "32-financeiro",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 33
+        }
+      ]
+    },
+    {
+      "label": "33-configuracoes",
+      "violations": [],
+      "passes": 43,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    }
+  ],
+  "measure": {},
+  "errors": [],
+  "console": [
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ]
+}

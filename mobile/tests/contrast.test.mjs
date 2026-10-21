@@ -30,7 +30,8 @@ for (const t of allThemes()) {
   });
 
   test(`${t.key}: bordas, ícones e seleção`, () => {
-    for (const [name, bg] of Object.entries({ background: c.background, surface: c.surface })) {
+    // surfaceElevated: chips e campos dentro dos bottom sheets
+    for (const [name, bg] of Object.entries(grounds)) {
       check(t, `border/${name}`, c.border, bg, UI);
       // Ícones e contornos de seleção usam accentText (o accent puro é preenchimento e logo)
       check(t, `ícone accentText/${name}`, c.accentText, bg, UI);
@@ -51,5 +52,19 @@ for (const t of allThemes()) {
 
   test(`${t.key}: banner de Pix pendente`, () => {
     check(t, 'onWarning/warning', c.onWarning, STATUS_COLORS.warning, TEXT);
+  });
+
+  test(`${t.key}: barras de ocupação do mês sobre a trilha`, () => {
+    // trilha = neutralBg (#FFFFFF a 10% no escuro, #0F172A a 7% no claro) sobre o card
+    const track = blend(t.mode === 'dark' ? '#FFFFFF' : '#0F172A', c.surface, t.mode === 'dark' ? 0.1 : 0.07);
+    for (const k of ['success', 'warning', 'danger']) check(t, `ocupação ${k}/trilha`, c.statusText[k], track, UI);
+  });
+
+  test(`${t.key}: faixa cheia de erro (sincronização)`, () => {
+    check(t, 'onDanger/dangerFill', c.onDanger, c.dangerFill, TEXT);
+  });
+
+  test(`${t.key}: contorno dos avisos (toast)`, () => {
+    for (const k of ['success', 'info', 'danger']) check(t, `toast ${k}/surfaceElevated`, c.statusText[k], c.surfaceElevated, UI);
   });
 }

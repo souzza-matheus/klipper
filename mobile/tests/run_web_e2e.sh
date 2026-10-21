@@ -14,7 +14,8 @@ trap cleanup EXIT
 python3 -c "import playwright" 2>/dev/null || { echo "Instale: pip install playwright && playwright install chromium"; exit 1; }
 (
   cd ../backend
-  export DATABASE_URL="sqlite:///$TMP/e2e.db" EVOLUTION_URL= DEV_MODE=true RUN_SCHEDULER=false
+  # sem GEMINI_API_KEY: o teste nunca chama o Gemini de verdade (o backend/.env pode ter a chave)
+  export GEMINI_API_KEY= DATABASE_URL="sqlite:///$TMP/e2e.db" EVOLUTION_URL= DEV_MODE=true RUN_SCHEDULER=false
   export JWT_SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
   ./.venv/bin/alembic -x url="$DATABASE_URL" upgrade head >/dev/null
   ./.venv/bin/python -m app.seed_mock >/dev/null

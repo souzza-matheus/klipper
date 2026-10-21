@@ -1,0 +1,130 @@
+{
+  "theme": "barber",
+  "width": 375,
+  "axe": [
+    {
+      "label": "17-pix-com-comprovante",
+      "violations": [],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 17
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "12-novo-agendamento",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 8
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "measure": {
+    "17-pix-com-comprovante": {
+      "smallTargets": [
+        {
+          "el": "button \"09:00 Antônio Moreira, até 09:30, Corte, Pedro\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 Ricardo Freitas, até 11:00, Corte, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Otávio Barbosa, até 12:00, Corte, João\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"11:30 Eduardo Marques, até 12:00, Corte, Pedro\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 Paulo Duarte, até 14:30, Corte, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"17:00 Wellington Mendes, até 17:30, Barba, João\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \" Ver dados lidos e conferências\"",
+          "w": 307,
+          "h": 17,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "12-novo-agendamento": {
+      "smallTargets": [
+        {
+          "el": "input \"WhatsApp do cliente\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "input \"Nome\"",
+          "w": 317,
+          "h": 46,
+          "inline": false
+        },
+        {
+          "el": "button \" Ver dados lidos e conferências\"",
+          "w": 307,
+          "h": 17,
+          "inline": false
+        }
+      ],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  "errors": [],
+  "console": [
+    "Failed to load resource: net::ERR_FAILED"
+  ],
+  "aria": [
+    "<div aria-label=\"Timeline\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\"  >",
+    "<div aria-label=\"Barbeiros\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<div aria-label=\"Mês\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<div aria-checked=\"true\" aria-label=\"Todos\" role=\"radio\" tabindex=\"0\"  >",
+    "<div aria-checked=\"false\" aria-label=\"João\" role=\"radio\" tabindex=\"0\"  >",
+    "<div aria-checked=\"false\" aria-label=\"Pedro\" role=\"radio\" tabindex=\"0\"  >",
+    "<a href=\"/Hoje\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Agenda\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\"  >",
+    "<a href=\"/Caixa\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Clientes\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Financeiro\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Mais\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >"
+  ]
+}

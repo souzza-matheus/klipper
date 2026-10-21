@@ -447,9 +447,16 @@ clientes fica no navegador (o modo offline é só do app do celular).
 
 Teste ponta a ponta: `cd mobile && npm run test:web`. Precisa do Playwright para Python:
 `pip install playwright && playwright install chromium`. O comando sobe um backend descartável (SQLite temporário com
-os dados fictícios do `seed_mock`, porta 8010), gera o export e o serve com o mesmo CSP do Caddyfile. Confere login,
-papéis, armazenamento, sessão, modo sem internet, fontes e ausência de erros de console ou bloqueios do CSP, em 375
-e 1440 px.
+os dados fictícios do `seed_mock`, porta 8010, sem `GEMINI_API_KEY`), gera o export e o serve com o mesmo CSP do
+Caddyfile. Confere login, papéis, armazenamento, sessão, modo sem internet, fontes e ausência de erros de console ou
+bloqueios do CSP, em 375 e 1440 px; e também que clicar num horário vago da agenda abre o agendamento rápido e que um
+erro dentro de um bottom sheet aparece na frente dele.
+
+**Acessibilidade na web:** os controles com estado (chips, abas segmentadas, interruptores, cards de segmento) mandam
+`aria-checked`/`aria-selected` para o navegador (helper `a11yState` do `ui.js`, porque o react-native-web 0.21 ignora o
+`accessibilityState`); o conteúdo fica num `main`, as abas e o menu lateral num `navigation`, e tudo o que está com
+`aria-hidden` (as telas de baixo da pilha) ganha `inert` (`src/webA11y.web.js`), para o Tab não cair em tela escondida.
+No login, o endereço do servidor fica em "Configuração avançada" (na web é o próprio site).
 
 ## Modo offline do app (celular)
 
@@ -546,15 +553,17 @@ transação, com um `operation_id` (UUID).
 | Clínica e consultório (`clinic`) | claro | `#F0FDFA` | azul `#0284C7` | profissional, paciente, consulta |
 | Estúdio fitness (`fitness`) | escuro | `#18181B` | verde-limão `#84CC16` | professor, aluno, aula |
 
-A marca-base SyncServ (login) usa fundo `#0F172A`, superfícies `#1E293B` e `#273449`, texto `#F8FAFC` e `#94A3B8`, primária `#0284C7` e secundária `#22C55E`.
+A marca-base SyncServ (login) usa fundo `#0F172A`, superfícies `#1E293B` e `#273449`, texto `#F8FAFC` e `#94A3B8`, primária `#0284C7` e secundária `#22C55E`; contorno de controles `#707F94`.
 
 **Design system (`mobile/src/theme.js`):** tokens por tema (`background`, `surface`, `surfaceElevated`, `border`, `divider`, `text`, `textMuted`, `accent`, `accentPressed`, `accentFill`, `onAccent`, `accentText`), cores de status iguais em todos os temas (Pix confirmado `#22C55E`, Pix pendente `#F97316`, erro e cancelado `#EF4444`, informação `#0284C7`; badges com fundo a 15% e texto num tom da mesma família que passe no contraste), fonte Plus Jakarta Sans (escala 32/24/20/17/15/13), espaçamento em múltiplos de 4, raios 10/14/20 e alvo de toque de 48 px. O `ThemeProvider` (`src/ThemeProvider.js`) lê o segmento e o modo do negócio logado e expõe `useTheme()` com os tokens, os estilos e o vocabulário (`src/vocab.js`); nenhuma tela usa cor fixa.
 
-Contraste (WCAG AA): `cd mobile && npm test` confere 4.5:1 para textos e 3:1 para bordas e ícones em todos os temas. Ajustes que o teste exigiu:
+Contraste (WCAG AA): `cd mobile && npm test` confere 4.5:1 para textos e 3:1 para bordas e ícones em todos os temas, inclusive a borda dos controles sobre o fundo dos bottom sheets (`surfaceElevated`), o texto sobre a faixa cheia de erro (`onDanger` sobre `dangerFill` `#B91C1C`), o contorno dos avisos e as barras de ocupação do mês. Ajustes que o teste exigiu:
 
 - O azul `#0284C7` não chega a 4.5:1 com texto branco nem escuro, então os botões principais da clínica e da marca-base usam `accentFill` `#0369A1`; o `#0284C7` continua no símbolo, nas barras e na seleção.
 - Nos temas claros, o accent como texto ou ícone usa `accentText` mais escuro (rosa `#BE185D`, turquesa `#0E7490`, azul `#0369A1`, âmbar `#92400E`, limão `#4D7C0F`); botões rosa, turquesa, âmbar e limão usam texto escuro.
 - A "borda" `#334155` da marca é o `divider` (separadores); contornos de campos e botões usam `border`, que passa em 3:1.
+- Nos temas escuros o `border` ficou um pouco mais claro (barbearia `#747474`, fitness `#8B8B92`, escuro derivado `#6F727A`, marca `#707F94`) para passar em 3:1 também dentro dos sheets.
+- Texto em cima do vermelho cheio usa `dangerFill` `#B91C1C` (6,5:1 com branco); o `#EF4444` continua nos selos e ícones.
 
 ## App admin
 

@@ -3,7 +3,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { hm, phoneLabel } from '../format';
-import { SPACE } from '../theme';
+import { STATUS } from '../status';
+import { SPACE, TYPE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { haptic } from '../ui';
 
@@ -15,6 +16,19 @@ const MIN_BLOCK = 30; // altura mínima de um bloco curto, para caber o texto e 
 export const toMin = (iso) => Number(iso.slice(11, 13)) * 60 + Number(iso.slice(14, 16));
 const pad = (n) => String(n).padStart(2, '0');
 export const fromMin = (day, m) => `${day}T${pad(Math.floor(m / 60))}:${pad(m % 60)}:00`;
+
+// Altura do toque dentro da coluna. Celular: locationY. Web: o onPress recebe um MouseEvent, sem locationY
+// (antes o minuto virava NaN e todo horário vago respondia "não está livre").
+export function tapY(e) {
+  const n = (e && e.nativeEvent) || {};
+  if (Number.isFinite(n.locationY)) return n.locationY;
+  const t = e && e.currentTarget;
+  if (t && typeof t.getBoundingClientRect === 'function' && Number.isFinite(n.clientY)) {
+    return n.clientY - t.getBoundingClientRect().top;
+  }
+  if (Number.isFinite(n.offsetY)) return n.offsetY;
+  return NaN;
+}
 
 // Faixa de horas da grade: expediente e agendamentos do dia, com margem; padrão 8h às 20h
 export function hourRange(columns) {
@@ -65,14 +79,13 @@ function Hatch({ width, height, color }) {
   );
 }
 
-const TONE_OF = {
-  scheduled: 'accent', confirmed: 'success', completed: 'neutral', no_show: 'danger', pending_approval: 'accent',
-};
+// Mesma cor dos selos (status.js é a fonte única): "agendado" é info, não a cor do segmento
+const TONE_OF = Object.fromEntries(Object.entries(STATUS).map(([k, x]) => [k, x.tone]));
 
 function ApptBlock({ a, top, height, left, width, onPress, onLongPress, showPro }) {
   const { c, font } = useTheme();
-  const tone = TONE_OF[a.status] || 'accent';
-  const bar = tone === 'accent' ? c.accent : tone === 'neutral' ? c.border : c.status[tone];
+  const tone = TONE_OF[a.status] || 'info';
+  const bar = tone === 'accent' ? c.accentText : tone === 'neutral' ? c.border : c.status[tone];
   const bg = tone === 'accent' ? c.accentSoft : tone === 'neutral' ? c.neutralBg : c.statusBg[tone];
   const fg = tone === 'neutral' ? c.textMuted : c.text;
   const small = height < 48;
@@ -80,7 +93,9 @@ function ApptBlock({ a, top, height, left, width, onPress, onLongPress, showPro 
   return (
     <Pressable onPress={() => onPress(a)} onLongPress={() => { haptic.tap(); onLongPress(a); }} delayLongPress={350}
                accessibilityRole="button"
-               accessibilityLabel={`${hm(a.start)} a ${hm(a.end)}, ${name}, ${a.service_name}, ${a.barber_name}`}
+               // começa pelo texto visível (WCAG 2.5.3) e completa com o que não coube no bloco
+               accessibilityLabel={`${hm(a.start)} ${name}${small ? '' : `, ${a.service_name}${showPro ? ` · ${a.barber_name}` : ''}`}`
+                 + `, até ${hm(a.end)}${small ? `, ${a.service_name}` : ''}${showPro && !small ? '' : `, ${a.barber_name}`}`}
                accessibilityHint="Toque e segure para ações rápidas"
                style={({ pressed }) => ({
                  position: 'absolute', top, left, width, height, borderRadius: 8, backgroundColor: c.surface,
@@ -92,12 +107,12 @@ function ApptBlock({ a, top, height, left, width, onPress, onLongPress, showPro 
         <View style={{ width: 4, backgroundColor: bar }} />
         <View style={{ flex: 1, paddingHorizontal: 6, paddingVertical: small ? 2 : 4 }}>
           <Text numberOfLines={1} maxFontSizeMultiplier={1.2}
-                style={{ fontFamily: font.bold, fontSize: small ? 12 : 14, color: fg }}>
-            {hm(a.start)} {name}
+                style={{ fontFamily: font.bold, fontSize: small ? TYPE.caption : 14, color: fg }}>
+            {hm(a.start)} {name}{' '/* separa da linha de baixo no nome lido (WCAG 2.5.3) */}
           </Text>
           {!small ? (
             <Text numberOfLines={height > 64 ? 2 : 1} maxFontSizeMultiplier={1.2}
-                  style={{ fontFamily: font.medium, fontSize: 12, color: c.textMuted }}>
+                  style={{ fontFamily: font.medium, fontSize: TYPE.caption, color: c.textMuted }}>
               {a.service_name}{showPro ? ` · ${a.barber_name}` : ''}
             </Text>
           ) : null}
@@ -111,7 +126,7 @@ function ApptBlock({ a, top, height, left, width, onPress, onLongPress, showPro 
 }
 
 function Column({ col, day, width, start, end, onEmpty, onAppt, onApptLong, showPro }) {
-  const { c } = useTheme();
+  const { c, font } = useTheme();
   const y = (m) => ((m - start * 60) * HOUR_H) / 60;
   const height = (end - start) * HOUR_H;
   const placed = useMemo(() => lanes(col.appointments), [col.appointments]);
@@ -130,9 +145,12 @@ function Column({ col, day, width, start, end, onEmpty, onAppt, onApptLong, show
         }} />
       ))}
       {/* toque num horário vago */}
-      <Pressable style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+      <Pressable style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} accessibilityRole="button"
                  accessibilityLabel={`Horários de ${col.name}. Toque num horário vago para agendar`}
-                 onPress={(e) => onEmpty(col, start * 60 + Math.floor((e.nativeEvent.locationY * 60) / HOUR_H))} />
+                 onPress={(e) => {
+                   const py = tapY(e);
+                   if (Number.isFinite(py)) onEmpty(col, start * 60 + Math.floor((py * 60) / HOUR_H));
+                 }} />
       {col.blocks.map((k) => {
         const top = y(Math.max(start * 60, k.start.slice(0, 10) < day ? 0 : toMin(k.start)));
         const bottom = y(Math.min(end * 60, k.end.slice(0, 10) > day ? 24 * 60 : toMin(k.end)));
@@ -141,7 +159,7 @@ function Column({ col, day, width, start, end, onEmpty, onAppt, onApptLong, show
                 style={{ position: 'absolute', left: 0, right: 0, top, height: Math.max(2, bottom - top), overflow: 'hidden',
                          backgroundColor: c.background }}>
             <Hatch width={width} height={Math.max(2, bottom - top)} color={c.divider} />
-            <Text numberOfLines={1} style={{ margin: 4, fontSize: 12, color: c.textMuted }} maxFontSizeMultiplier={1.2}>
+            <Text numberOfLines={1} style={{ margin: 4, fontFamily: font.medium, fontSize: TYPE.caption, color: c.textMuted }} maxFontSizeMultiplier={1.2}>
               {k.reason || 'Bloqueado'}
             </Text>
           </View>
@@ -227,7 +245,7 @@ export function DayGrid({ day, columns, now, onEmpty, onAppt, onApptLong, showPr
             {columns.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator>{body}</ScrollView> : body}
           </View>
           {liveNow !== null && liveNow >= start * 60 && liveNow <= end * 60 ? (
-            <View pointerEvents="none" accessibilityLabel="Agora" style={{
+            <View pointerEvents="none" accessibilityRole="image" accessibilityLabel="Agora" style={{
               position: 'absolute', left: AXIS_W - 6, right: 0,
               top: (header && columns.length > 1 ? 40 : 0) + ((liveNow - start * 60) * HOUR_H) / 60 - 1,
               flexDirection: 'row', alignItems: 'center',

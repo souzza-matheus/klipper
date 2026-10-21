@@ -34,7 +34,7 @@ export function makeStyles(t) {
     },
     stat: {
       flex: 1, backgroundColor: c.surface, borderRadius: radius.card, padding: SPACE(3), borderWidth: 1,
-      borderColor: c.divider, minHeight: 72,
+      borderColor: c.divider, minHeight: 72, minWidth: 136, // 3 cards num celular de 375 px viram 2 + 1
     },
     statValue: { fontFamily: font.extrabold, fontSize: type.heading, color: c.text },
     empty: { alignItems: 'center', justifyContent: 'center', padding: SPACE(10) },

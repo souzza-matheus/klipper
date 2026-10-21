@@ -1,0 +1,242 @@
+{
+  "theme": "barber",
+  "width": 375,
+  "axe": [
+    {
+      "label": "17-pix-com-comprovante",
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "count": 1,
+          "nodes": [
+            {
+              "target": "div[aria-label=\"Ver comprovante em tela cheia\"]",
+              "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute.",
+              "html": "<div aria-label=\"Ver comprovante em tela cheia\" tabindex=\"0\" class=\"css-g5y9jx r-1loqt21 r-1otgn73\">"
+            }
+          ]
+        },
+        {
+          "id": "region",
+          "impact": "moderate",
+          "help": "All page content should be contained by landmarks",
+          "count": 20,
+          "nodes": [
+            {
+              "target": ".r-ipm5af.r-1p0dtai.r-1d2f490:nth-child(2) > .r-184en5c.css-g5y9jx",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-184en5c\">"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .css-g5y9jx[role=\"tablist\"]",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div role=\"tablist\" class=\"css-g5y9jx\" style=\"flex-direction: row; background-color: rgb(30, 30, 30); border-radius: 12px; padding: 4px; border-width: 1px; bord"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .r-6gpygo.r-nsbfu8.r-n1edft:nth-child(2) > .r-18u37iz.css-g5y9jx:nth-child(1)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-18u37iz\" style=\"align-items: flex-start; gap: 12px;\">"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(2) > .r-1awozwy.r-18u37iz.css-g5y9jx:nth-child(2)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-1awozwy r-18u37iz\" style=\"gap: 6px; margin-top: 12px; margin-bottom: 12px; flex-wrap: wrap;\">"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(2) > .css-g5y9jx:nth-child(3) > .r-18u37iz.css-g5y9jx:nth-child(1)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-18u37iz\" style=\"gap: 12px; align-items: flex-start;\">"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .r-6gpygo.r-nsbfu8.r-n1edft:nth-child(3) > .r-18u37iz.css-g5y9jx:nth-child(1)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-18u37iz\" style=\"align-items: flex-start; gap: 12px;\">"
+            },
+            {
+              "target": ".r-6gpygo.r-nsbfu8.r-n1edft:nth-child(3) > .r-1awozwy.r-18u37iz.css-g5y9jx:nth-child(2)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-1awozwy r-18u37iz\" style=\"gap: 6px; margin-top: 12px; margin-bottom: 12px; flex-wrap: wrap;\">"
+            },
+            {
+              "target": ".r-16wqof.r-n1h2e2.r-16y2uox > .r-6gpygo.r-nsbfu8.r-n1edft:nth-child(4) > .r-18u37iz.css-g5y9jx:nth-child(1)",
+              "summary": "Fix any of the following:\n  Some page content is not contained by landmarks",
+              "html": "<div class=\"css-g5y9jx r-18u37iz\" style=\"align-items: flex-start; gap: 12px;\">"
+            }
+          ]
+        }
+      ],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 93
+        }
+      ]
+    }
+  ],
+  "measure": {
+    "17-pix-com-comprovante": {
+      "smallTargets": [
+        {
+          "el": "div \"Timeline\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Barbeiros\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Mês\"",
+          "w": 111,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \" Todos\"",
+          "w": 102,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"João\"",
+          "w": 68,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pedro\"",
+          "w": 78,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Antônio Moreira, Corte, João\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"10:30 a 11:00, Ricardo Nunes, Corte, Pedro\"",
+          "w": 157,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"14:00 a 14:30, Renan Rodrigues, Corte, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:00 a 16:30, Wellington Mendes, Barba, João\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "button \"16:30 a 17:00, Renan Fernandes, Barba, Pedro\"",
+          "w": 315,
+          "h": 36,
+          "inline": false
+        },
+        {
+          "el": "a \"Voltar, back\"",
+          "w": 30,
+          "h": 30,
+          "inline": false
+        },
+        {
+          "el": "div \"Pendentes\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Pagos\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Expirados\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "div \"Todos\"",
+          "w": 83,
+          "h": 44,
+          "inline": false
+        },
+        {
+          "el": "button \" Ver dados lidos e conferências\"",
+          "w": 307,
+          "h": 17,
+          "inline": false
+        },
+        {
+          "el": "button \"Agendamento\"",
+          "w": 150,
+          "h": 41,
+          "inline": false
+        },
+        {
+          "el": "button \"Agendamento\"",
+          "w": 151,
+          "h": 41,
+          "inline": false
+        }
+      ],
+      "smallText": {
+        "12px": {
+          "count": 24,
+          "samples": [
+            "Corte + Barba",
+            "· João",
+            "10:30",
+            "Antônio Moreira",
+            "Ricardo Nunes",
+            "14:00",
+            "Renan Rodrigues",
+            "16:00"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  "errors": [
+    "pix comprovante: locator.click: Timeout 6000ms exceeded.",
+    "novo agendamento: locator.click: Timeout 6000ms exceeded.",
+    "offline toast: locator.click: Timeout 6000ms exceeded."
+  ],
+  "console": [
+    "Failed to load resource: net::ERR_FAILED"
+  ],
+  "aria": [
+    "<div aria-label=\"Timeline\" role=\"tab\" tabindex=\"0\"  >",
+    "<div aria-label=\"Barbeiros\" role=\"tab\" tabindex=\"0\"  >",
+    "<div aria-label=\"Mês\" role=\"tab\" tabindex=\"0\"  >",
+    "<div role=\"radio\" tabindex=\"0\"  >",
+    "<div role=\"radio\" tabindex=\"0\"  >",
+    "<div role=\"radio\" tabindex=\"0\"  >",
+    "<a href=\"/Hoje\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Agenda\" role=\"tab\" aria-selected=\"true\" tabindex=\"0\"  >",
+    "<a href=\"/Caixa\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Clientes\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Financeiro\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >",
+    "<a href=\"/Mais\" role=\"tab\" aria-selected=\"false\" tabindex=\"0\"  >"
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "theme": "barber",
+  "width": 1440,
+  "axe": [
+    {
+      "label": "01-login",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "03-hoje",
+      "violations": [],
+      "passes": 33,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "04-agendamento-detalhe",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 32
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "06-agenda-timeline",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 39
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "07-agendamento-rapido",
+      "violations": [],
+      "passes": 44,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 43
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "09-agenda-profissionais",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 39
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "10-agenda-mes",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 30
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "12-novo-agendamento",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 19
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "13-caixa",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "label": "14-comanda",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 29
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "16-pix-pendentes",
+      "violations": [],
+      "passes": 40,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 33
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "19-clientes",
+      "violations": [],
+      "passes": 41,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "label": "20-ficha-cliente",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "22-produtos-estoque",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 23
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "23-produto-detalhe",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 23
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "24-pacotes",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 20
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "25-assinaturas",
+      "violations": [],
+      "passes": 42,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 30
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "26-lista-espera",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 25
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "27-relatorios",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 18
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "28-avaliacoes",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 89
+        },
+        {
+          "id": "color-contrast",
+          "count": 60
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "29-equipe",
+      "violations": [],
+      "passes": 38,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 21
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "30-servicos",
+      "violations": [],
+      "passes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 25
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "31-bloqueios",
+      "violations": [],
+      "passes": 39,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "label": "32-financeiro",
+      "violations": [],
+      "passes": 35,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 33
+        }
+      ]
+    },
+    {
+      "label": "33-configuracoes",
+      "violations": [],
+      "passes": 43,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 22
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "label": "34-whatsapp",
+      "violations": [],
+      "passes": 37,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 23
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "measure": {},
+  "errors": [],
+  "console": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ]
+}

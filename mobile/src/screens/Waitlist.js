@@ -85,7 +85,12 @@ export function WaitlistScreen({ navigation }) {
                action={{ title: 'Adicionar', icon: 'add', onPress: () => setAdding(true) }} />
       ) : null}
       {items.map((e) => (
-        <Card key={e.id} onPress={() => navigation.navigate('Customer', { id: e.customer_id })}>
+        <Card key={e.id} onPress={() => navigation.navigate('Customer', { id: e.customer_id })}
+              actions={['waiting', 'offered'].includes(e.status) && typeof e.id === 'number' ? (
+                <Button title="Tirar da lista" kind="ghost" compact style={{ marginTop: SPACE(2), alignSelf: 'flex-start' }}
+                        onPress={() => confirm('Tirar da lista de espera?', `${e.customer_name} não será mais avisado.`,
+                          () => run(() => api.del(`/waitlist/${e.id}`).then(list.reload), 'Removido da lista.'), 'Tirar', true)} />
+              ) : null}>
           <View style={[s.row, { gap: SPACE(2) }]}>
             {e.position ? <Text style={[s.heading, { minWidth: 28 }]}>{e.position}º</Text> : null}
             <View style={{ flex: 1 }}>
@@ -103,11 +108,6 @@ export function WaitlistScreen({ navigation }) {
             <Badge info={WAIT[e.status]} />
             <PendingBadge item={e} />
           </View>
-          {['waiting', 'offered'].includes(e.status) && typeof e.id === 'number' ? (
-            <Button title="Tirar da lista" kind="ghost" compact style={{ marginTop: SPACE(2), alignSelf: 'flex-start' }}
-                    onPress={() => confirm('Tirar da lista de espera?', `${e.customer_name} não será mais avisado.`,
-                      () => run(() => api.del(`/waitlist/${e.id}`).then(list.reload), 'Removido da lista.'), 'Tirar', true)} />
-          ) : null}
         </Card>
       ))}
       <AddSheet visible={adding} onClose={() => setAdding(false)} day={day} onAdded={list.reload} />

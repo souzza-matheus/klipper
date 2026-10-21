@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { money } from './format';
+import { TYPE } from './theme';
 import { useTheme } from './ThemeProvider';
 import { Muted } from './ui';
 
-const AXIS_W = 40;
+const AXIS_W = 44;
 const LABEL_H = 18;
 
 // Teto "redondo" para o eixo: 1, 2, 2,5 ou 5 x 10^n
@@ -32,7 +33,7 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
   const slot = data.length ? plotW / data.length : 0;
   const bar = Math.max(1.5, Math.min(12, slot * 0.36));
   const y = (v) => plotH - (v / max) * (plotH - 6);
-  const every = Math.max(1, Math.ceil(data.length / 8)); // no máximo ~8 rótulos no eixo X
+  const every = Math.max(1, Math.ceil(data.length / (plotW < 420 ? 5 : 8))); // rótulos de 13 px sem se encostar
   const picked = sel !== null ? data[sel] : null;
 
   return (
@@ -42,7 +43,7 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
           {[0, 0.5, 1].map((f) => (
             <G key={f}>
               <Line x1={AXIS_W} x2={width} y1={y(max * f)} y2={y(max * f)} stroke={c.divider} strokeWidth={1} />
-              <SvgText x={AXIS_W - 6} y={y(max * f) + 4} fontSize={10} fill={c.textMuted} textAnchor="end">
+              <SvgText x={AXIS_W - 6} y={y(max * f) + 4} fontSize={TYPE.caption} fontFamily={font.medium} fill={c.textMuted} textAnchor="end">
                 {short(max * f)}
               </SvgText>
             </G>
@@ -56,7 +57,7 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
                 <Rect x={cx - bar - 0.5} y={y(d.a)} width={bar} height={plotH - y(d.a)} rx={1.5} fill={bars[0]} opacity={dim} />
                 <Rect x={cx + 0.5} y={y(d.b)} width={bar} height={plotH - y(d.b)} rx={1.5} fill={bars[1]} opacity={dim} />
                 {i % every === 0 ? (
-                  <SvgText x={cx} y={height - 4} fontSize={10} fill={c.textMuted} textAnchor="middle">{d.label}</SvgText>
+                  <SvgText x={cx} y={height - 4} fontSize={TYPE.caption} fontFamily={font.medium} fill={c.textMuted} textAnchor="middle">{d.label}</SvgText>
                 ) : null}
                 {/* área de toque do dia inteiro */}
                 <Rect x={cx - slot / 2} y={0} width={slot} height={height} fill="transparent"
@@ -75,7 +76,7 @@ export function BarChart({ data, height = 170, labels = ['Faturamento', 'Gastos'
         ))}
         {picked ? <Text style={[s.muted, { fontFamily: font.bold }]}>{detail ? detail(picked) : picked.label}</Text> : null}
       </View>
-      {!picked && data.length ? <Muted style={{ marginTop: 4, fontSize: 12 }}>Toque em um dia para ver os valores.</Muted> : null}
+      {!picked && data.length ? <Text style={[s.caption, { marginTop: 4 }]}>Toque em um dia para ver os valores.</Text> : null}
     </View>
   );
 }

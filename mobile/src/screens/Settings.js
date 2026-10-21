@@ -15,7 +15,7 @@ import { useSession } from '../session';
 import {
   Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl,
   Stat, Toggle, run, toast, useLoad,
-  ask,
+  a11yState, ask,
 } from '../ui';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
@@ -99,7 +99,7 @@ function NicheCard({ niche, themeMode, selected, onPress }) {
   const t = buildTheme(niche, themeMode);
   const info = NICHE_INFO[niche];
   return (
-    <Pressable onPress={onPress} accessibilityRole="radio" accessibilityState={{ checked: selected }}
+    <Pressable onPress={onPress} accessibilityRole="radio" {...a11yState({ checked: selected })}
                accessibilityLabel={`${info.label}, tema ${MODE_LABEL[t.mode].toLowerCase()}`}
                style={({ pressed }) => ({
                  width: '48%', minHeight: 112, borderRadius: 14, padding: SPACE(3), backgroundColor: t.c.background,
@@ -177,7 +177,9 @@ function AISection() {
           {used.toLocaleString('pt-BR')} de {d.monthly_limit.toLocaleString('pt-BR')} respostas da IA
         </Text>
         <View style={{ height: 8, borderRadius: 4, backgroundColor: c.neutralBg, marginTop: SPACE(2) }}
-              accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: d.monthly_limit, now: used }}>
+              accessibilityRole="progressbar" accessibilityLabel="Uso da IA neste mês"
+              accessibilityValue={{ min: 0, max: d.monthly_limit, now: used }}
+              aria-valuemin={0} aria-valuemax={d.monthly_limit} aria-valuenow={used}>
           <View style={{ height: 8, borderRadius: 4, width: `${Math.round(pct * 100)}%`,
                          backgroundColor: pct >= 0.9 ? c.status.danger : c.accent }} />
         </View>

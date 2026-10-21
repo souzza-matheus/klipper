@@ -1,0 +1,397 @@
+{
+  "axe": [
+    {
+      "label": "landing 375px",
+      "violations": [],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 53
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 375px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "landing 768px",
+      "violations": [],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 53
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 768px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "landing 1440px",
+      "violations": [],
+      "passes": 53,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 53
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "label": "simulador no fim 1440px",
+      "violations": [],
+      "passes": 20,
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "measure": {
+    "375": {
+      "smallTargets": [
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 50,
+          "samples": [
+            "online",
+            "Oi, quero agendar",
+            "Olá, Carlos! Boas-vindas à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3"
+          ]
+        },
+        "12px": {
+          "count": 19,
+          "samples": [
+            "Rafael Souza",
+            "Lucas Lima",
+            "Bruno Alves",
+            "Diego Rocha",
+            "online",
+            "Toque em uma resposta para conversar com",
+            "Corte + Barba",
+            "R$ 65,00"
+          ]
+        },
+        "10px": {
+          "count": 11,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "N",
+            "novo agendamento"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    },
+    "768": {
+      "smallTargets": [
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 35,
+          "samples": [
+            "online",
+            "Hoje",
+            "Previsto",
+            "Agenda de hoje",
+            "Corte",
+            "Corte + Barba",
+            "Barba",
+            "Lucas Lima"
+          ]
+        },
+        "12px": {
+          "count": 35,
+          "samples": [
+            "Oi, quero agendar",
+            "Olá, Carlos! Boas-vindas à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3",
+            "- Serviços e preços"
+          ]
+        },
+        "10px": {
+          "count": 16,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "Produtos e estoque",
+            "Pacotes",
+            "Clube de assinatura"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 768
+    },
+    "1440": {
+      "smallTargets": [
+        {
+          "el": "a \"\"",
+          "w": 174,
+          "h": 21,
+          "inline": true
+        }
+      ],
+      "smallText": {
+        "11px": {
+          "count": 35,
+          "samples": [
+            "online",
+            "Hoje",
+            "Previsto",
+            "Agenda de hoje",
+            "Corte",
+            "Corte + Barba",
+            "Barba",
+            "Lucas Lima"
+          ]
+        },
+        "12px": {
+          "count": 35,
+          "samples": [
+            "Oi, quero agendar",
+            "Olá, Carlos! Boas-vindas à Sua Barbearia",
+            "1",
+            "- Agendar horário",
+            "2",
+            "- Meus agendamentos",
+            "3",
+            "- Serviços e preços"
+          ]
+        },
+        "10px": {
+          "count": 16,
+          "samples": [
+            "Chegou",
+            "Sinal pago",
+            "Aguardando sinal",
+            "Pacote",
+            "A confirmar",
+            "Produtos e estoque",
+            "Pacotes",
+            "Clube de assinatura"
+          ]
+        }
+      },
+      "horizontalScroll": false,
+      "scrollWidth": 1440
+    }
+  },
+  "console": [],
+  "cta": {
+    "375": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ],
+    "768": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ],
+    "1440": [
+      {
+        "text": "Testar grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Testar 7 dias grátis",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Aproveitar 7 dias grátis agora",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Quero%20testar%20o%20SyncServ%20gr%C3%A1tis%20por%207%20dias.%20Meu%20neg%C3%B3cio%20%C3%A9%3A%20Bar",
+        "target": "_blank"
+      },
+      {
+        "text": "Fale conosco no WhatsApp",
+        "href": "https://wa.me/[NUMERO]?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20SyncServ.",
+        "target": "_blank"
+      }
+    ]
+  },
+  "firstScreen": {
+    "375": {
+      "heroCtaTop": 512,
+      "heroCtaBottom": 564,
+      "vh": 812,
+      "ctaVisible": true,
+      "headerCtaVisible": false,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 954
+    },
+    "768": {
+      "heroCtaTop": 452,
+      "heroCtaBottom": 504,
+      "vh": 1024,
+      "ctaVisible": true,
+      "headerCtaVisible": false,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 750
+    },
+    "1440": {
+      "heroCtaTop": 551,
+      "heroCtaBottom": 603,
+      "vh": 900,
+      "ctaVisible": true,
+      "headerCtaVisible": true,
+      "h1": "Sua agenda cheia e seu WhatsApp no automático.",
+      "phonesTop": 209
+    }
+  }
+}

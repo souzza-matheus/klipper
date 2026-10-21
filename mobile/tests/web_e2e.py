@@ -9,7 +9,8 @@ fica em outra porta) e confere, no Chromium (Playwright), em 375 e 1440 px:
 - login, abas por papel e menu lateral no computador;
 - o token de acesso não vai para o sessionStorage, nada vai para o localStorage;
 - recarregar a aba mantém a sessão (refresh token); aba nova pede login;
-- sem internet: aviso e escrita bloqueada;
+- sem internet: aviso e escrita bloqueada, com o erro aparecendo NA FRENTE do sheet (A02);
+- tocar num horário vago da agenda abre o agendamento rápido (A01: o clique do mouse não tem locationY);
 - nenhum erro no console nem bloqueio do CSP (que não tem 'unsafe-inline'); fontes e ícones carregados.
 """
 import functools
@@ -60,10 +61,48 @@ def login(pg, web, api, email, password="demo123"):
     pg.get_by_label("E-mail").fill(email)
     pg.get_by_label("Senha").fill(password)
     if pg.get_by_label("Endereço do servidor").count() == 0:
-        pg.get_by_text("Servidor:").click()
+        pg.get_by_role("button", name="Configuração avançada", exact=False).click()
     pg.get_by_label("Endereço do servidor").fill(api)
     pg.get_by_role("button", name="Entrar").click()
     pg.get_by_text("Agenda", exact=True).first.wait_for(timeout=15000)
+
+
+def open_quick_book(pg) -> bool:
+    """Clica em pontos vagos da grade (de hoje em diante) até abrir o agendamento rápido. Antes da correção do A01,
+    todo clique respondia "Esse horário não está livre"."""
+    pg.get_by_text("Agenda", exact=True).first.click()
+    pg.locator('[aria-label^="Horários de"]').first.wait_for(timeout=15000)
+    for _ in range(4):  # hoje pode já ter passado (teste à noite): tenta os próximos dias
+        pg.wait_for_timeout(600)
+        points = pg.evaluate("""() => {
+            const out = [];
+            for (const col of document.querySelectorAll('[aria-label^="Horários de"]')) {
+                const r = col.getBoundingClientRect();
+                const x = Math.min(r.left + 12, innerWidth - 2);
+                for (let y = Math.max(r.top, 0) + 10; y < Math.min(r.bottom, innerHeight) - 4; y += 19) {
+                    const hit = document.elementFromPoint(x, y);
+                    if (hit === col) out.push([x, y]);
+                }
+            }
+            return out;
+        }""")
+        for x, y in points[::2][:40]:
+            pg.mouse.click(x, y)
+            pg.wait_for_timeout(350)
+            if pg.get_by_role("button", name="Agendar", exact=True).count():
+                return True
+        pg.get_by_role("button", name="Próximo dia").click()
+    return False
+
+
+def toast_on_top(pg) -> bool:
+    """O aviso está visível e é o elemento de cima no ponto onde aparece (não escondido atrás de um Modal)."""
+    return pg.evaluate("""() => [...document.querySelectorAll('[data-testid="toast"]')].some(t => {
+        const r = t.getBoundingClientRect();
+        if (!r.width || !r.height) return false;
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return !!hit && t.contains(hit);
+    })""")
 
 
 def main(directory: str, api: str) -> None:
@@ -99,6 +138,10 @@ def main(directory: str, api: str) -> None:
                 assert pg.get_by_text("Gestão", exact=True).count() == 0, "celular sem menu lateral"
             pg.reload()
             pg.get_by_text("Agenda", exact=True).first.wait_for(timeout=15000)
+            # A01: clique num horário vago abre o agendamento rápido (sheet com o botão Agendar)
+            assert open_quick_book(pg), f"{width}px: clique em horário vago não abriu o agendamento rápido"
+            pg.keyboard.press("Escape")
+            pg.get_by_role("button", name="Agendar", exact=True).wait_for(state="detached", timeout=5000)
             pg.get_by_text("Caixa", exact=True).first.click()
             pg.get_by_role("button", name="Nova comanda").wait_for()
             ctx.set_offline(True)
@@ -106,6 +149,8 @@ def main(directory: str, api: str) -> None:
             pg.get_by_role("button", name="Nova comanda").click()
             pg.get_by_role("button", name="Sem cliente (venda avulsa)").click()
             pg.get_by_text("alterações só podem ser feitas com internet", exact=False).first.wait_for(timeout=5000)
+            # A02: o erro de uma ação feita dentro do sheet aparece na frente dele, não escondido atrás do Modal
+            assert toast_on_top(pg), f"{width}px: aviso de erro escondido atrás do sheet"
             ctx.set_offline(False)
             ctx.close()
         # Papéis: recepção sem Finanças; profissional só Agenda, Clientes e Comissões

@@ -26,6 +26,11 @@ landing/
 | `[EMAIL]`, `[CNPJ]`, `[CIDADE/UF]` | rodapé do `index.html` e páginas legais | contato e dados da empresa |
 | `[RAZÃO SOCIAL]`, `[DATA]`, `[PRAZO]`, `[PROVEDOR]` etc. | `privacidade.html` e `termos.html` | completar e **revisar com um advogado** antes de publicar (tirar o aviso "MODELO" do topo depois da revisão) |
 
+**Verificação antes de publicar:** `LANDING_ENV=production python3 landing/tests/landing_e2e.py` falha se sobrar
+qualquer marcador (`[` + letra maiúscula, ex.: `[DOMINIO]`, `[PREÇO EQUIPE]`) no HTML final das três páginas (depois de
+o `main.js` rodar), no `robots.txt`, no `sitemap.xml` ou no `site.webmanifest`. Comentários HTML não contam. Sem
+`LANDING_ENV=production` (desenvolvimento), o teste só lista o que falta preencher.
+
 Para trocar tudo de uma vez (Linux/macOS):
 
 ```bash
@@ -86,6 +91,7 @@ syncserv.com.br, www.syncserv.com.br {
 ```bash
 python3 landing/tests/landing_e2e.py              # da raiz do repositório
 python3 landing/tests/landing_e2e.py /tmp/prints  # também salva capturas de cada largura
+LANDING_ENV=production python3 landing/tests/landing_e2e.py   # antes de publicar: falha com marcador sobrando
 ```
 
 Precisa do Playwright para Python (`pip install playwright && playwright install chromium`). O teste serve a pasta num
@@ -93,7 +99,9 @@ servidor local descartável e bloqueia qualquer pedido para fora (Google Fonts, 
 sem rolagem lateral, os 9 cards da gestão, os mockups (comanda no celular e versão web com menu lateral) e a troca de
 nicho neles, o comparativo, os planos com os marcadores de preço, as perguntas novas abrindo, o menu do celular, links
 internos, imagens, um h1 só, nenhum erro no console, nada de "Pix automático" nem depoimentos, e a política de
-privacidade com o banco criptografado do celular.
+privacidade com o banco criptografado do celular. Também: o comparativo sem rolagem lateral no celular (vira pares
+"Sem/Com" empilhados), o botão "Falar com o robô de verdade" escondido enquanto não houver número, alvos de 48 px na
+calculadora, no simulador e no rodapé, os botões − e + do valor médio e o CTA depois do resultado da calculadora.
 
 ## Desempenho e acessibilidade
 
@@ -101,6 +109,8 @@ Lighthouse no celular (com `[DOMINIO]` preenchido): 100 em desempenho, acessibil
 
 - A fonte Plus Jakarta Sans (500 e 800) carrega sem bloquear a primeira pintura (`display=swap`).
 - Imagens com largura e altura definidas; o logo e os símbolos são SVG do kit; os celulares do hero são HTML/CSS.
+- Contraste: contornos de controles (botões secundários, nichos, menu, botões − e +) usam `--control` `#64748B`
+  (3:1 contra o fundo); `#334155` (`--border`) fica só nas divisórias.
 - Contraste: verde `#22C55E` só nos botões de ação, com texto `#0F172A` (7.9:1). O azul `#0284C7` fica nos títulos de destaque (texto grande, 3:1) e no fundo dos badges; links e textos pequenos em azul usam `#38BDF8` (8.3:1), porque `#0284C7` sobre o fundo escuro dá 4.36:1, abaixo de 4.5:1.
 - `prefers-reduced-motion` desliga as animações e encurta o "digitando..." do simulador.
 

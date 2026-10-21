@@ -111,7 +111,8 @@ function MonthView({ month, barber, onPick, onMonth }) {
   while (cells.length % 7) cells.push(null);
   const total = days.reduce((t, d) => t + d.total, 0);
   const revenue = days.reduce((t, d) => t + Number(d.revenue_expected), 0);
-  const occ = (o) => (o >= 0.85 ? c.status.danger : o >= 0.5 ? c.status.warning : c.status.success);
+  // Tons de texto de status: a cor cheia não chega a 3:1 sobre a trilha nos temas claros
+  const occ = (o) => (o >= 0.85 ? c.statusText.danger : o >= 0.5 ? c.statusText.warning : c.statusText.success);
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: SPACE(10) }}>
@@ -135,21 +136,24 @@ function MonthView({ month, barber, onPick, onMonth }) {
                 <View key={d ? d.date : `x${i}`} style={{ width: `${100 / 7}%`, padding: 2 }}>
                   {d ? (
                     <Pressable onPress={() => onPick(d.date)} accessibilityRole="button"
-                               accessibilityLabel={`${dayLabel(d.date)}: ${v.count(d.total, v.service, v.services)}`}
+                               // começa pelo que aparece no quadrado (número do dia e quantidade), WCAG 2.5.3
+                               accessibilityLabel={`${Number(d.date.slice(8, 10))}, `
+                                 + `${d.total ? v.count(d.total, v.service, v.services) : `sem ${v.services}`}, ${dayLabel(d.date)}`
+                                 + (d.working || d.total ? '' : ', fechado')}
                                style={({ pressed }) => [{
                                  borderRadius: 10, paddingVertical: 6, alignItems: 'center', minHeight: 64,
                                  backgroundColor: pressed ? c.surfaceElevated : d.date === today ? c.accentSoft : 'transparent',
                                  borderWidth: d.date === today ? 2 : 0, borderColor: c.accentText,
-                                 opacity: d.working || d.total ? 1 : 0.4,
                                }]}>
                       <View style={[s.row, { gap: 2 }]}>
-                        <Text style={{ fontSize: 16, fontFamily: d.date === today ? font.extrabold : font.semibold, color: c.text }}
+                        <Text style={{ fontSize: 16, fontFamily: d.date === today ? font.extrabold : font.semibold,
+                                       color: d.working || d.total ? c.text : c.textMuted }}
                               maxFontSizeMultiplier={1.2}>
-                          {Number(d.date.slice(8, 10))}
+                          {Number(d.date.slice(8, 10))}{' '/* separa do número de baixo no nome lido (WCAG 2.5.3) */}
                         </Text>
                         {d.has_block ? <Ionicons name="lock-closed" size={10} color={c.textMuted} /> : null}
                       </View>
-                      <Text style={[s.caption, { fontSize: 12, color: d.total ? c.text : c.textMuted }]} maxFontSizeMultiplier={1.2}>
+                      <Text style={[s.caption, { color: d.total ? c.text : c.textMuted }]} maxFontSizeMultiplier={1.2}>
                         {d.total ? d.total : d.working ? '-' : ''}
                       </Text>
                       {d.working ? (
@@ -164,7 +168,7 @@ function MonthView({ month, barber, onPick, onMonth }) {
             </View>
           </View>
           <View style={[s.row, { gap: SPACE(3), flexWrap: 'wrap', marginTop: SPACE(1) }]}>
-            {[[c.status.success, 'até 50%'], [c.status.warning, '50 a 85%'], [c.status.danger, 'acima de 85%']].map(([col, l]) => (
+            {[[c.statusText.success, 'até 50%'], [c.statusText.warning, '50 a 85%'], [c.statusText.danger, 'acima de 85%']].map(([col, l]) => (
               <View key={l} style={[s.row, { gap: 4 }]}>
                 <View style={{ width: 14, height: 4, borderRadius: 2, backgroundColor: col }} />
                 <Text style={s.caption}>{l}</Text>

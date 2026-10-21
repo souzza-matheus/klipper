@@ -5,9 +5,9 @@ import { api, apiUrl, authHeaders, download, saveFile } from '../api';
 import { IS_WEB } from '../storage';
 import { ago, dtLabel, money } from '../format';
 import { useSession } from '../session';
-import { SPACE } from '../theme';
+import { SPACE, TOUCH } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { Badge, Button, confirm, IconButton, run } from '../ui';
+import { a11yState, Badge, Button, confirm, IconButton, run, ToastHost } from '../ui';
 
 // Comprovante de Pix lido pela IA: PRÉ-CONFERÊNCIA. O selo diz se os dados batem; quem confirma é o dono, depois
 // de olhar o extrato (o sistema não acessa o banco).
@@ -34,20 +34,32 @@ function useReceiptSource(r) {
   return { path, isImage, src: IS_WEB ? { uri: webUri || undefined } : { uri: apiUrl(path), headers: authHeaders() } };
 }
 
-function FullScreen({ visible, onClose, src }) {
-  const { s } = useTheme();
+// Visualizador preto (cores fixas de propósito: a imagem do comprovante aparece igual em qualquer tema).
+// Com onConfirm/onReject, o rodapé tem Confirmar e Recusar: não é preciso fechar e procurar o botão.
+function FullScreen({ visible, onClose, src, onConfirm, onReject }) {
+  const { s, font } = useTheme();
+  const act = (fn) => { onClose(); fn(); };
   return (
     <Modal visible={visible} onRequestClose={onClose} animationType="fade" presentationStyle="fullScreen"
-           supportedOrientations={['portrait', 'landscape']}>
+           supportedOrientations={['portrait', 'landscape']} aria-label="Comprovante em tela cheia">
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <View style={[s.row, { justifyContent: 'flex-end', padding: SPACE(3), paddingTop: SPACE(10) }]}>
           <IconButton icon="close" label="Fechar comprovante" color="#fff" onPress={onClose} />
         </View>
         <Image source={src} resizeMode="contain" style={{ flex: 1, width: '100%', backgroundColor: '#000' }}
                accessibilityLabel="Comprovante em tela cheia" />
-        <Text style={{ color: '#BDBDBD', textAlign: 'center', padding: SPACE(4) }}>
+        <Text style={[s.caption, { color: '#BDBDBD', fontFamily: font.medium, textAlign: 'center', padding: SPACE(4) }]}>
           O comprovante não prova que o dinheiro caiu: confira no extrato.
         </Text>
+        {onConfirm || onReject ? (
+          <View style={[s.row, { gap: SPACE(2), paddingHorizontal: SPACE(4), paddingBottom: SPACE(6) }]}>
+            {onConfirm ? <Button title="Confirmar" icon="checkmark-circle" style={{ flex: 1, marginBottom: 0 }}
+                                 onPress={() => act(onConfirm)} /> : null}
+            {onReject ? <Button title="Recusar" icon="close-circle-outline" kind="danger" style={{ flex: 1, marginBottom: 0 }}
+                                onPress={() => act(onReject)} /> : null}
+          </View>
+        ) : null}
+        <ToastHost placement="top" active={visible} />
       </View>
     </Modal>
   );
@@ -65,7 +77,8 @@ function Row({ label, value }) {
 }
 
 // receipt: ReceiptOut da API. paid: o pagamento já está pago (mostra "Desfazer" na confirmação automática).
-export function ReceiptReview({ receipt: r, paid, onChanged }) {
+// onConfirm/onReject: as mesmas ações do card, repetidas na tela cheia do comprovante.
+export function ReceiptReview({ receipt: r, paid, onChanged, onConfirm, onReject }) {
   const { c, s } = useTheme();
   const { isOwner } = useSession();
   const [open, setOpen] = useState(false);
@@ -83,7 +96,7 @@ export function ReceiptReview({ receipt: r, paid, onChanged }) {
     <View style={{ marginBottom: SPACE(3), gap: SPACE(2) }}>
       <View style={[s.row, { gap: SPACE(3), alignItems: 'flex-start' }]}>
         {r.has_file && isImage ? (
-          <Pressable onPress={() => setOpen(true)} accessibilityRole="imagebutton" accessibilityLabel="Ver comprovante em tela cheia">
+          <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Ver comprovante em tela cheia">
             <Image source={src} style={{ width: 64, height: 88, borderRadius: 8, backgroundColor: c.neutralBg }} />
           </Pressable>
         ) : null}
@@ -111,7 +124,8 @@ export function ReceiptReview({ receipt: r, paid, onChanged }) {
                 style={{ alignSelf: 'flex-start' }}
                 onPress={() => run(() => saveFile(path, null, `comprovante-${r.id}.pdf`, 'application/pdf'))} />
       ) : null}
-      <Pressable onPress={() => setDetails(!details)} accessibilityRole="button" style={[s.row, { gap: SPACE(1) }]}>
+      <Pressable onPress={() => setDetails(!details)} accessibilityRole="button" {...a11yState({ expanded: details })}
+                 style={[s.row, { gap: SPACE(1), minHeight: TOUCH, alignSelf: 'flex-start' }]}>
         <Ionicons name={details ? 'chevron-up' : 'chevron-down'} size={16} color={c.accentText} />
         <Text style={[s.caption, { color: c.accentText }]}>{details ? 'Esconder' : 'Ver'} dados lidos e conferências</Text>
       </Pressable>
@@ -145,7 +159,8 @@ export function ReceiptReview({ receipt: r, paid, onChanged }) {
         <Button title="Desfazer confirmação automática" kind="ghost" icon="arrow-undo-outline" compact
                 style={{ alignSelf: 'flex-start' }} onPress={undo} />
       ) : null}
-      {isImage ? <FullScreen visible={open} onClose={() => setOpen(false)} src={src} /> : null}
+      {isImage ? <FullScreen visible={open} onClose={() => setOpen(false)} src={src}
+                             onConfirm={paid ? null : onConfirm} onReject={paid ? null : onReject} /> : null}
     </View>
   );
 }

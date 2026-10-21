@@ -19,6 +19,12 @@ const REASONS = {
 };
 const qty = (v) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 const LOW = { label: 'Estoque baixo', tone: 'warning', icon: 'alert-circle-outline' };
+// Saldo abaixo de zero = venda ou uso lançado sem a entrada: pede para conferir, em vez de só mostrar "-2 un"
+const NEGATIVE = { label: 'Estoque negativo: confira a contagem', tone: 'danger', icon: 'alert-circle-outline' };
+function StockBadge({ p }) {
+  if (Number(p.stock) < 0) return <Badge info={NEGATIVE} />;
+  return p.low_stock ? <Badge info={LOW} /> : null;
+}
 
 export function ProductsScreen({ navigation }) {
   const { s } = useTheme();
@@ -51,7 +57,7 @@ export function ProductsScreen({ navigation }) {
                      { key: 'name', label: 'Produto', flex: 2, render: (p) => (
                        <View style={{ flexDirection: 'row', gap: SPACE(2), alignItems: 'center' }}>
                          <Text style={s.bodyBold} numberOfLines={1}>{p.name}{p.active ? '' : ' (inativo)'}</Text>
-                         {p.low_stock ? <Badge info={LOW} /> : null}
+                         <StockBadge p={p} />
                        </View>) },
                      { key: 'kind', label: 'Tipo', render: (p) => <Text style={s.body}>{KIND_LABEL[p.kind]}</Text> },
                      { key: 'stock', label: 'Estoque', align: 'right', render: (p) => <Text style={s.body}>{qty(p.stock)} {p.unit}</Text> },
@@ -64,7 +70,7 @@ export function ProductsScreen({ navigation }) {
         <Card key={p.id} onPress={() => open(p)}>
           <View style={[s.row, { gap: SPACE(2) }]}>
             <Text style={[s.bodyBold, { flex: 1 }]}>{p.name}{p.active ? '' : ' (inativo)'}</Text>
-            {p.low_stock ? <Badge info={LOW} /> : null}
+            <StockBadge p={p} />
           </View>
           <Text style={s.caption}>
             {qty(p.stock)} {p.unit} em estoque · mínimo {qty(p.min_stock)} · {KIND_LABEL[p.kind]}
@@ -145,7 +151,7 @@ export function ProductEditScreen({ navigation, route }) {
         <Card>
           <Text style={s.caption}>Em estoque</Text>
           <Text style={s.title}>{qty(p.stock)} {p.unit}</Text>
-          {p.low_stock ? <Badge info={LOW} /> : null}
+          <StockBadge p={p} />
         </Card>
       ) : null}
       {edit ? (

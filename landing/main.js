@@ -130,7 +130,7 @@ function renderMocks() {
   const chat = $(".js-mock-chat");
   chat.replaceChildren(
     bubble("Oi, quero agendar", "out"),
-    bubble(`Olá, ${n.name}! Bem-vindo ${n.welcome}\n\n*1* - Agendar horário\n*2* - Meus agendamentos\n*3* - Serviços e preços`, "in"),
+    bubble(`Olá, ${n.name}! Boas-vindas ${n.welcome}\n\n*1* - Agendar horário\n*2* - Meus agendamentos\n*3* - Serviços e preços`, "in"),
     bubble("1", "out"),
     bubble(`Qual serviço você quer?\n\n*1* - ${svc} (${min} min) - ${money(price)}`, "in"),
     bubble("1", "out"),
@@ -287,7 +287,7 @@ function summary() {
 const flow = {
   menu() {
     const n = N();
-    bot(`Olá, ${n.name}! Bem-vindo ${n.welcome}\n\n*1* - Agendar horário\n*2* - Meus agendamentos\n*3* - Serviços e preços\n`
+    bot(`Olá, ${n.name}! Boas-vindas ${n.welcome}\n\n*1* - Agendar horário\n*2* - Meus agendamentos\n*3* - Serviços e preços\n`
       + `*4* - ${n.pros}\n*5* - Horário de funcionamento e endereço\n*6* - Pagar agendamento via Pix\n*7* - Falar com a gente\n\n`
       + "Responda com o número da opção.", [
       { label: "1 - Agendar horário", reply: "1", go: flow.service },
@@ -438,7 +438,12 @@ document.addEventListener("DOMContentLoaded", () => {
   $$(".niche").forEach((b) => b.addEventListener("click", () => setNiche(b.dataset.niche)));
   setNiche("barbershop");
 
-  // Calculadora
+  // Calculadora (botões − e + ao lado do valor, que é difícil de acertar no dedo pelo controle deslizante)
   $$(".calc__form input").forEach((i) => i.addEventListener("input", calc));
+  $$(".step").forEach((b) => b.addEventListener("click", () => {
+    const input = $(`#${b.dataset.for}`);
+    input.value = Math.min(Number(input.max), Math.max(Number(input.min), Number(input.value) + Number(b.dataset.step)));
+    calc();
+  }));
   calc();
 });

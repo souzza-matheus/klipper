@@ -3,7 +3,8 @@
 //
 // Tokens de cor de cada tema:
 //   background, surface, surfaceElevated  fundos (tela, cards, sheet/menus)
-//   border        contorno de controles (inputs, chips, botões secundários): 3:1 contra background e surface
+//   border        contorno de controles (inputs, chips, botões secundários): 3:1 contra background, surface e
+//                 surfaceElevated (fundo dos bottom sheets)
 //   divider       separadores e contornos decorativos (pode ter contraste baixo, nunca é o único sinal)
 //   text, textMuted   texto principal e secundário: 4.5:1 contra background, surface e surfaceElevated
 //   accent        cor do segmento como preenchimento: barras, indicadores e o símbolo do header (logo é isento
@@ -40,16 +41,19 @@ const STATUS_TEXT = {
 };
 // Texto sobre a cor cheia de aviso (banner laranja de Pix pendente)
 const ON_WARNING = '#1C1917';
+// Faixa cheia de erro: o vermelho de status (#EF4444) com texto branco dá 3,76:1; o fundo cheio usa um tom mais escuro
+const DANGER_FILL = '#B91C1C';
+const ON_DANGER = '#FFFFFF';
 export const BADGE_ALPHA = 0.15;
 
 // Superfícies de cada segmento no modo dele (tabela da marca) e as derivadas para o modo oposto
 const NATIVE = {
   barbershop: {
-    background: '#121212', surface: '#1E1E1E', surfaceElevated: '#2A2A2A', border: '#6B6B6B', divider: '#2E2E2E',
+    background: '#121212', surface: '#1E1E1E', surfaceElevated: '#2A2A2A', border: '#747474', divider: '#2E2E2E',
     text: '#F5F5F5', textMuted: '#A3A3A3',
   },
   fitness: {
-    background: '#18181B', surface: '#27272A', surfaceElevated: '#3F3F46', border: '#71717A', divider: '#3F3F46',
+    background: '#18181B', surface: '#27272A', surfaceElevated: '#3F3F46', border: '#8B8B92', divider: '#3F3F46',
     text: '#FAFAFA', textMuted: '#B4B4BC',
   },
   beauty: {
@@ -66,7 +70,7 @@ const NATIVE = {
   },
 };
 const DERIVED_DARK = {
-  background: '#111214', surface: '#1C1D21', surfaceElevated: '#26282D', border: '#6B6E76', divider: '#2C2E33',
+  background: '#111214', surface: '#1C1D21', surfaceElevated: '#26282D', border: '#6F727A', divider: '#2C2E33',
   text: '#F5F5F7', textMuted: '#A4A7AE',
 };
 const DERIVED_LIGHT = {
@@ -99,9 +103,9 @@ const ACCENTS = {
 };
 
 // Marca-base SyncServ (login e telas sem negócio carregado). A "borda" #334155 da marca é o divider;
-// controles usam #64748B para chegar a 3:1.
+// controles usam #707F94 para chegar a 3:1 também sobre surfaceElevated.
 const BRAND_COLORS = {
-  background: '#0F172A', surface: '#1E293B', surfaceElevated: '#273449', border: '#64748B', divider: '#334155',
+  background: '#0F172A', surface: '#1E293B', surfaceElevated: '#273449', border: '#707F94', divider: '#334155',
   text: '#F8FAFC', textMuted: '#94A3B8',
   accent: '#0284C7', accentPressed: '#075985', accentFill: '#0369A1', onAccent: '#FFFFFF', accentText: '#38BDF8',
   secondary: '#22C55E',
@@ -155,6 +159,8 @@ function finish(key, niche, mode, colors) {
     statusBg: Object.fromEntries(Object.entries(STATUS_COLORS).map(([k, v]) => [k, withAlpha(v, BADGE_ALPHA)])),
     neutralBg: mode === 'dark' ? '#FFFFFF1A' : '#0F172A12',
     onWarning: ON_WARNING,
+    dangerFill: DANGER_FILL,
+    onDanger: ON_DANGER,
     qrBackground: '#FFFFFF', // o QR Code precisa de fundo branco para ser lido, em qualquer tema
   };
   return { key, niche, mode, c, font: FONTS, type: TYPE, radius: RADIUS };

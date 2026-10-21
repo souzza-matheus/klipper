@@ -12,8 +12,8 @@ import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { useSession } from '../session';
 import {
-  Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section, Stat, Toggle,
-  run, useLoad,
+  Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section, Stat, StatValue,
+  Toggle, run, useLoad,
 } from '../ui';
 
 const PERIODS = {
@@ -42,8 +42,8 @@ function Kpi({ label, value, delta, upIsGood = true }) {
   return (
     <View style={[s.stat, { minWidth: '45%' }]}>
       <Muted>{label}</Muted>
-      <Text style={s.statValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={{ fontSize: 12, color, marginTop: 2 }}>{txt ? `${txt} vs. anterior` : 'sem base anterior'}</Text>
+      <StatValue value={value} />
+      <Text style={[s.caption, { color, marginTop: 2 }]}>{txt ? `${txt} vs. anterior` : 'sem base anterior'}</Text>
     </View>
   );
 }
@@ -220,7 +220,7 @@ export function ExpensesScreen({ navigation }) {
   return (
     <Screen onRefresh={list.reload} refreshing={list.loading && !!list.data}>
       <MonthNav month={month} onChange={setMonth} />
-      <View style={[s.row, { gap: 8, marginBottom: 12 }]}>
+      <View style={[s.row, { gap: 8, marginBottom: 12, flexWrap: 'wrap' }]}>
         <Stat label="Total do mês" value={money(sum(all))} />
         <Stat label="Pago" value={money(sum(all.filter((e) => e.paid_at)))} />
         <Stat label="Em aberto" value={money(sum(all.filter((e) => !e.paid_at)))} />
@@ -413,7 +413,7 @@ export function CommissionsScreen({ navigation }) {
       {!d ? <Loading error={r.error} onRetry={r.reload} /> : (
         <>
           <Muted style={{ marginBottom: 10 }}>{brDate(from)} a {brDate(to)} · só {v.services} {v.doneMany}</Muted>
-          <View style={[s.row, { gap: 8, marginBottom: 18 }]}>
+          <View style={[s.row, { gap: 8, marginBottom: 18, flexWrap: 'wrap' }]}>
             <Stat label="Faturado" value={money(d.total_gross)} />
             <Stat label="Repasses" value={money(d.total_due)} />
             <Stat label="Em aberto" value={money(d.total_open)} />

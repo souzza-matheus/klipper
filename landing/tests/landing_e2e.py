@@ -2,6 +2,7 @@
 
     python3 landing/tests/landing_e2e.py                 # da raiz do repositório
     python3 landing/tests/landing_e2e.py /tmp/prints     # também salva capturas de tela de cada largura
+    LANDING_ENV=production python3 landing/tests/landing_e2e.py   # antes de publicar: falha com marcador sobrando
 
 Serve a pasta landing/ num servidor local descartável e BLOQUEIA qualquer pedido para fora do localhost
 (Google Fonts, wa.me): a página tem de funcionar só com os próprios arquivos. Confere:
@@ -9,7 +10,12 @@ Serve a pasta landing/ num servidor local descartável e BLOQUEIA qualquer pedid
 - os 9 cards novos, os mockups (comanda no celular e versão web com menu lateral) e a troca de nicho;
 - o comparativo, os planos com [PREÇO INDIVIDUAL]/[PREÇO EQUIPE] e as 4 perguntas novas, que abrem ao tocar;
 - menu do celular, links internos (#...) que existem, imagens carregadas, um h1 só, nenhum erro no console;
-- nada de "Pix automático", depoimentos ou avaliações inventadas; a política fala do banco criptografado.
+- nada de "Pix automático", depoimentos ou avaliações inventadas; a política fala do banco criptografado;
+- comparativo sem rolagem lateral no celular (as duas colunas aparecem), botão sem número escondido de verdade,
+  alvos de 48 px na calculadora e no simulador;
+- marcadores ([DOMINIO], [NUMERO], [PREÇO ...], [EMAIL], [CNPJ], [CIDADE/UF]...): com LANDING_ENV=production o
+  teste FALHA se sobrar algum no HTML final (depois do main.js), no robots.txt, no sitemap ou no manifest; em
+  desenvolvimento (padrão) só lista o que falta preencher.
 """
 import functools
 import http.server
@@ -28,6 +34,11 @@ FAQ = ("Funciona sem internet?", "Posso usar no computador?", "Cada profissional
        "Como funcionam pacotes e assinaturas?")
 SIDE = ("Hoje", "Agenda", "Caixa", "Clientes", "Produtos e estoque", "Clube de assinatura", "Equipe e permissões")
 FORBIDDEN = re.compile(r"pix autom[aá]tico|depoimento|quem usa, recomenda|\d+\s*mil clientes|nota 4[,.]\d|★", re.I)
+# Marcador = "[" + letra maiúscula (ex.: [DOMINIO], [PREÇO INDIVIDUAL], [CIDADE/UF]); não pega [hidden] nem arrays
+PLACEHOLDER = re.compile(r"\[[A-ZÀ-Ý][A-ZÀ-Ý0-9 /._-]*\]")
+PRODUCTION = os.environ.get("LANDING_ENV", "development").lower() in ("production", "prod")
+PAGES = ("index.html", "privacidade.html", "termos.html")
+STATIC = ("robots.txt", "sitemap.xml", "site.webmanifest")
 
 
 class Quiet(http.server.SimpleHTTPRequestHandler):
@@ -114,8 +125,9 @@ def run_width(browser, base, width, shots):
     compare = pg.locator("table").inner_text()
     for t in ("Comanda com serviços", "sincroniza quando a internet volta", "Lista de espera", "Login para cada pessoa"):
         check(t in compare, f"{tag} comparativo sem: {t}")
-    check(pg.locator('[data-price="individual"]').inner_text() == "[PREÇO INDIVIDUAL]", f"{tag} preço individual")
-    check(pg.locator('[data-price="equipe"]').inner_text() == "[PREÇO EQUIPE]", f"{tag} preço equipe")
+    for plan in ("individual", "equipe"):
+        price = pg.locator(f'[data-price="{plan}"]').inner_text().strip()
+        check(price, f"{tag} preço {plan} vazio")
     plans = pg.locator("#precos").inner_text()
     for t in ("Comanda e caixa", "Produtos e estoque", "Pacotes e clube de assinatura", "funciona sem internet",
               "permissões por papel"):
@@ -131,8 +143,30 @@ def run_width(browser, base, width, shots):
     offline = pg.locator("details", has=pg.locator("summary", has_text=FAQ[0])).inner_text()
     check("sempre online" in offline and "sincronizado" in offline, f"{tag} resposta do sem internet incompleta")
 
+    # L01: no celular o comparativo vira pares empilhados; a coluna "Com SyncServ" aparece sem rolar de lado
+    scroll = pg.evaluate("(() => { const c = document.querySelector('.compare'); return c.scrollWidth - c.clientWidth; })()")
+    check(scroll <= 0, f"{tag} comparativo com rolagem lateral de {scroll}px")
+    with_cells = pg.locator(".compare td:last-child")
+    for i in range(with_cells.count()):
+        box = with_cells.nth(i).bounding_box()
+        check(box and box["x"] >= 0 and box["x"] + box["width"] <= width + 1, f"{tag} coluna Com SyncServ cortada: {box}")
+
+    # L02: sem número de demonstração, o botão "Falar com o robô de verdade" não aparece
+    check(not pg.locator(".js-demo-real").is_visible(), f"{tag} botão do robô de verdade aparece sem número")
+
+    # L15: alvos de 48 px na calculadora, no simulador e no rodapé
+    small = pg.evaluate("""() => [...document.querySelectorAll('.range input, .step, .sim__reset, .opt, .footer__links a')]
+        .map(e => e.getBoundingClientRect()).filter(r => r.width && r.height < 47.5).length""")
+    check(small == 0, f"{tag} {small} alvos menores que 48 px")
+    price_before = pg.locator("#o-price").inner_text()
+    pg.locator('.step[data-step="5"]').click()
+    check(pg.locator("#o-price").inner_text() != price_before, f"{tag} botão + do valor médio não mudou o valor")
+    pg.locator('.step[data-step="-5"]').click()
+    check(pg.locator(".calc .js-cta").count() == 1, f"{tag} calculadora sem CTA depois do resultado")
+
     # nada inventado
     text = pg.locator("body").inner_text()
+    check("Bem-vindo" not in text, f"{tag} 'Bem-vindo' com nomes femininos: usar 'Boas-vindas'")
     check(not FORBIDDEN.search(text), f"{tag} texto proibido: {FORBIDDEN.search(text)}")
     check(pg.locator("#depoimentos").count() == 0, f"{tag} seção de depoimentos deve seguir oculta")
     check("aggregateRating" not in pg.content(), f"{tag} JSON-LD não pode ter avaliações")
@@ -177,6 +211,28 @@ def run_width(browser, base, width, shots):
     ctx.close()
 
 
+def placeholders(browser, base):
+    """Marcadores que sobram no HTML final (depois do main.js) e nos arquivos estáticos."""
+    found = {}
+    ctx = browser.new_context()
+    ctx.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base) else r.abort())
+    pg = ctx.new_page()
+    for page in PAGES:
+        pg.goto(f"{base}/{page}")
+        pg.wait_for_load_state("load")
+        html = re.sub(r"<!--.*?-->", "", pg.content(), flags=re.S)  # comentário não aparece nem vira link
+        hits = sorted(set(PLACEHOLDER.findall(html)))
+        if hits:
+            found[page] = hits
+    ctx.close()
+    for name in STATIC:
+        with open(os.path.join(LANDING, name), encoding="utf-8") as f:
+            hits = sorted(set(PLACEHOLDER.findall(f.read())))
+        if hits:
+            found[name] = hits
+    return found
+
+
 def main():
     shots = sys.argv[1] if len(sys.argv) > 1 else ""
     if shots:
@@ -188,6 +244,12 @@ def main():
             for w in WIDTHS:
                 run_width(browser, base, w, shots)
                 print(f"{w}px ok")
+            left = placeholders(browser, base)
+            summary = "; ".join(f"{k}: {', '.join(v)}" for k, v in left.items())
+            if PRODUCTION:
+                check(not left, f"marcadores sem preencher no HTML de produção: {summary}")
+            elif left:
+                print(f"desenvolvimento: marcadores ainda sem preencher (falha com LANDING_ENV=production): {summary}")
         finally:
             browser.close()
     print("landing ok")
