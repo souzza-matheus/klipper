@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""Prepara a landing para publicar: CSS crítico embutido e versão nos arquivos (cache).
+
+    python3 scripts/build-landing           # atualiza os HTML no lugar
+    python3 scripts/build-landing --check   # só confere (sai com 1 se algo estiver desatualizado; o e2e usa)
+
+Rode depois de mexer no styles.css, no main.js ou no HTML do topo da página.
+
+1. CSS crítico: abre o index.html no Chromium (375 e 1440 px), separa do styles.css as regras que acertam algum
+   elemento do cabeçalho e do hero (o que aparece na primeira tela), mais :root, html, body, @font-face e [hidden], e
+   grava no <style id="css-critico"> do <head>. O styles.css inteiro é carregado no fim do <body>, sem bloquear a
+   primeira pintura.
+2. Versão: troca o ?v= de styles.css e main.js em todas as páginas pelo começo do SHA-256 do arquivo. Com isso o
+   Caddy pode guardar os dois em cache por um ano (deploy/caddy/site.caddy): arquivo novo, endereço novo.
+
+Precisa do Playwright para Python (pip install playwright && playwright install chromium).
+"""
+import functools
+import hashlib
+import http.server
+import os
+import re
+import sys
+import threading
+
+from playwright.sync_api import sync_playwright
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SITE = os.path.join(ROOT, "landing")
+PAGES = ["index.html", "privacidade.html", "termos.html", "404.html", "50x.html"]
+CRITICAL = re.compile(r'(<style id="css-critico">)(.*?)(</style>)', re.S)
+VERSIONED = re.compile(r'((?:\b|/)(?:styles\.css|main\.js))(?:\?v=[0-9a-f]*)?(")')
+
+# Roda na página: regras do styles.css que valem para o topo (cabeçalho e hero)
+EXTRACT = r"""() => {
+  const top = [document.documentElement, document.body,
+               ...document.querySelectorAll('.skip, .skip *, .topbar, .topbar *, .hero, .hero *')];
+  const STATE = /::?(hover|focus-visible|focus-within|focus|active|visited|before|after|placeholder|marker|selection|-webkit-[\w-]+|-moz-[\w-]+)(\([^)]*\))?/g;
+  const used = (sel) => {
+    const plain = sel.replace(STATE, '').trim();
+    if (!plain || /[>+~]\s*$/.test(plain)) return true;
+    try { return top.some((el) => el.matches(plain)); } catch (e) { return true; }
+  };
+  const keep = (rule) => {
+    if (rule instanceof CSSStyleRule) {
+      const sels = rule.selectorText.split(/,(?![^(]*\))/);
+      return sels.some((s) => /^(:root|\*|html|body|\[hidden\])/.test(s.trim()) || used(s)) ? rule.cssText : '';
+    }
+    if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule) {
+      const inner = [...rule.cssRules].map(keep).filter(Boolean).join('');
+      const kind = rule instanceof CSSMediaRule ? '@media' : '@supports';
+      return inner ? `${kind} ${rule.conditionText}{${inner}}` : '';
+    }
+    if (rule instanceof CSSFontFaceRule) return rule.cssText;
+    return '';
+  };
+  const sheet = [...document.styleSheets].find((s) => s.href && s.href.includes('styles.css'));
+  const out = [...sheet.cssRules].map(keep).filter(Boolean);
+  // @keyframes só se alguma regra crítica usar a animação
+  const names = new Set();
+  out.join('').replace(/animation(?:-name)?:\s*([\w-]+)/g, (m, n) => names.add(n));
+  for (const r of sheet.cssRules) if (r instanceof CSSKeyframesRule && names.has(r.name)) out.push(r.cssText);
+  return out;
+}"""
+
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+
+def serve():
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=SITE))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}"
+
+
+def critical_css() -> str:
+    httpd, url = serve()
+    rules: list[str] = []
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            for width in (375, 1440):
+                page = browser.new_page(viewport={"width": width, "height": 900})
+                # wa.me e qualquer endereço de fora ficam bloqueados
+                page.route(lambda u: not u.startswith(url), lambda r: r.abort())
+                page.goto(url + "/index.html", wait_until="load")
+                for rule in page.evaluate(EXTRACT):
+                    if rule not in rules:
+                        rules.append(rule)
+                page.close()
+            browser.close()
+    finally:
+        httpd.shutdown()
+    # url() relativo ao styles.css (raiz do site) vale igual dentro do index.html, que também está na raiz
+    return "".join(rules)
+
+
+def digest(name: str) -> str:
+    return hashlib.sha256(open(os.path.join(SITE, name), "rb").read()).hexdigest()[:10]
+
+
+def build() -> dict[str, str]:
+    """Conteúdo novo de cada página."""
+    versions = {"styles.css": digest("styles.css"), "main.js": digest("main.js")}
+    css = critical_css()
+    out = {}
+    for page in PAGES:
+        html = open(os.path.join(SITE, page), encoding="utf-8").read()
+        html = VERSIONED.sub(lambda m: f"{m.group(1)}?v={versions[m.group(1).lstrip('/')]}{m.group(2)}", html)
+        if CRITICAL.search(html):
+            html = CRITICAL.sub(lambda m: m.group(1) + css + m.group(3), html)
+        out[page] = html
+    return out
+
+
+def main() -> int:
+    check = "--check" in sys.argv
+    stale = []
+    for page, html in build().items():
+        path = os.path.join(SITE, page)
+        if open(path, encoding="utf-8").read() == html:
+            continue
+        stale.append(page)
+        if not check:
+            open(path, "w", encoding="utf-8").write(html)
+    for page in stale:
+        print(("desatualizado (rode scripts/build-landing): " if check else "atualizado: ") + "landing/" + page)
+    if not stale:
+        print("landing em dia (CSS crítico e versões)")
+    return 1 if check and stale else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

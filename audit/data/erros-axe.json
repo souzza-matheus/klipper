@@ -1,0 +1,92 @@
+[
+  {
+    "label": "landing-404-375",
+    "violations": [],
+    "passes": 28,
+    "incomplete": [],
+    "status": 404,
+    "medidas": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "label": "landing-50x-375",
+    "violations": [],
+    "passes": 28,
+    "incomplete": [],
+    "status": 200,
+    "medidas": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "label": "app-404-375",
+    "violations": [],
+    "passes": 31,
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "count": 1
+      }
+    ],
+    "status": 404,
+    "medidas": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "label": "app-50x-375",
+    "violations": [],
+    "passes": 21,
+    "incomplete": [],
+    "status": 200,
+    "medidas": {
+      "smallTargets": [],
+      "smallText": {},
+      "horizontalScroll": false,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "label": "landing-404-1440",
+    "violations": [],
+    "passes": 28,
+    "incomplete": [],
+    "status": 404
+  },
+  {
+    "label": "landing-50x-1440",
+    "violations": [],
+    "passes": 28,
+    "incomplete": [],
+    "status": 200
+  },
+  {
+    "label": "app-404-1440",
+    "violations": [],
+    "passes": 31,
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "count": 1
+      }
+    ],
+    "status": 404
+  },
+  {
+    "label": "app-50x-1440",
+    "violations": [],
+    "passes": 21,
+    "incomplete": [],
+    "status": 200
+  }
+]

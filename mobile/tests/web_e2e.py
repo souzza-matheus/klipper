@@ -4,17 +4,23 @@ descartável com dados fictícios, gera o export e roda este arquivo). Manual:
     cd mobile && npx expo export --platform web --output-dir /tmp/syncserv-web
     python3 tests/web_e2e.py /tmp/syncserv-web http://localhost:8000      # backend com os dados do seed_mock
 
-Serve o export com o MESMO CSP do deploy/Caddyfile.app (mais o endereço da API em connect-src, porque aqui a API
-fica em outra porta) e confere, no Chromium (Playwright), em 375 e 1440 px:
+Serve o export com o MESMO CSP do deploy/caddy/app-headers.caddy (mais o endereço da API em connect-src, porque aqui a
+API fica em outra porta) e as mesmas regras de 404 do deploy/caddy/app.caddy, e confere, no Chromium (Playwright), em
+375 e 1440 px:
 - login, abas por papel e menu lateral no computador;
 - o token de acesso não vai para o sessionStorage, nada vai para o localStorage;
 - recarregar a aba mantém a sessão (refresh token); aba nova pede login;
 - sem internet: aviso e escrita bloqueada, com o erro aparecendo NA FRENTE do sheet (A02);
 - tocar num horário vago da agenda abre o agendamento rápido (A01: o clique do mouse não tem locationY);
-- nenhum erro no console nem bloqueio do CSP (que não tem 'unsafe-inline'); fontes e ícones carregados.
+- nenhum erro no console nem bloqueio do CSP (que não tem 'unsafe-inline'); fontes e ícones carregados, em woff2
+  (nenhum TTF baixado);
+- endereço desconhecido: status 404 e a tela "Página não encontrada", com o botão que volta ao login;
+- a abertura em HTML some quando o app monta; as telas vêm em pedaços separados do JavaScript, e um pedaço que não
+  baixa (internet caiu) mostra o erro com "Tentar de novo", que funciona quando a conexão volta.
 """
 import functools
 import http.server
+import io
 import os
 import re
 import sys
@@ -28,7 +34,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def csp(api_origin: str) -> str:
-    caddy = open(os.path.join(ROOT, "deploy", "Caddyfile.app"), encoding="utf-8").read()
+    caddy = open(os.path.join(ROOT, "deploy", "caddy", "app-headers.caddy"), encoding="utf-8").read()
     policy = re.search(r'Content-Security-Policy "([^"]+)"', caddy).group(1)
     return policy.replace("connect-src 'self'", f"connect-src 'self' {api_origin}")
 
@@ -40,9 +46,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Security-Policy", self.policy)
         super().end_headers()
 
-    def send_head(self):  # fallback de app de página única, como o try_files do Caddy
-        if not os.path.exists(self.translate_path(self.path)):
-            self.path = "/index.html"
+    def send_head(self):  # como o deploy/caddy/app.caddy: caminho desconhecido = 404 com o próprio app
+        path = self.path.split("?")[0]
+        if path != "/" and not os.path.exists(self.translate_path(path)):
+            if re.search(r"^/(_expo|assets|fonts|icons)/|\.(js|css|png|svg|ico|woff2|ttf|json)$", path):
+                self.send_error(404)
+                return None
+            body = open(os.path.join(self.directory, "index.html"), "rb").read()
+            self.send_response(404)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            return io.BytesIO(body)
         return super().send_head()
 
     def log_message(self, *a):
@@ -57,7 +72,7 @@ def serve(directory: str, api: str) -> str:
 
 
 def login(pg, web, api, email, password="demo123"):
-    pg.goto(web + "/agenda-qualquer")  # rota desconhecida: o fallback devolve o app
+    pg.goto(web + "/")
     pg.get_by_label("E-mail").fill(email)
     pg.get_by_label("Senha").fill(password)
     if pg.get_by_label("Endereço do servidor").count() == 0:
@@ -110,10 +125,24 @@ def main(directory: str, api: str) -> None:
     problems = []
     with sync_playwright() as p:
         browser = p.chromium.launch()
+        # Endereço desconhecido: 404 de verdade e a tela do app "Página não encontrada"
+        ctx = browser.new_context(viewport={"width": 375, "height": 800})
+        pg = ctx.new_page()
+        resp = pg.goto(web + "/agenda/antiga")
+        assert resp.status == 404, resp.status
+        pg.get_by_role("heading", name="Página não encontrada").wait_for(timeout=15000)
+        pg.get_by_role("button", name="Ir para o início").click()
+        pg.get_by_label("E-mail").wait_for(timeout=15000)
+        assert pg.url.rstrip("/") == web, pg.url
+        ctx.close()
         for width, height in ((1440, 900), (375, 800)):
             ctx = browser.new_context(viewport={"width": width, "height": height})
             pg = ctx.new_page()
-            pg.on("console", lambda m: problems.append(f"{width}px console: {m.text}") if m.type == "error" else None)
+            fonts = []
+            pg.on("request", lambda r: fonts.append(r.url) if re.search(r"\.(ttf|woff2?)(\?|$)", r.url) else None)
+            quiet = []  # passos que provocam erro de rede de propósito
+            pg.on("console", lambda m: problems.append(f"{width}px console: {m.text}")
+                  if m.type == "error" and not quiet else None)
             pg.on("pageerror", lambda e: problems.append(f"{width}px erro: {e}"))
             pg.add_init_script("window.__csp = []; document.addEventListener('securitypolicyviolation',"
                                " (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI))")
@@ -128,12 +157,23 @@ def main(directory: str, api: str) -> None:
                     break
                 pg.wait_for_timeout(500)
             assert not missing, missing
+            assert not [u for u in fonts if u.endswith(".ttf") or ".ttf?" in u], fonts  # web: só woff2
+            assert pg.locator(".abertura").count() == 0, "a abertura em HTML continua na tela"
             assert pg.evaluate("window.__csp") == []
             keys = pg.evaluate("Object.keys(sessionStorage)")
             assert "syncserv:refreshToken" in keys and "syncserv:token" not in keys, keys
             assert pg.evaluate("localStorage.length") == 0
             if width >= 900:
                 assert pg.get_by_text("Gestão", exact=True).count() == 1, "menu lateral"
+                # Tela sob demanda sem internet: erro com "Tentar de novo"; com a conexão de volta, abre
+                quiet.append(1)
+                pg.route("**/_expo/static/js/web/Stock-*.js", lambda r: r.abort())
+                pg.locator('[aria-label="Produtos e estoque"]').first.click()
+                pg.get_by_text("Não foi possível abrir esta tela", exact=False).wait_for(timeout=10000)
+                pg.unroute("**/_expo/static/js/web/Stock-*.js")
+                pg.get_by_role("button", name="Tentar de novo").click()
+                pg.get_by_label("Novo produto").first.wait_for(timeout=10000)
+                quiet.clear()
             else:
                 assert pg.get_by_text("Gestão", exact=True).count() == 0, "celular sem menu lateral"
             pg.reload()

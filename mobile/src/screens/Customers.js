@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
 import { PendingBadge } from '../components/Sync';
 import { repo, saved } from '../repo';
@@ -14,10 +14,10 @@ import { useSession } from '../session';
 import { DataTable } from '../components/Layout';
 import { BalanceSection } from './Plans';
 import {
-  Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, Group, ListRow, Loading, Screen, Section,
-  SegmentedControl, Stat, Title, Toggle, run, toast, useLoad,
-  ask,
+  Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, Group, ListRow, Loading, Screen,
+  Section, SegmentedControl, Stat, Title, Toggle, run, toast, ask,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 export function CustomersScreen({ navigation, route }) {
   const { c, s, v } = useTheme();

@@ -8,8 +8,9 @@ import { useSession } from '../session';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section, Toggle, run, useLoad,
+  Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section, Toggle, run,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 const KINDS = [{ value: 'sale', label: 'Venda' }, { value: 'internal', label: 'Uso interno' }, { value: 'both', label: 'Os dois' }];
 const KIND_LABEL = Object.fromEntries(KINDS.map((k) => [k.value, k.label]));

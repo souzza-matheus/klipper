@@ -3,3 +3,5 @@
 html, body { height: 100%; }
 body { overflow: hidden; background-color: #0F172A; }
 #root { display: flex; height: 100%; flex: 1; }
+/* Abertura do index.html (logo no centro, igual à splash do app) enquanto o JavaScript carrega */
+.abertura { flex: 1; display: flex; align-items: center; justify-content: center; background-color: #0F172A; }

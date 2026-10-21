@@ -9,9 +9,10 @@ import { useSession } from '../session';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section, Toggle,
-  run, toast, useLoad,
+  Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section,
+  Toggle, run, toast,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 const ROLE_HELP = {
   owner: 'Tudo: financeiro, equipe, configurações, WhatsApp e IA.',

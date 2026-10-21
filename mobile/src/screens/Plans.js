@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { api } from '../api';
 import { DataTable } from '../components/Layout';
@@ -11,9 +11,10 @@ import { useSession } from '../session';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section, SegmentedControl,
-  Stat, Toggle, run, toast, useLoad,
+  Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section,
+  SegmentedControl, Stat, Toggle, run, toast,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 export const SUB_STATUS = {
   ativa: { label: 'Em dia', tone: 'success', icon: 'checkmark-circle-outline' },

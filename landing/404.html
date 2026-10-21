@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Página não encontrada | SyncServ</title>
+  <meta name="description" content="O endereço não existe no site do SyncServ.">
+  <!-- Página de erro: o Caddy a devolve com o status de erro de verdade (deploy/caddy/site.caddy). Caminhos absolutos,
+       porque ela aparece em qualquer endereço. -->
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0F172A">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css?v=19819e657f">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar__in">
+      <a href="/" class="topbar__logo" aria-label="SyncServ, página inicial">
+        <img src="/assets/syncserv-logo.svg" alt="SyncServ" width="130" height="44">
+      </a>
+    </div>
+  </header>
+  <main class="wrap erro">
+    <p class="badge">Erro 404</p>
+    <h1>Página não encontrada</h1>
+    <p class="muted">O endereço pode ter mudado ou ter sido digitado com algum erro.</p>
+    <div class="actions">
+        <a class="btn btn--cta" href="/">Ir para a página inicial</a>
+        <a class="btn btn--ghost" href="/#precos">Ver os planos</a>
+        <a class="btn btn--ghost" href="/#duvidas">Dúvidas frequentes</a>
+    </div>
+  </main>
+</body>
+</html>

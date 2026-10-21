@@ -4,14 +4,16 @@ Site estático de vendas (HTML, CSS e JavaScript puro, sem framework e sem build
 
 ```
 landing/
-├── index.html         página de vendas
+├── index.html         página de vendas (com o CSS crítico embutido no <head>, gerado pelo scripts/build-landing)
 ├── styles.css         estilos (mobile first)
 ├── main.js            configuração (número, preços), seletor de nicho, simulador do robô, mockups, calculadora, menu
 ├── tests/landing_e2e.py  teste no Chromium (Playwright) em 375, 768 e 1440 px
 ├── privacidade.html   Política de Privacidade (MODELO, revisar com advogado)
 ├── termos.html        Termos de Uso (MODELO, revisar com advogado)
+├── 404.html, 50x.html páginas de erro (o Caddy as devolve com o status de verdade)
 ├── site.webmanifest, robots.txt, sitemap.xml, favicon.ico
-└── assets/            arquivos do kit de marca (logo, favicons, imagem de compartilhamento, símbolos dos nichos)
+└── assets/            kit de marca (logo, favicons, imagem de compartilhamento, símbolos dos nichos) e fonts/
+                       (Plus Jakarta Sans em woff2, licença SIL OFL 1.1 em fonts/OFL.txt)
 ```
 
 ## Antes de publicar: preencha os marcadores
@@ -66,25 +68,21 @@ Não há build: publique a pasta `landing/` como está.
 
 Depois, aponte o domínio no painel do serviço (o HTTPS é automático).
 
-### Opção 2: Caddy na VPS
+### Opção 2: Caddy na VPS (recomendado; é o que os testes conferem)
 
-Copie a pasta para a VPS (ex.: `rsync -av landing/ usuario@vps:/srv/syncserv-site/`) e acrescente ao `/etc/caddy/Caddyfile`, ao lado do bloco da API:
+Copie a pasta para a VPS (`rsync -a --delete landing/ usuario@vps:/srv/syncserv-site/`) e use o `deploy/Caddyfile`
+do repositório (troque `[DOMINIO]`; ver o README da raiz). A parte da landing está em `deploy/caddy/site.caddy`:
 
-```
-syncserv.com.br, www.syncserv.com.br {
-    root * /srv/syncserv-site
-    encode zstd gzip
-    file_server
-    header {
-        X-Content-Type-Options nosniff
-        Referrer-Policy strict-origin-when-cross-origin
-    }
-    @static path /assets/* /styles.css /main.js
-    header @static Cache-Control "public, max-age=604800"
-}
-```
+- compressão zstd e gzip; HTTP/1.1, HTTP/2 e HTTP/3 (libere a porta 443 em UDP no firewall para o HTTP/3);
+- cache: `styles.css` e `main.js` com `?v=` por um ano (imutável), fontes por 30 dias, imagens por 7 dias, HTML,
+  manifest, robots e sitemap sempre revalidados;
+- endereço que não existe: status 404 com a `404.html`; erro do servidor: status 5xx com a `50x.html`;
+- `tests/`, `README.md` e arquivos ocultos não são servidos (o rsync leva a pasta inteira);
+- cabeçalhos `X-Content-Type-Options`, `Referrer-Policy` e sem `Server`, também nas páginas de erro.
 
-`sudo systemctl reload caddy`. O certificado HTTPS sai sozinho. Se mudar `styles.css` ou `main.js` com frequência, reduza o `max-age` ou acrescente `?v=2` no `<link>`/`<script>` a cada versão.
+**Antes de publicar uma mudança** no `styles.css`, no `main.js` ou no topo do `index.html`, rode
+`python3 scripts/build-landing` (da raiz): ele refaz o CSS crítico e troca o `?v=` dos arquivos. O teste da landing
+falha se você esquecer.
 
 ## Testar
 
@@ -95,20 +93,40 @@ LANDING_ENV=production python3 landing/tests/landing_e2e.py   # antes de publica
 ```
 
 Precisa do Playwright para Python (`pip install playwright && playwright install chromium`). O teste serve a pasta num
-servidor local descartável e bloqueia qualquer pedido para fora (Google Fonts, wa.me). Em 375, 768 e 1440 px confere:
+servidor local descartável e bloqueia qualquer pedido para fora (wa.me): a página, as fontes inclusive, tem de
+funcionar só com os próprios arquivos. Em 375, 768 e 1440 px confere:
 sem rolagem lateral, os 9 cards da gestão, os mockups (comanda no celular e versão web com menu lateral) e a troca de
 nicho neles, o comparativo, os planos com os marcadores de preço, as perguntas novas abrindo, o menu do celular, links
 internos, imagens, um h1 só, nenhum erro no console, nada de "Pix automático" nem depoimentos, e a política de
 privacidade com o banco criptografado do celular. Também: o comparativo sem rolagem lateral no celular (vira pares
 "Sem/Com" empilhados), o botão "Falar com o robô de verdade" escondido enquanto não houver número, alvos de 48 px na
 calculadora, no simulador e no rodapé, os botões − e + do valor médio e o CTA depois do resultado da calculadora.
+Também: a Plus Jakarta Sans carregada do próprio site, a primeira tela só com o CSS crítico idêntica à com o CSS
+inteiro e o `scripts/build-landing --check` em dia.
+
+O Caddy (404, 5xx, compressão, cache, HTTP/2) tem teste próprio, com o Caddy de verdade no Docker:
+`python3 deploy/tests/caddy_e2e.py` (ver o README da raiz).
 
 ## Desempenho e acessibilidade
 
-Lighthouse no celular (com `[DOMINIO]` preenchido): 100 em desempenho, acessibilidade, boas práticas e SEO. Com os marcadores ainda no lugar, o SEO cai para 85 porque o canonical e o `robots.txt` apontam para `[DOMINIO]`, que não é uma URL válida.
+Lighthouse no celular, servido pelo Caddy com as configurações de produção e o 4G aplicado de verdade: 100 em
+desempenho (LCP 0,9 s, CLS 0,018, TBT 40 ms), 100 em acessibilidade e boas práticas. O SEO fica em 85 enquanto o
+canonical e o `robots.txt` apontam para `[DOMINIO]`, que não é uma URL válida. Medições de antes e depois em
+`audit/AUDITORIA-UX.md` (bloco 2).
 
-- A fonte Plus Jakarta Sans (500 e 800) carrega sem bloquear a primeira pintura (`display=swap`).
-- Imagens com largura e altura definidas; o logo e os símbolos são SVG do kit; os celulares do hero são HTML/CSS.
+- **Fonte:** Plus Jakarta Sans (500 e 800) servida pelo próprio site, em woff2 só com o recorte latino (15 KB por
+  peso), com `preload` e `font-display: swap`. Enquanto ela não chega, o texto usa a "Jakarta Reserva" (Arial,
+  Liberation Sans ou Roboto com `size-adjust` e `ascent/descent-override` calculados), que ocupa o mesmo espaço: o
+  texto não pula na troca. Os arquivos e os números vêm do `python3 scripts/build-fonts` (a partir do pacote
+  `@expo-google-fonts/plus-jakarta-sans` do app; precisa de `pip install fonttools brotli`).
+- **CSS crítico:** as regras do cabeçalho e do hero vão no `<style id="css-critico">` do `<head>`; o `styles.css` inteiro
+  carrega no fim do `<body>`. Gerado pelo `python3 scripts/build-landing` (não edite o bloco à mão).
+- **JavaScript:** um arquivo só (`main.js`, 21 KB), com `defer`.
+- **Imagens:** logo e símbolos em SVG otimizados (svgo); imagens abaixo da dobra com `loading="lazy"`; largura e
+  altura definidas em todas. Os celulares do hero são HTML/CSS. `python3 scripts/optimize-images` lista as imagens e
+  onde são usadas; com `--write` otimiza (svgo, PNG sem perda) e, para fotos colocadas em `assets/img/`, gera AVIF e
+  WebP em 480, 960 e 1440 px e imprime o `<picture>` com `srcset` para colar no HTML; `--check` falha se algo ainda
+  puder ser otimizado.
 - Contraste: contornos de controles (botões secundários, nichos, menu, botões − e +) usam `--control` `#64748B`
   (3:1 contra o fundo); `#334155` (`--border`) fica só nas divisórias.
 - Contraste: verde `#22C55E` só nos botões de ação, com texto `#0F172A` (7.9:1). O azul `#0284C7` fica nos títulos de destaque (texto grande, 3:1) e no fundo dos badges; links e textos pequenos em azul usam `#38BDF8` (8.3:1), porque `#0284C7` sobre o fundo escuro dá 4.36:1, abaixo de 4.5:1.

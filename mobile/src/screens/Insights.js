@@ -4,7 +4,8 @@ import { api } from '../api';
 import { addDays, dmy, money, todayISO } from '../format';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { Card, Chips, Empty, Loading, Muted, Screen, Section, SegmentedControl, Stat, useLoad } from '../ui';
+import { Card, Chips, Empty, Loading, Muted, Screen, Section, SegmentedControl, Stat } from '../ui';
+import { useLoad } from '../useLoad';
 import { Stars } from './Agenda';
 
 export function ReviewsScreen() {

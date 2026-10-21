@@ -4,8 +4,8 @@
     python3 landing/tests/landing_e2e.py /tmp/prints     # também salva capturas de tela de cada largura
     LANDING_ENV=production python3 landing/tests/landing_e2e.py   # antes de publicar: falha com marcador sobrando
 
-Serve a pasta landing/ num servidor local descartável e BLOQUEIA qualquer pedido para fora do localhost
-(Google Fonts, wa.me): a página tem de funcionar só com os próprios arquivos. Confere:
+Serve a pasta landing/ num servidor local descartável e BLOQUEIA qualquer pedido para fora do localhost (wa.me):
+a página tem de funcionar só com os próprios arquivos, fontes incluídas. Confere:
 - nada passa da largura da tela (sem rolagem lateral) e os mockups cabem;
 - os 9 cards novos, os mockups (comanda no celular e versão web com menu lateral) e a troca de nicho;
 - o comparativo, os planos com [PREÇO INDIVIDUAL]/[PREÇO EQUIPE] e as 4 perguntas novas, que abrem ao tocar;
@@ -13,14 +13,19 @@ Serve a pasta landing/ num servidor local descartável e BLOQUEIA qualquer pedid
 - nada de "Pix automático", depoimentos ou avaliações inventadas; a política fala do banco criptografado;
 - comparativo sem rolagem lateral no celular (as duas colunas aparecem), botão sem número escondido de verdade,
   alvos de 48 px na calculadora e no simulador;
+- nenhum pedido para fora e a Plus Jakarta Sans (500 e 800) carregada do próprio site;
+- o CSS crítico do <head> desenha a primeira tela igual ao styles.css inteiro, e o scripts/build-landing --check passa
+  (CSS crítico e ?v= em dia);
 - marcadores ([DOMINIO], [NUMERO], [PREÇO ...], [EMAIL], [CNPJ], [CIDADE/UF]...): com LANDING_ENV=production o
-  teste FALHA se sobrar algum no HTML final (depois do main.js), no robots.txt, no sitemap ou no manifest; em
+  teste FALHA se sobrar algum no HTML final (depois do main.js, também no 404.html e no 50x.html), no robots.txt, no
+  sitemap ou no manifest; em
   desenvolvimento (padrão) só lista o que falta preencher.
 """
 import functools
 import http.server
 import os
 import re
+import subprocess
 import sys
 import threading
 
@@ -37,7 +42,7 @@ FORBIDDEN = re.compile(r"pix autom[aá]tico|depoimento|quem usa, recomenda|\d+\s
 # Marcador = "[" + letra maiúscula (ex.: [DOMINIO], [PREÇO INDIVIDUAL], [CIDADE/UF]); não pega [hidden] nem arrays
 PLACEHOLDER = re.compile(r"\[[A-ZÀ-Ý][A-ZÀ-Ý0-9 /._-]*\]")
 PRODUCTION = os.environ.get("LANDING_ENV", "development").lower() in ("production", "prod")
-PAGES = ("index.html", "privacidade.html", "termos.html")
+PAGES = ("index.html", "privacidade.html", "termos.html", "404.html", "50x.html")
 STATIC = ("robots.txt", "sitemap.xml", "site.webmanifest")
 
 
@@ -193,8 +198,10 @@ def run_width(browser, base, width, shots):
     check(not broken, f"{tag} imagens quebradas: {broken}")
 
     check(not errors, f"{tag} erros no console: {errors}")
-    outside = [u for u in blocked if not u.startswith(("https://fonts.googleapis.com", "https://fonts.gstatic.com"))]
-    check(not outside, f"{tag} pedidos para fora além das fontes: {outside}")
+    # nada de fora (as fontes também são do próprio site) e a Plus Jakarta Sans carregada de verdade
+    check(not blocked, f"{tag} pedidos para fora: {blocked}")
+    for weight in (500, 800):
+        check(pg.evaluate(f"document.fonts.check('{weight} 16px \"Plus Jakarta Sans\"')"), f"{tag} fonte {weight}")
 
     if shots:
         pg.evaluate("scrollTo(0, 0)")
@@ -209,6 +216,24 @@ def run_width(browser, base, width, shots):
     over = pg.evaluate("document.documentElement.scrollWidth - window.innerWidth")
     check(over <= 0, f"{tag} política com rolagem lateral de {over}px")
     ctx.close()
+
+
+def critical_css(browser, base, width):
+    """O CSS crítico embutido no index.html desenha a primeira tela igual ao styles.css inteiro (sem JavaScript, para
+    a comparação não depender do tempo dos mockups)."""
+    shots = []
+    for block in (False, True):
+        ctx = browser.new_context(viewport={"width": width, "height": 900}, java_script_enabled=False)
+        pg = ctx.new_page()
+        pg.route("**/*", lambda r: r.abort() if not r.request.url.startswith(base)
+                 or (block and "styles.css" in r.request.url) else r.continue_())
+        pg.goto(base + "/index.html", wait_until="load")
+        pg.evaluate("document.fonts.ready")
+        pg.wait_for_timeout(200)
+        shots.append(pg.screenshot())
+        ctx.close()
+    check(shots[0] == shots[1], f"{width}px: a primeira tela só com o CSS crítico difere da com o styles.css inteiro "
+                                f"(rode python3 scripts/build-landing)")
 
 
 def placeholders(browser, base):
@@ -243,7 +268,12 @@ def main():
         try:
             for w in WIDTHS:
                 run_width(browser, base, w, shots)
+                critical_css(browser, base, w)
                 print(f"{w}px ok")
+            # CSS crítico e versões (?v=) em dia com o styles.css e o main.js
+            build = subprocess.run([sys.executable, os.path.join(os.path.dirname(LANDING), "scripts", "build-landing"),
+                                    "--check"], capture_output=True, text=True)
+            check(build.returncode == 0, build.stdout + build.stderr)
             left = placeholders(browser, base)
             summary = "; ".join(f"{k}: {', '.join(v)}" for k, v in left.items())
             if PRODUCTION:

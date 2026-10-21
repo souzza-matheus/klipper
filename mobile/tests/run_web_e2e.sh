@@ -2,7 +2,8 @@
 # Teste ponta a ponta da versão web num comando só (npm run test:web).
 # Sobe um backend DESCARTÁVEL (SQLite temporário com os dados fictícios do seed_mock, porta 8010),
 # gera o export web e roda tests/web_e2e.py. Não toca no banco de desenvolvimento nem no Docker.
-# Precisa: backend/.venv instalado e Playwright para Python (pip install playwright && playwright install chromium).
+# Precisa: backend/.venv instalado, Playwright para Python (pip install playwright && playwright install chromium) e
+# fonttools com brotli (pip install fonttools brotli) para conferir as fontes.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 TMP=$(mktemp -d)
@@ -25,5 +26,7 @@ API_PID=$!
 for _ in $(seq 60); do curl -sf "http://127.0.0.1:$PORT/health" >/dev/null && break; sleep 1; done
 curl -sf "http://127.0.0.1:$PORT/health" >/dev/null || { echo "backend não subiu:"; cat "$TMP/api.log"; exit 1; }
 
+# Fontes web em dia (woff2 e ícones usados no código); falha com "rode scripts/build-fonts" se não
+python3 ../scripts/build-fonts --check 2>/dev/null || { echo "Fontes web desatualizadas: rode python3 scripts/build-fonts"; exit 1; }
 npx expo export --platform web --output-dir "$TMP/web" >/dev/null
 python3 tests/web_e2e.py "$TMP/web" "http://localhost:$PORT"

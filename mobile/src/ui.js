@@ -1,44 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator, Alert, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl,
   ScrollView, Switch, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { Symbol as BrandSymbol } from './brand/Logo';
-import { onDataChange } from './offline/manager';
 import { NICHE_INFO, SPACE, TOUCH, TYPE } from './theme';
 import { useTheme } from './ThemeProvider';
 import { useWide } from './session';
 
 // ---------------------------------------------------------------- dados e feedback
-
-// Carrega dados sempre que a tela ganha foco; expõe reload para "puxar para atualizar".
-export function useLoad(fn, deps = []) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setData(await fn());
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-  // Sem o indicador de carregamento: a tela troca os dados quando a sincronização traz novidade
-  const quiet = useCallback(() => { Promise.resolve().then(fn).then(setData, () => {}); }, deps); // eslint-disable-line
-  useFocusEffect(useCallback(() => {
-    load();
-    return onDataChange(quiet); // celular com modo offline: recarrega quando os dados do aparelho mudam
-  }, [load, quiet]));
-  return { data, setData, loading, error, reload: load };
-}
 
 // Feedback tátil nas ações importantes (falha em silêncio onde não há vibração)
 export const haptic = {

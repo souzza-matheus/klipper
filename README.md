@@ -8,8 +8,13 @@ barberbot/
 ├── mobile/             App admin em React Native (Expo)
 ├── branding/           kit de logo SyncServ (syncserv-logo-kit) e arquivos da futura landing page (web-publico)
 ├── landing/            landing page de vendas (site estático com a seção de gestão do CRM; teste: python3 landing/tests/landing_e2e.py)
+├── deploy/             Caddy de produção (Caddyfile + caddy/*.caddy) e o teste dele (tests/caddy_e2e.py)
 ├── docker-compose.yml  Postgres + Redis + Evolution API + backend
-├── scripts/whatsapp.sh atalhos do Docker e do WhatsApp (up, qr, status...)
+├── scripts/
+│   ├── whatsapp.sh      atalhos do Docker e do WhatsApp (up, qr, status...)
+│   ├── build-fonts      fontes web em woff2 (landing e app) e medidas da fonte reserva
+│   ├── build-landing    CSS crítico e versão (?v=) dos arquivos da landing
+│   └── optimize-images  inventário e otimização das imagens (svgo, PNG, AVIF/WebP)
 └── .env.example
 ```
 
@@ -396,7 +401,7 @@ Ele usa um SQLite temporário (não mexe no banco de desenvolvimento) e não env
        reverse_proxy localhost:8002
    }
    ```
-   No firewall, libere só 22, 80 e 443. Com o `docker-compose.prod.yml`, a Evolution fica sem porta publicada: para usar o manager, suba temporariamente só com o `docker-compose.yml` (porta em `127.0.0.1:8080`) e faça um túnel (`ssh -L 8080:localhost:8080 usuario@vps`).
+   A landing e a versão web do app ficam no `deploy/Caddyfile` do repositório (ver "Versão web do app" abaixo). No firewall, libere só 22, 80 e 443 (e 443 em UDP para o HTTP/3). Com o `docker-compose.prod.yml`, a Evolution fica sem porta publicada: para usar o manager, suba temporariamente só com o `docker-compose.yml` (porta em `127.0.0.1:8080`) e faça um túnel (`ssh -L 8080:localhost:8080 usuario@vps`).
 
 **Sessões:** o token do app vale 7 dias e é renovado sozinho a cada abertura (`POST /api/auth/refresh`). Em Mais > **Sair de todos os aparelhos** (`POST /api/auth/logout-all`) o dono invalida todos os tokens emitidos (celular perdido, senha vista por alguém). Depois de 5 senhas erradas no mesmo e-mail (ou 20 no mesmo IP), o login fica bloqueado por 15 minutos.
 5. Cadastre a barbearia (uma vez por cliente):
@@ -427,11 +432,41 @@ npx expo export --platform web            # gera mobile/dist (index.html, manife
 rsync -a --delete dist/ usuario@vps:/srv/syncserv-web/
 ```
 
-No servidor, use o bloco de `deploy/Caddyfile.app` (troque `[DOMINIO]`): o Caddy serve o app em `app.[DOMINIO]`,
-devolve o `index.html` para qualquer rota (app de página única), encaminha `/api/*` para o backend
-(`127.0.0.1:8002`) e aplica o CSP e os cabeçalhos de segurança (HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,
-`Permissions-Policy`). Com o app e a API no mesmo endereço não é preciso CORS. O título da aba é "SyncServ" e o
+No servidor, copie a pasta `deploy/` para `/etc/caddy/` e use o `deploy/Caddyfile` (troque `[DOMINIO]`; confira com
+`caddy validate --config /etc/caddy/Caddyfile` antes do `sudo systemctl reload caddy`). Ele serve a landing em
+`[DOMINIO]` (`deploy/caddy/site.caddy`; `www` redireciona) e o app em `app.[DOMINIO]` (`deploy/caddy/app.caddy`):
+encaminha `/api/*` para o backend (`127.0.0.1:8002`) e aplica o CSP e os cabeçalhos de segurança (HSTS, `nosniff`,
+`X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`; arquivo `deploy/caddy/app-headers.caddy`, importado também
+nas respostas de erro). Com o app e a API no mesmo endereço não é preciso CORS. O título da aba é "SyncServ" e o
 `manifest.webmanifest` permite instalar como app (PWA) com os ícones do kit da marca.
+
+- **404 de verdade:** o app só tem um endereço (`/`). Qualquer outro caminho volta com status 404 e o próprio app, que
+  mostra "Página não encontrada" com o botão "Ir para o início". Script, estilo ou imagem que não existe é um 404
+  simples. Erro do próprio servidor: status 5xx com a `50x.html`. Backend fora do ar: `/api/*` responde 502 com
+  `{"detail": "O servidor está fora do ar por alguns instantes..."}`, que o app mostra como qualquer erro da API.
+- **Compressão e cache:** zstd e gzip; HTTP/1.1, HTTP/2 e HTTP/3 (libere 443/UDP). Arquivos com hash no nome
+  (`/_expo/static/*`, `/assets/*`) ficam em cache por um ano; fontes por 30 dias; `index.html` sempre revalidado.
+- **Teste do Caddy:** `python3 deploy/tests/caddy_e2e.py` sobe a imagem oficial do Caddy no Docker (`caddy:2.10.2-alpine`)
+  com essas mesmas configurações, só na máquina local, e confere o `caddy validate` do arquivo de produção, 404 e 5xx da
+  landing e do app (no Chromium também), compressão, cache, cabeçalhos nas respostas de erro, arquivos escondidos, API
+  fora do ar, HTTP/2 e o anúncio de HTTP/3. Sem argumento, gera o export web num diretório temporário.
+
+**Desempenho na web:** o JavaScript é dividido por rota. O pacote inicial tem só o login (cerca de 258 KB
+comprimidos, contra 483 KB antes); a parte de depois do login (React Navigation, abas, menu lateral, `src/AppShell.js`) é
+um pedaço separado, baixado assim que a pessoa começa a usar o login; cada arquivo de telas (`src/routes.web.js`) é
+outro pedaço, baixado na primeira vez que a tela abre (as abas principais vão em segundo plano depois do login). Se um
+pedaço não baixar (internet caiu), a tela mostra o erro com "Tentar de novo". No celular nada muda: `src/routes.js` e
+`src/shell.js` importam tudo direto (o app abre sem internet). Outras regras:
+
+- importe o Ionicons por `@expo/vector-icons/Ionicons`, não pelo índice `@expo/vector-icons` (que traz o mapa de
+  glifos de todas as famílias de ícones, uns 400 KB);
+- telas não importam `@react-navigation/*`: o `useFocusEffect` vem de `src/focus.js` e o `useLoad` de
+  `src/useLoad.js` (a casca entrega o hook de verdade), senão a navegação volta para o pacote inicial;
+- fontes na web em woff2 de `public/fonts/` (`python3 scripts/build-fonts`; Plus Jakarta Sans com o recorte latino e
+  Ionicons só com os ícones usados no código). Ícone novo no código: rode o script de novo (o `npm run test:web`
+  falha com "Fontes web desatualizadas" se esquecer). A primeira tela não espera as fontes: o texto aparece numa fonte
+  reserva com as mesmas medidas e troca sem pular;
+- o `public/index.html` já traz o logo da abertura (aparece antes do JavaScript).
 
 **Segurança da sessão no navegador:** o login web recebe um token de acesso de **15 minutos**, guardado só em
 memória, e um **refresh token** de 12 horas, guardado no `sessionStorage` da aba (nunca no `localStorage`). O app

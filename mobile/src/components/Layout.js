@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Wordmark } from '../brand/Logo';
 import { label as keypadLabel, press } from '../keypad';
 import { moreItemsFor, ROLE_LABEL, SHORTCUTS, can } from '../roles';

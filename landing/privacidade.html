@@ -11,13 +11,10 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon-180.png">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Fonte sem bloquear a primeira pintura (a página aparece com a fonte do sistema e troca quando carregar) -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;800&display=swap"
-        onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;800&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css">
+  <!-- Plus Jakarta Sans servida pelo próprio site (nada de Google Fonts); o peso 800 é o do título -->
+  <link rel="preload" href="assets/fonts/plus-jakarta-sans-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/plus-jakarta-sans-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=19819e657f">
 </head>
 <body>
   <header class="topbar">
@@ -95,7 +92,7 @@
     </ul>
 
     <h2>8. Cookies e este site</h2>
-    <p>Este site não usa cookies de rastreamento nem de publicidade. [Se for adicionada uma ferramenta de métricas, descrevê-la aqui e, se usar cookies, pedir consentimento antes.] As fontes são carregadas do Google Fonts, que recebe o endereço IP do visitante para entregar os arquivos.</p>
+    <p>Este site não usa cookies de rastreamento nem de publicidade. [Se for adicionada uma ferramenta de métricas, descrevê-la aqui e, se usar cookies, pedir consentimento antes.] As fontes são servidas pelo próprio site, sem chamar serviços de terceiros.</p>
 
     <h2>9. Alterações</h2>
     <p>Podemos atualizar esta política. A data no topo indica a versão em vigor; mudanças relevantes serão avisadas aos assinantes.</p>

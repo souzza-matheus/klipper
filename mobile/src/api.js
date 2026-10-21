@@ -1,4 +1,3 @@
-import { File, Paths } from 'expo-file-system';
 import { isOnline } from './net';
 import { getItem, IS_WEB, removeItem, setItem } from './storage';
 
@@ -228,6 +227,8 @@ export async function download(path, query, filename) {
       : 'Não foi possível baixar o arquivo.', res.status);
     return URL.createObjectURL(await res.blob());
   }
+  // Só no celular: import sob demanda, para o expo-file-system não entrar no JavaScript inicial da web
+  const { File, Paths } = await import('expo-file-system');
   const dest = new File(Paths.cache, filename);
   try {
     const file = await File.downloadFileAsync(buildUrl(path, query), dest, {

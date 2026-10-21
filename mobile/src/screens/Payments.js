@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api, apiUrl, authHeaders, download, saveFile } from '../api';
 import { IS_WEB } from '../storage';
 import { confirmPix } from '../components/AppointmentCard';
@@ -10,7 +10,8 @@ import { ago, dtLabel, money, phoneLabel } from '../format';
 import { PAY_LIST } from '../status';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { Badge, BottomSheet, Button, Card, confirm, Empty, Loading, Screen, SegmentedControl, run, useLoad } from '../ui';
+import { Badge, BottomSheet, Button, Card, confirm, Empty, Loading, Screen, SegmentedControl, run } from '../ui';
+import { useLoad } from '../useLoad';
 
 // Comprovante antigo (guardado antes da leitura por IA): imagem (com o login no cabeçalho) ou PDF (baixa e abre)
 function Receipt({ p }) {

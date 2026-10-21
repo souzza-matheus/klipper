@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
 import { PendingBadge } from '../components/Sync';
 import { repo, saved } from '../repo';
@@ -14,8 +14,9 @@ import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
   Badge, Banner, BottomSheet, Button, Card, Chips, confirm, Empty, Field, Loading, Screen, Section,
-  SegmentedControl, run, useLoad,
+  SegmentedControl, run,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 const METHOD_ICONS = { pix: 'qr-code-outline', dinheiro: 'cash-outline', debito: 'card-outline', credito: 'card' };
 const KIND_ICONS = { service: 'cut-outline', product: 'cube-outline', package: 'albums-outline',

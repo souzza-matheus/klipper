@@ -1,0 +1,24 @@
+# Caddy de produção: landing, versão web do app e API. Copie a pasta deploy/ para /etc/caddy/ (ou ajuste os
+# caminhos do import), troque [DOMINIO] pelo domínio e rode:  caddy validate --config /etc/caddy/Caddyfile
+# e depois  sudo systemctl reload caddy. Certificados HTTPS automáticos (Let's Encrypt).
+#
+# HTTP/1.1, HTTP/2 e HTTP/3 (QUIC). O HTTP/3 usa a porta 443 em UDP: libere no firewall (ufw allow 443/udp) e no
+# painel da VPS. Sem ela, o navegador continua no HTTP/2 sem perceber.
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+# Landing
+[DOMINIO] {
+	import caddy/site.caddy /srv/syncserv-site
+}
+www.[DOMINIO] {
+	redir https://[DOMINIO]{uri} permanent
+}
+
+# Versão web do app + API
+app.[DOMINIO] {
+	import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002
+}

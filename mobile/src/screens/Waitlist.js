@@ -8,8 +8,9 @@ import { dayLabel, dtLabel, normHM, phoneLabel, todayISO } from '../format';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Badge, BottomSheet, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Toggle, run, useLoad,
+  Badge, BottomSheet, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Toggle, run,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 const WAIT = {
   waiting: { label: 'Na fila', tone: 'info', icon: 'list-outline' },

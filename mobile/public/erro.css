@@ -1,0 +1,19 @@
+/* Página de erro do servidor (50x.html), separada do app para abrir mesmo se o JavaScript não carregar */
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-weight: 800; font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-800-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-weight: 500; font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-500-latin.woff2") format("woff2");
+}
+html, body { margin: 0; min-height: 100%; background: #0F172A; color: #F8FAFC; }
+body { font: 500 1rem/1.6 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.erro { max-width: 560px; margin: 0 auto; padding: 72px 16px; }
+h1 { font-weight: 800; font-size: clamp(1.6rem, 5vw, 2.2rem); line-height: 1.2; margin: 24px 0 12px; }
+p { color: #CBD5E1; margin: 0 0 28px; }
+.botao {
+  display: inline-flex; align-items: center; min-height: 48px; padding: 10px 22px; border-radius: 12px;
+  background: #22C55E; color: #0F172A; font-weight: 800; text-decoration: none;
+}
+.botao:focus-visible { outline: 3px solid #38BDF8; outline-offset: 3px; }

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '../focus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api';
 import { repo } from '../repo';
@@ -11,7 +11,8 @@ import { toMin } from '../components/DayGrid';
 import { dayLabel, hm, money, todayISO } from '../format';
 import { SPACE, TYPE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { Banner, Empty, IconButton, Loading, Screen, Section, Stat, useLoad } from '../ui';
+import { Banner, Empty, IconButton, Loading, Screen, Section, Stat } from '../ui';
+import { useLoad } from '../useLoad';
 
 const REFRESH_MS = 60000;
 

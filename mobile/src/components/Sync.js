@@ -1,14 +1,15 @@
 // Modo offline na tela: aviso de conexão, pendências, "Sincronizar agora" e "Precisa da sua atenção".
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { dtLabel } from '../format';
 import {
   attentionList, dismissAttention, onSyncStatus, pendingList, syncNow,
 } from '../offline/manager';
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
-import { Badge, Banner, Button, Card, Empty, Screen, Section, toast, useLoad } from '../ui';
+import { Badge, Banner, Button, Card, Empty, Screen, Section, toast } from '../ui';
+import { useLoad } from '../useLoad';
 
 export function useSyncStatus() {
   const [s, setS] = useState(null);

@@ -167,6 +167,58 @@ TBT 0 ms, CLS 0,106). O SEO 85 é o L04 (canonical e `robots.txt` com `[DOMINIO]
 `GEMINI_API_KEY`; `app.mjs` e `extra.mjs` não usam mais o ajuste do `locationY` (só com `SHIM=1`), entram pelo
 "Configuração avançada" do login, clicam nas abas dentro da navegação e só no "Voltar" que está por cima.
 
+### Bloco 2 (21/10/2026): desempenho e 404
+
+Corrigido: L13 (CLS da fonte). Sem mudança de regra de negócio nem de texto de venda.
+
+**O que mudou**
+
+| tema | mudança | onde |
+|---|---|---|
+| Fonte da landing | Plus Jakarta Sans servida pelo próprio site (woff2 só com o recorte latino, 15 KB por peso), `preload` dos pesos 500 e 800, `font-display: swap` e fonte reserva com `size-adjust` e `ascent/descent-override` calculados (Arial/Liberation Sans e Roboto). Nenhum pedido ao Google Fonts | `scripts/build-fonts`, `landing/styles.css`, `landing/assets/fonts/` (com `OFL.txt`) |
+| CSS crítico | As regras do cabeçalho e do hero (10 KB) vão embutidas no `<head>`; o `styles.css` inteiro carrega no fim do `<body>`, sem bloquear a pintura. A primeira tela só com o CSS crítico é idêntica, pixel a pixel, à com o CSS inteiro (375, 768 e 1440 px; o e2e confere) | `scripts/build-landing`, `landing/index.html` |
+| Cache | `?v=` (hash) em `styles.css` e `main.js` nas 5 páginas; o Caddy guarda por 1 ano os arquivos versionados, 30 dias as fontes, 7 dias as imagens; HTML sempre revalidado | `scripts/build-landing`, `deploy/caddy/site.caddy` |
+| Imagens | Inventário e otimização: svgo no logo (12 KB → 3,3 KB) e nos símbolos dos nichos, PNG recomprimidos sem perda; `loading="lazy"` abaixo da dobra. A landing não tem foto nem ilustração em bitmap (os celulares são HTML/CSS), então não há AVIF/WebP para gerar hoje: o script gera AVIF/WebP com `srcset` para o que for colocado em `landing/assets/img/` | `scripts/optimize-images` |
+| 404 e 5xx | `landing/404.html` e `landing/50x.html`; app: tela "Página não encontrada" (só `/` abre o app) e `mobile/public/50x.html`. O Caddy devolve 404 de verdade e a página amigável no 5xx; API fora do ar vira 502 com JSON que o app entende | `deploy/caddy/*.caddy`, `mobile/src/screens/NotFound.js` |
+| Caddy | `deploy/Caddyfile` (produção) + `deploy/caddy/site.caddy`, `app.caddy` e os cabeçalhos em arquivos importados também nas respostas de erro; zstd e gzip; HTTP/1.1, HTTP/2 e HTTP/3; `tests/`, `README.md` e arquivos ocultos não são servidos | `deploy/` (o antigo `deploy/Caddyfile.app` foi substituído) |
+| JavaScript do app web | Telas por rota (`import()` por arquivo de telas), casca de depois do login (React Navigation, abas, menu lateral) num pedaço separado, baixado enquanto a pessoa digita a senha; só o Ionicons em vez do índice com o mapa de todas as famílias de ícones; `expo-file-system` sob demanda. Pacote inicial: 483 KB → 258 KB comprimidos; telas que falham ao baixar mostram "Tentar de novo" | `mobile/src/routes*.js`, `shell*.js`, `AppShell.js`, `lazyScreen.js`, `focus.js`, `useLoad.js` |
+| Fontes do app web | woff2 (15 KB por peso contra 95 KB do TTF; Ionicons só com os 205 ícones usados: 27 KB contra 390 KB); a primeira tela não espera as fontes (fonte reserva do mesmo tamanho) | `mobile/src/webFonts.web.js`, `mobile/public/fonts/`, `theme.js` |
+| Abertura do app web | O `index.html` já traz o logo (a mesma splash do app); o JavaScript o substitui ao montar | `mobile/public/index.html`, `web.css` |
+| App do celular | O import direto do Ionicons também diminui o pacote: 3,40 MB → 3,08 MB (Hermes, Android) | — |
+
+**Medições** (Lighthouse 12.6.0 no perfil de celular, mediana de 3 a 5 execuções; servido pelo Caddy local com as
+configurações de produção, `audit/scripts/caddy_local.sh`; INP com `audit/scripts/inp.mjs`, CPU 4× mais lenta, mediana
+de 3). "Rede limitada" = `--throttling-method=devtools` (o 4G é aplicado de verdade durante a gravação); "simulado" = o
+padrão do Lighthouse (grava sem limite e calcula o 4G depois).
+
+| página | medição | antes | depois |
+|---|---|---|---|
+| Landing | Lighthouse, rede limitada | 94 · LCP 1,6 s · CLS 0,087 · TBT 210 ms | **100** · LCP 0,9 s · CLS 0,018 · TBT 40 ms |
+| Landing | Lighthouse, simulado | 99 · LCP 1,1 s · CLS 0,066 | **100** · LCP 1,5 s · CLS 0,018 |
+| Landing | Lighthouse, simulado, servidor Python sem compressão (o do bloco 1) | 97 · LCP 1,5 s · CLS 0,106 | **100** · LCP 1,9 s · CLS 0,018 |
+| Landing | INP (nichos, calculadora, simulador, perguntas, menu) | 136 ms | **96 ms** |
+| App web (login) | Lighthouse, rede limitada | 66 · LCP 7,8 s · 944 KB | **97** · LCP 1,3 s · TBT 190 ms · 392 KB |
+| App web (login) | Lighthouse, simulado | 68 · LCP 6,5 s | **94** · LCP 2,8 s · TBT 160 ms |
+| App web (login) | Lighthouse, computador | 97 · LCP 1,2 s | **100** · LCP 0,6 s |
+| App web | INP (login, abas, busca de cliente) | 152 ms | **144 ms** |
+
+O LCP simulado da landing subiu (1,1 → 1,5 s) porque o simulador põe as fontes pré-carregadas no caminho do LCP; com
+a rede limitada de verdade, ele caiu de 1,6 para 0,9 s. No app, o LCP simulado de 2,8 s fica acima da meta de 2,5 s
+pelo mesmo tipo de motivo: na gravação sem limite de rede o JavaScript chega antes de a abertura em HTML ser pintada;
+com a rede limitada, o logo da abertura aparece em 1,3 s e é o LCP. Arquivos: `audit/data/lighthouse-*-antes.json`,
+`*-depois.json`, `inp-antes-*.json`, `inp-depois-*.json`. O SEO de 60 do app é o `noindex` proposital (app de gestão
+não deve aparecer no Google); o 85 da landing continua sendo o L04.
+
+**Páginas novas:** capturas em `audit/screenshots/erros/` (404 e 50x da landing e do app, 375 e 1440 px), axe com 0
+violações, sem alvos menores que 48 px nem textos menores que 13 px (`audit/data/erros-axe.json`, roteiro
+`audit/scripts/erros.mjs`). O roteiro do app (`app.mjs barber 375`) continua com 0 violações nas 27 telas.
+
+**Testes novos:** `deploy/tests/caddy_e2e.py` (Caddy de verdade no Docker: 404/5xx, compressão, cache, cabeçalhos
+também nos erros, arquivos escondidos, API fora do ar, HTTP/2 e anúncio de HTTP/3); o `landing_e2e.py` confere que
+nada sai do site, a fonte carregada, o CSS crítico igual ao inteiro e o `build-landing --check`; o `web_e2e.py`
+confere 404 com a tela "Página não encontrada", só woff2, a abertura sumindo e o "Tentar de novo" de uma tela que não
+baixou; o `npm run test:web` roda o `build-fonts --check` (ícone novo no código sem regenerar a fonte = falha).
+
 ## Tabela de achados
 
 Ordem: impacto ÷ esforço (alta = 3, média = 2, baixa = 1; pequeno = 1, médio = 2, grande = 3). Os ganhos rápidos vêm primeiro e, no empate, o de maior impacto.
@@ -216,7 +268,7 @@ Capturas: `app/` = `audit/screenshots/app/`, `landing/` = `audit/screenshots/lan
 | A28 | Estrutura da web · `App.js` · axe (`region` 191 em 26 telas, `landmark-one-main`, `page-has-heading-one`, `aria-hidden-focus` em 1440) | Sem `main` nem `h1`; telas que ficam por baixo na pilha continuam focáveis dentro de `aria-hidden` (67 ocorrências em 1440 px); o sheet não tem nome (`aria-dialog-name`), a barra de uso da IA não tem nome (`aria-progressbar-name`) e os dias do calendário têm um rótulo que não contém o número visível (`label-content-name-mismatch`). | Quem navega por teclado ou leitor de tela cai em telas escondidas. | baixa | pequeno | `role="main"` no conteúdo, título da tela como `h1`, `inert` nas telas inativas da pilha na web. | corrigido (bloco 1) |
 | A29 | Comprovante em tela cheia e fontes · `components/ReceiptReview.js:38-50`, `Finance.js:46`, `DayGrid.js:144` · `app/barbearia-375-18-pix-comprovante-aberto.png` | A tela cheia do comprovante não tem Confirmar nem Recusar; alguns textos não definem `fontFamily` e saem na fonte do sistema. | Obriga a fechar e procurar o botão; quebra a identidade visual. | baixa | pequeno | Rodapé com Confirmar e Recusar na tela cheia; usar `T`/`s.caption` em vez de `Text` cru. | corrigido (bloco 1) |
 | A30 | Botões compactos e Voltar · `ui.js:296` (`compact` 40 px), cabeçalho do React Navigation · medição de alvos | "Abrir comanda", "Ficha", "Estornar", "Trocar" e "Cadastrar novo cliente" têm 40–41 px de altura; o "Voltar" do cabeçalho na web tem 30 x 30 px; chips e segmentos têm 44 px. | Abaixo dos 48 px pedidos para uso rápido, às vezes com a mão ocupada. | baixa | pequeno | `compact` com `minHeight: TOUCH` (mantendo o visual menor com `hitSlop`); `headerBackTitleVisible` com área de 48 px; chips com 48 px. | corrigido (bloco 1) |
-| L13 | Fonte da landing · `landing/index.html:38` · Lighthouse | CLS de 0,106 (limite bom: 0,1) causado pela troca da Plus Jakarta Sans. | Pequeno salto do texto ao carregar no 4G. | baixa | pequeno | `@font-face` local com `size-adjust` na fonte reserva, ou `font-display: optional`; pré-carregar o `woff2` do peso 800. | pendente (bloco 2) |
+| L13 | Fonte da landing · `landing/index.html:38` · Lighthouse | CLS de 0,106 (limite bom: 0,1) causado pela troca da Plus Jakarta Sans. | Pequeno salto do texto ao carregar no 4G. | baixa | pequeno | `@font-face` local com `size-adjust` na fonte reserva, ou `font-display: optional`; pré-carregar o `woff2` do peso 800. | corrigido (bloco 2) |
 | L14 | Planos e hero · `landing/styles.css` (`.badge`, `.actions .btn`) · `landing/landing-375-09-precos.png`, `landing-1440-primeira-dobra.png` | O selo "Para equipes" estica na largura do card; o CTA do hero quebra em 2 linhas no 1440. | Acabamento. | baixa | pequeno | `.plan .badge { align-self: flex-start }`; `flex: 0 1 auto` no CTA principal. | corrigido (bloco 1) |
 | L15 | Calculadora e simulador · `landing/styles.css` (`.range input` 32 px, `.sim__reset` e `.opt` 44 px, links do rodapé 44 px) | Alvos menores que 48 px; o slider de valor (10 a 500, passo 5) é difícil de acertar no dedo. | Toque impreciso no celular. | baixa | pequeno | Área de toque de 48 px (padding ou `min-height`); botões − e + ao lado do slider de valor. | corrigido (bloco 1) |
 | L16 | Textos · `landing/main.js` (`welcome`), `#calc-total` | "Bem-vindo" com Mariana, Fernanda e Helena; o resultado da calculadora (uma perda) aparece em verde e não tem CTA depois. | Concordância e semântica de cor; perde o momento de conversão. | baixa | pequeno | "Boas-vindas ao Seu Salão"; resultado em laranja ou branco; CTA "Testar 7 dias grátis" logo abaixo do resultado. | corrigido (bloco 1) |
@@ -315,7 +367,7 @@ Medido em 27 telas de cada tema, considerando só o que está de fato na frente 
 | Boas práticas | **100** |
 | SEO | **85**: `canonical` inválido (`https://[DOMINIO]/`) e `robots.txt` com `Sitemap: https://[DOMINIO]/sitemap.xml` (L04) |
 
-O CLS de 0,106 vem da troca da fonte (`fonts.gstatic.com/.../plusjakartasans`, 0,087 do total) (L13). Relatório completo: `audit/data/lighthouse-landing-celular.html`. Servidor local não tem a compressão nem o cache de produção, então o desempenho real depende do servidor do domínio.
+O CLS de 0,106 vem da troca da fonte (`fonts.gstatic.com/.../plusjakartasans`, 0,087 do total) (L13, corrigido no bloco 2: CLS 0,018). Relatório completo: `audit/data/lighthouse-landing-celular.html`. Servidor local não tem a compressão nem o cache de produção, então o desempenho real depende do servidor do domínio.
 
 ### Consistência de design (código do app)
 

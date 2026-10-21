@@ -1,0 +1,54 @@
+{
+  "landing": {
+    "interacoes": 17,
+    "inp": 192,
+    "piores": [
+      {
+        "duration": 192,
+        "type": "click",
+        "name": "Barbearia"
+      },
+      {
+        "duration": 152,
+        "type": "click",
+        "name": "Pet shop"
+      },
+      {
+        "duration": 144,
+        "type": "click",
+        "name": "Salão de beleza"
+      },
+      {
+        "duration": 136,
+        "type": "click",
+        "name": "Estúdio fitness"
+      }
+    ]
+  },
+  "app": {
+    "interacoes": 34,
+    "inp": 344,
+    "piores": [
+      {
+        "duration": 344,
+        "type": "pointerdown",
+        "name": "Agenda"
+      },
+      {
+        "duration": 232,
+        "type": "pointerdown",
+        "name": "Caixa"
+      },
+      {
+        "duration": 184,
+        "type": "pointerdown",
+        "name": "Hoje"
+      },
+      {
+        "duration": 168,
+        "type": "pointerdown",
+        "name": "Clientes"
+      }
+    ]
+  }
+}

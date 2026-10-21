@@ -1,0 +1,61 @@
+# Versão web do app e API no mesmo endereço. Importado pelo deploy/Caddyfile:
+#   import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002
+# {args[0]} = pasta do export web (cd mobile && npx expo export --platform web; rsync -a --delete dist/ ...)
+# {args[1]} = backend (docker-compose.prod.yml publica em 127.0.0.1:8002)
+#
+# Mesmo endereço para o site e a API: o navegador não precisa de CORS e o CSP pode ser 'self' em tudo.
+
+encode zstd gzip
+
+import app-headers.caddy
+
+# API: o mesmo backend do app nativo
+handle /api/* {
+	reverse_proxy {args[1]}
+}
+
+# App: arquivos estáticos. O app só tem um endereço (/): qualquer outro caminho é 404 de verdade (ver handle_errors).
+handle {
+	root * {args[0]}
+	file_server {
+		hide .*
+	}
+}
+
+# Arquivos com hash no nome (JS do export, assets): cache para sempre; fontes do public/fonts: 30 dias;
+# index.html, manifest e páginas de erro: sempre conferem com o servidor
+@hashed path /_expo/static/* /assets/*
+header @hashed Cache-Control "public, max-age=31536000, immutable"
+@fonts path /fonts/*
+header @fonts Cache-Control "public, max-age=2592000"
+@shell {
+	not path /_expo/static/* /assets/* /fonts/*
+}
+header @shell Cache-Control "no-cache"
+
+handle_errors {
+	import app-headers.caddy
+	# API fora do ar (backend parado, reiniciando): JSON no formato que o app entende, em vez de página vazia
+	@api path /api/*
+	handle @api {
+		header Content-Type "application/json; charset=utf-8"
+		respond `{"detail": "O servidor está fora do ar por alguns instantes. Tente de novo em um minuto."}` {err.status_code}
+	}
+	# Arquivo de script, estilo ou imagem que não existe: 404 simples (HTML aqui quebraria o tipo do arquivo)
+	@asset path /_expo/* /assets/* /fonts/* /icons/* *.js *.css *.png *.svg *.ico *.woff2 *.ttf *.json
+	handle @asset {
+		respond "Não encontrado" {err.status_code}
+	}
+	# Caminho desconhecido: 404 com o próprio app, que mostra "Página não encontrada" e o botão para o início
+	@notfound expression {err.status_code} == 404
+	handle @notfound {
+		root * {args[0]}
+		rewrite * /index.html
+		file_server
+	}
+	handle {
+		root * {args[0]}
+		rewrite * /50x.html
+		file_server
+	}
+}

@@ -216,9 +216,10 @@ def test_mobile_offline_db_is_encrypted_and_wiped():
 
 
 def test_web_app_is_served_with_csp_and_security_headers():
-    caddy = open(os.path.join(ROOT, "deploy", "Caddyfile.app"), encoding="utf-8").read()
+    headers = open(os.path.join(ROOT, "deploy", "caddy", "app-headers.caddy"), encoding="utf-8").read()
+    caddy = open(os.path.join(ROOT, "deploy", "caddy", "app.caddy"), encoding="utf-8").read()
     import re
-    policy = re.search(r'Content-Security-Policy "([^"]+)"', caddy).group(1)
+    policy = re.search(r'Content-Security-Policy "([^"]+)"', headers).group(1)
     for rule in ("default-src 'self'", "script-src 'self'", "connect-src 'self'", "frame-ancestors 'none'",
                  "object-src 'none'", "base-uri 'none'"):
         assert rule in policy, rule
@@ -232,8 +233,11 @@ def test_web_app_is_served_with_csp_and_security_headers():
     assert re.search(r"\bstyle=", index) is None
     for header in ("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy",
                    "Permissions-Policy", "-Server"):
-        assert header in caddy, header
-    assert "try_files {path} /index.html" in caddy  # app de página única
+        assert header in headers, header
+    # Cabeçalhos também nas respostas de erro (o handle_errors começa uma resposta nova)
+    assert caddy.count("import app-headers.caddy") == 2
+    # Só "/" abre o app: caminho desconhecido é 404 de verdade (deploy/tests/caddy_e2e.py confere no Caddy real)
+    assert "try_files" not in caddy and "expression {err.status_code} == 404" in caddy
 
 
 def test_dev_mode_is_off_by_default(monkeypatch):

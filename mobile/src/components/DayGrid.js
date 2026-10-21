@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { hm, phoneLabel } from '../format';
 import { STATUS } from '../status';
 import { SPACE, TYPE } from '../theme';

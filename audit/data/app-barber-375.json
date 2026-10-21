@@ -35,7 +35,7 @@
       "incomplete": [
         {
           "id": "color-contrast",
-          "count": 19
+          "count": 20
         },
         {
           "id": "label-content-name-mismatch",
@@ -84,7 +84,7 @@
         },
         {
           "id": "color-contrast",
-          "count": 26
+          "count": 25
         },
         {
           "id": "label-content-name-mismatch",
@@ -159,7 +159,7 @@
       "incomplete": [
         {
           "id": "color-contrast",
-          "count": 17
+          "count": 16
         },
         {
           "id": "label-content-name-mismatch",
@@ -757,14 +757,7 @@
       "scrollWidth": 375
     },
     "16-pix-pendentes": {
-      "smallTargets": [
-        {
-          "el": "button \" Ver dados lidos e conferências\"",
-          "w": 307,
-          "h": 17,
-          "inline": false
-        }
-      ],
+      "smallTargets": [],
       "smallText": {},
       "horizontalScroll": false,
       "scrollWidth": 375
@@ -788,12 +781,6 @@
           "el": "input \"Nome\"",
           "w": 317,
           "h": 46,
-          "inline": false
-        },
-        {
-          "el": "button \"Adicionar cliente incompatível\"",
-          "w": 127,
-          "h": 44,
           "inline": false
         }
       ],

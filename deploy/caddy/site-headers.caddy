@@ -1,0 +1,8 @@
+# Cabeçalhos da landing. Importado duas vezes pelo site.caddy: nas respostas normais e nas de erro (o
+# handle_errors começa uma resposta nova, sem os cabeçalhos de cima).
+
+header {
+	X-Content-Type-Options "nosniff"
+	Referrer-Policy "strict-origin-when-cross-origin"
+	-Server
+}

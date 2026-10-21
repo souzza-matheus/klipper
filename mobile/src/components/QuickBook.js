@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
 import { repo, saved } from '../repo';
 import { dayLabel, gapLabel, hm, money, phoneLabel } from '../format';

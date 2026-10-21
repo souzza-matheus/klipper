@@ -1,0 +1,54 @@
+# Landing (site estático). Importado pelo deploy/Caddyfile:  import caddy/site.caddy /srv/syncserv-site
+# {args[0]} = pasta com o conteúdo de landing/ (rsync -a --delete landing/ usuario@vps:/srv/syncserv-site/)
+
+root * {args[0]}
+
+# zstd para quem aceita (Chrome, Firefox), gzip para o resto. Só comprime o que vale a pena (texto, SVG, JSON).
+encode zstd gzip
+
+import site-headers.caddy
+
+# Cache:
+# - styles.css e main.js com ?v= (o scripts/build-landing troca a versão a cada mudança): um ano, imutável;
+# - fontes: 30 dias (o nome não muda quando o scripts/build-fonts gera de novo);
+# - imagens e ícones: 7 dias;
+# - HTML, manifest, robots e sitemap: sempre conferem com o servidor (ETag; volta 304 se nada mudou).
+@versioned {
+	path *.css *.js
+	query v=*
+}
+header @versioned Cache-Control "public, max-age=31536000, immutable"
+@fonts path /assets/fonts/*
+header @fonts Cache-Control "public, max-age=2592000"
+@images {
+	path /assets/* /favicon.ico
+	not path /assets/fonts/*
+}
+header @images Cache-Control "public, max-age=604800"
+@revalidate {
+	not path /assets/* /favicon.ico
+	not {
+		path *.css *.js
+		query v=*
+	}
+}
+header @revalidate Cache-Control "no-cache"
+
+file_server {
+	# o rsync leva a pasta inteira: testes, README e arquivos ocultos não são servidos (viram 404)
+	hide .* README.md tests
+}
+
+# Erros com o status de verdade (404 continua 404 para o Google) e uma página amigável
+handle_errors {
+	import site-headers.caddy
+	@notfound expression {err.status_code} == 404
+	handle @notfound {
+		rewrite * /404.html
+		file_server
+	}
+	handle {
+		rewrite * /50x.html
+		file_server
+	}
+}

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '../focus';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
 import { LogoVertical, Symbol as BrandSymbol } from '../brand/Logo';
 import { useSyncStatus } from '../components/Sync';
@@ -13,10 +13,10 @@ import { useTheme } from '../ThemeProvider';
 import { moreItemsFor, ROLE_LABEL } from '../roles';
 import { useSession } from '../session';
 import {
-  Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section, SegmentedControl,
-  Stat, Toggle, run, toast, useLoad,
-  a11yState, ask,
+  Badge, Banner, Button, Card, Chips, confirm, Field, Group, ListRow, Loading, Screen, Section,
+  SegmentedControl, Stat, Toggle, run, toast, a11yState, ask,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
   const { c, s, font, v } = useTheme();

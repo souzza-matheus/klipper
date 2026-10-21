@@ -9,9 +9,10 @@ import {
 import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
-  Button, Card, Chips, confirm, Empty, Field, Group, IconButton, ListRow, Loading, Muted, Screen, Section, Toggle,
-  run, useLoad,
+  Button, Card, Chips, confirm, Empty, Field, Group, IconButton, ListRow, Loading, Muted, Screen, Section,
+  Toggle, run,
 } from '../ui';
+import { useLoad } from '../useLoad';
 import { BarberCommissionRules } from './Finance';
 
 function AddButton({ onPress, label }) {

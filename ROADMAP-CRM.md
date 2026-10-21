@@ -132,7 +132,7 @@ Ferramentas novas: `get_my_balance`, `list_packages`, `propose_package_purchase`
 Mesmo código do app (react-native-web). Celular: abas embaixo. Computador (900 px ou mais): menu lateral com o logo,
 conteúdo mais largo, agenda por profissional, tabelas com busca e ordenação, painel lateral na comanda e atalhos
 (N, C, B). Web: título "SyncServ", PWA, token só em memória e refresh token no sessionStorage, CSP e cabeçalhos no
-Caddy (`deploy/Caddyfile.app`), só online (aviso e escrita bloqueada sem internet). Testes: `mobile/tests/*.test.mjs`
+Caddy (`deploy/Caddyfile` e `deploy/caddy/app.caddy`), só online (aviso e escrita bloqueada sem internet). Testes: `mobile/tests/*.test.mjs`
 (papéis, teclado, tabela), `mobile/tests/web_e2e.py` (Playwright) e testes de segurança do backend para o token web e o
 CSP.
 

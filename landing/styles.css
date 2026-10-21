@@ -4,6 +4,45 @@
    Azul #0284C7 em títulos de destaque (texto grande, 3:1) e fundos de badge; em texto pequeno usa #38BDF8 (4.5:1).
    Verde #22C55E só nos botões de ação principal, com texto #0F172A (7.9:1). */
 
+/* Plus Jakarta Sans servida pelo próprio site (scripts/build-fonts; licença SIL OFL em assets/fonts/OFL.txt).
+   Só o recorte latino; o que estiver fora cai na fonte reserva. */
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("assets/fonts/plus-jakarta-sans-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-style: normal; font-weight: 800; font-display: swap;
+  src: url("assets/fonts/plus-jakarta-sans-800-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Fonte reserva com as medidas da Plus Jakarta Sans (números do scripts/build-fonts): enquanto a fonte não chega,
+   o texto ocupa o mesmo espaço e não pula quando ela troca (CLS). Arial/Liberation Sans no computador, Roboto no
+   Android; nos outros sistemas vale a lista do --font. */
+@font-face {
+  font-family: "Jakarta Reserva"; font-weight: 500;
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans"), local("Helvetica");
+  size-adjust: 104.21%; ascent-override: 99.61%; descent-override: 21.3%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Jakarta Reserva"; font-weight: 800;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold"),
+    local("Helvetica Bold");
+  size-adjust: 101.63%; ascent-override: 102.13%; descent-override: 21.84%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Jakarta Reserva Android"; font-weight: 500;
+  src: local("Roboto"), local("Roboto-Regular");
+  size-adjust: 106.18%; ascent-override: 97.76%; descent-override: 20.91%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Jakarta Reserva Android"; font-weight: 800;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  size-adjust: 107.65%; ascent-override: 96.42%; descent-override: 20.62%; line-gap-override: 0%;
+}
+
 :root {
   --bg: #0F172A;
   --surface: #1E293B;
@@ -21,7 +60,7 @@
   --accent-text: #F59E0B;
   --radius: 14px;
   --wrap: 1120px;
-  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: "Plus Jakarta Sans", "Jakarta Reserva", "Jakarta Reserva Android", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -412,3 +451,8 @@ strong, b { font-weight: 800; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Páginas de erro (404.html e 50x.html) */
+.erro { max-width: 640px; padding: 56px 0 72px; }
+.erro h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); }
+.erro .actions .btn { flex: 0 1 auto; }

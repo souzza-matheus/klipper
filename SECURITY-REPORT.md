@@ -127,9 +127,15 @@ suíte com as mesmas garantias das antigas:
   API); `/auth/refresh` e a troca de senha mantêm o token web curto; "sair de todos os aparelhos" invalida o refresh.
 - No navegador o token fica só em memória e o refresh token no `sessionStorage` da aba; o teste
   `test_mobile_keeps_token_in_secure_store_and_has_no_api_keys` falha se o código usar `localStorage` ou cookies.
-- `deploy/Caddyfile.app`: CSP `default-src 'self'` sem `unsafe-eval` nem script inline, `frame-ancestors 'none'`,
+- `deploy/caddy/app-headers.caddy` (importado pelo `deploy/caddy/app.caddy`, também nas respostas de erro): CSP `default-src 'self'` sem `unsafe-eval` nem script inline, `frame-ancestors 'none'`,
   HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, sem cabeçalho `Server`
   (`test_web_app_is_served_with_csp_and_security_headers`).
+- Caddy (`deploy/Caddyfile`, bloco 2): o app só responde em `/`; caminho desconhecido é 404 de verdade (não o
+  `index.html` com 200 para tudo); `tests/`, `README.md` e arquivos ocultos da landing não são servidos; backend fora
+  do ar vira 502 com uma mensagem genérica em JSON (sem detalhe do proxy); cabeçalhos de segurança também nas
+  respostas de erro. Conferido no Caddy de verdade por `deploy/tests/caddy_e2e.py`, só na máquina local.
+- A landing não chama mais o Google Fonts (fontes servidas pelo próprio site): nenhum endereço IP de visitante vai a
+  terceiros para carregar a página.
 - **CSP sem `'unsafe-inline'`:** `style-src 'self'` mais um único hash, o da string vazia. O react-native-web cria
   um `<style>` vazio e o preenche pelo CSSOM (`insertRule`), que o CSP não bloqueia. As fontes (`src/webFonts.web.js`)
   entram do mesmo jeito, em vez do texto que o expo-font injetaria. O estilo base saiu do `index.html` para

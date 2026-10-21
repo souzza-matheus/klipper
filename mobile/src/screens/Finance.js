@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api, saveFile } from '../api';
 import { BarChart } from '../chart';
 import { MonthNav } from './Agenda';
@@ -12,9 +12,10 @@ import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import { useSession } from '../session';
 import {
-  Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section, Stat, StatValue,
-  Toggle, run, useLoad,
+  Badge, Button, Card, Chips, confirm, Empty, Field, IconButton, ListRow, Loading, Muted, Screen, Section,
+  Stat, StatValue, Toggle, run,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 const PERIODS = {
   month: () => monthRange(0),

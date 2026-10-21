@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Inventário e otimização das imagens da landing e da versão web do app.
+
+    python3 scripts/optimize-images            # inventário: tamanho, dimensões, onde cada imagem é usada
+    python3 scripts/optimize-images --write    # otimiza no lugar (só troca se ficar menor)
+    python3 scripts/optimize-images --check    # sai com 1 se alguma imagem ainda pode ser otimizada (para o CI)
+
+O que faz:
+- SVG: svgo (multipass), mantendo <title> e viewBox. Precisa de Node (usa `npx svgo@3.3.2`).
+- PNG: recompressão sem perda (Pillow, optimize=True). PNG de ícone e de compartilhamento continua PNG
+  (favicon, apple-touch-icon e Open Graph não aceitam AVIF/WebP em todos os lugares).
+- Fotos e ilustrações em landing/assets/img/ (JPG ou PNG): gera .avif e .webp em 480, 960 e 1440 px de largura
+  (sem ampliar) e imprime o <picture> com srcset para colar no HTML. O original fica como reserva no <img>.
+Precisa de: pip install pillow (com suporte a AVIF, Pillow 11.2 ou mais nova).
+"""
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+from PIL import Image
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FOLDERS = ["landing", "mobile/public", "mobile/assets"]
+SKIP = {"node_modules", "tests", "fonts", "dist"}
+EXTS = {".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg", ".ico"}
+CONTENT = os.path.join(ROOT, "landing", "assets", "img")  # imagens de conteúdo (ganham AVIF/WebP)
+WIDTHS = (480, 960, 1440)
+# Onde procurar referências (nome do arquivo)
+SOURCES = ["landing", "mobile/public", "mobile/app.json", "mobile/src", "mobile/App.js"]
+SVGO = {"multipass": True, "plugins": [
+    {"name": "preset-default", "params": {"overrides": {"removeViewBox": False, "removeTitle": False,
+                                                        "removeDesc": False}}}]}
+
+
+def images():
+    for folder in FOLDERS:
+        for base, dirs, files in os.walk(os.path.join(ROOT, folder)):
+            dirs[:] = sorted(d for d in dirs if d not in SKIP)
+            for f in sorted(files):
+                if os.path.splitext(f)[1].lower() in EXTS:
+                    yield os.path.join(base, f)
+
+
+def source_text():
+    text = []
+    for s in SOURCES:
+        p = os.path.join(ROOT, s)
+        paths = [p] if os.path.isfile(p) else [os.path.join(b, f) for b, d, fs in os.walk(p)
+                                                 if not set(b.split(os.sep)) & SKIP for f in fs]
+        for path in paths:
+            if path.endswith((".html", ".css", ".js", ".json", ".webmanifest", ".xml", ".txt")):
+                text.append((os.path.relpath(path, ROOT), open(path, encoding="utf-8", errors="ignore").read()))
+    return text
+
+
+def dims(path):
+    if path.endswith(".svg"):
+        m = re.search(r'viewBox="([\d.\s-]+)"', open(path, encoding="utf-8").read())
+        return "x".join(str(round(float(v))) for v in m.group(1).split()[2:]) if m else "?"
+    with Image.open(path) as im:
+        return f"{im.width}x{im.height}"
+
+
+def svgo(data: bytes) -> bytes:
+    with tempfile.TemporaryDirectory() as tmp:
+        cfg = os.path.join(tmp, "svgo.config.js")
+        open(cfg, "w").write("module.exports = " + json.dumps(SVGO) + ";\n")
+        src = os.path.join(tmp, "in.svg")
+        open(src, "wb").write(data)
+        subprocess.run(["npx", "--yes", "svgo@3.3.2", "--config", cfg, "-i", src, "-o", src, "--quiet"],
+                       check=True, cwd=tmp)
+        return open(src, "rb").read()
+
+
+def png(data: bytes) -> bytes:
+    with Image.open(io.BytesIO(data)) as im:
+        out = io.BytesIO()
+        extra = {k: im.info[k] for k in ("icc_profile", "dpi", "transparency") if k in im.info}
+        im.save(out, "PNG", optimize=True, **extra)
+        return out.getvalue()
+
+
+def optimized(path: str) -> bytes | None:
+    data = open(path, "rb").read()
+    if path.endswith(".svg"):
+        new = svgo(data)
+    elif path.endswith(".png"):
+        new = png(data)
+    else:
+        return None
+    return new if len(new) < len(data) else None
+
+
+def variants(path: str):
+    """AVIF e WebP de uma imagem de conteúdo, nas larguras de WIDTHS (sem ampliar)."""
+    stem = os.path.splitext(path)[0]
+    with Image.open(path) as im:
+        im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB")
+        for w in [w for w in WIDTHS if w <= im.width] or [im.width]:
+            h = round(im.height * w / im.width)
+            small = im.resize((w, h), Image.LANCZOS) if w != im.width else im
+            for fmt, ext, opts in (("AVIF", "avif", {"quality": 55}), ("WEBP", "webp", {"quality": 78, "method": 6})):
+                out = io.BytesIO()
+                small.save(out, fmt, **opts)
+                yield f"{stem}-{w}.{ext}", out.getvalue(), w
+
+
+def picture(path: str) -> str:
+    rel = os.path.relpath(path, os.path.join(ROOT, "landing"))
+    stem = os.path.splitext(rel)[0]
+    with Image.open(path) as im:
+        w, h = im.size
+    ws = [x for x in WIDTHS if x <= w] or [w]
+    srcset = lambda ext: ", ".join(f"{stem}-{x}.{ext} {x}w" for x in ws)  # noqa: E731
+    return (f'<picture>\n  <source type="image/avif" srcset="{srcset("avif")}" sizes="(min-width: 960px) 50vw, 100vw">\n'
+            f'  <source type="image/webp" srcset="{srcset("webp")}" sizes="(min-width: 960px) 50vw, 100vw">\n'
+            f'  <img src="{rel}" alt="DESCREVA A IMAGEM" width="{w}" height="{h}" loading="lazy" decoding="async">\n'
+            f'</picture>')
+
+
+def main() -> int:
+    write, check = "--write" in sys.argv, "--check" in sys.argv
+    refs = source_text()
+    pending = []
+    print("| imagem | bytes | dimensões | usada em |\n| --- | ---: | --- | --- |")
+    for path in images():
+        rel = os.path.relpath(path, ROOT)
+        name = os.path.basename(path)
+        used = sorted({src for src, text in refs if name in text and src != rel})
+        print(f"| `{rel}` | {os.path.getsize(path)} | {dims(path)} | {', '.join(used) or '(não referenciada)'} |")
+        if not (write or check):
+            continue
+        new = optimized(path)
+        if new is not None:
+            pending.append((rel, os.path.getsize(path), len(new)))
+            if write:
+                open(path, "wb").write(new)
+        if path.startswith(CONTENT + os.sep) and path.lower().endswith((".jpg", ".jpeg", ".png")):
+            for out, data, _ in variants(path):
+                if not os.path.exists(out):
+                    pending.append((os.path.relpath(out, ROOT), 0, len(data)))
+                    if write:
+                        open(out, "wb").write(data)
+            if write:
+                print("\n" + picture(path) + "\n")
+    for rel, before, after in pending:
+        print(f"{'otimizada' if write else 'pode otimizar'}: {rel} {before} -> {after} bytes")
+    if check and pending:
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

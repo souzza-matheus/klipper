@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
 import { confirmPix, QuickActions } from '../components/AppointmentCard';
 import { PendingBadge } from '../components/Sync';
@@ -19,8 +19,9 @@ import { SPACE } from '../theme';
 import { useTheme } from '../ThemeProvider';
 import {
   Badge, Banner, Button, Card, Chips, confirm, Empty, Field, IconButton, Loading, Screen, Section,
-  SegmentedControl, run, toast, Title, Toggle, useLoad,
+  SegmentedControl, run, toast, Title, Toggle,
 } from '../ui';
+import { useLoad } from '../useLoad';
 
 export { saveWithConflictCheck } from '../components/booking';
 

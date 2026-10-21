@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""Gera as fontes web do SyncServ a partir da Plus Jakarta Sans do pacote @expo-google-fonts (licença SIL OFL 1.1).
+
+    python3 scripts/build-fonts            # gera os .woff2 e imprime os @font-face da fonte reserva
+    python3 scripts/build-fonts --check    # só confere se os arquivos estão atualizados (sai com 1 se não)
+
+Saída:
+- landing/assets/fonts/plus-jakarta-sans-{500,800}-latin.woff2 (pesos usados na landing)
+- mobile/public/fonts/plus-jakarta-sans-{400,500,600,700,800}-latin.woff2 (versão web do app)
+- mobile/public/fonts/ionicons.woff2 (só os ícones que o app usa: nomes entre aspas no código de mobile/src e
+  App.js, com as variantes "-outline". Ícone novo no código: rode de novo; o --check, no npm run test:web, acusa)
+- OFL.txt ao lado de cada conjunto (a licença exige ir junto com a fonte)
+
+Recorte "latin" igual ao do Google Fonts (português inteiro, com acentos, travessão, aspas curvas e €). O que estiver
+fora cai na fonte do sistema. A fonte reserva (Arial/Liberation Sans no computador, Roboto no Android) recebe
+size-adjust e ascent/descent-override calculados aqui, para ocupar o mesmo espaço da Plus Jakarta Sans e o texto não
+pular quando a fonte chegar (CLS). Precisa de: pip install fonttools brotli.
+"""
+import io
+import json
+import os
+import re
+import sys
+
+from fontTools import subset
+from fontTools.ttLib import TTFont
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PKG = os.path.join(ROOT, "mobile", "node_modules", "@expo-google-fonts", "plus-jakarta-sans")
+VENDOR = os.path.join(ROOT, "mobile", "node_modules", "@expo", "vector-icons", "build", "vendor", "react-native-vector-icons")
+ICONS = os.path.join(VENDOR, "Fonts", "Ionicons.ttf")
+GLYPHS = os.path.join(VENDOR, "glyphmaps", "Ionicons.json")
+WEIGHTS = {400: "400Regular", 500: "500Medium", 600: "600SemiBold", 700: "700Bold", 800: "800ExtraBold"}
+# unicode-range "latin" do Google Fonts
+LATIN = ("U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,"
+         "U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD")
+TARGETS = [
+    (os.path.join(ROOT, "landing", "assets", "fonts"), (500, 800)),
+    (os.path.join(ROOT, "mobile", "public", "fonts"), (400, 500, 600, 700, 800)),
+]
+# Só para medir (não são distribuídas): onde costumam estar no Linux
+FALLBACKS = {
+    "regular": ["/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"],
+    "bold": ["/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"],
+    "roboto": ["/opt/android-studio/plugins/design-tools/resources/layoutlib/data/fonts/Roboto-Regular.ttf"],
+    "roboto-bold": ["/usr/pgadmin4/web/pgadmin/static/fonts/Roboto-Bold.ttf"],
+}
+# Frequência aproximada das letras em português (texto da landing); o peso conta mais que a letra rara
+SAMPLE = ("Seu robô agenda, lembra o horário e recebe o Pix direto na sua conta. Você acompanha tudo no app, "
+          "com comanda, caixa, estoque e equipe. Teste 7 dias grátis. AGENDA CHEIA NO WHATSAPP 0123456789")
+
+
+def ttf(weight: int) -> str:
+    name = WEIGHTS[weight]
+    return os.path.join(PKG, name, f"PlusJakartaSans_{name}.ttf")
+
+
+def woff2(src: str, unicodes: str | None) -> bytes:
+    opts = subset.Options()
+    opts.flavor = "woff2"
+    opts.layout_features = ["*"]
+    opts.name_IDs = ["*"]
+    opts.name_languages = ["*"]
+    opts.notdef_outline = True
+    opts.glyph_names = False
+    font = subset.load_font(src, opts)
+    sub = subset.Subsetter(opts)
+    if unicodes:
+        sub.populate(unicodes=subset.parse_unicodes(unicodes))
+    else:
+        sub.populate(unicodes=font.getBestCmap().keys())
+    sub.subset(font)
+    out = io.BytesIO()
+    subset.save_font(font, out, opts)
+    return out.getvalue()
+
+
+def avg_width(path: str) -> float:
+    f = TTFont(path)
+    cmap, hmtx, upm = f.getBestCmap(), f["hmtx"], f["head"].unitsPerEm
+    widths = [hmtx[cmap[ord(c)]][0] for c in SAMPLE if ord(c) in cmap]
+    return sum(widths) / len(widths) / upm
+
+
+def overrides(weight: int, fallback: str) -> dict | None:
+    path = next((p for p in FALLBACKS[fallback] if os.path.exists(p)), None)
+    if not path:
+        return None
+    pjs = TTFont(ttf(weight))
+    upm = pjs["head"].unitsPerEm
+    hhea = pjs["hhea"]
+    size = avg_width(ttf(weight)) / avg_width(path)
+    return {"size-adjust": f"{size * 100:.2f}%",
+            "ascent-override": f"{hhea.ascent / upm / size * 100:.2f}%",
+            "descent-override": f"{abs(hhea.descent) / upm / size * 100:.2f}%",
+            "line-gap-override": f"{hhea.lineGap / upm / size * 100:.2f}%"}
+
+
+def outputs() -> dict[str, bytes]:
+    files = {}
+    for folder, weights in TARGETS:
+        for w in weights:
+            files[os.path.join(folder, f"plus-jakarta-sans-{w}-latin.woff2")] = woff2(ttf(w), LATIN)
+        files[os.path.join(folder, "OFL.txt")] = open(os.path.join(PKG, "LICENSE_FONT"), "rb").read()
+    files[os.path.join(ROOT, "mobile", "public", "fonts", "ionicons.woff2")] = woff2(ICONS, icon_codepoints())
+    return files
+
+
+def icon_codepoints() -> str:
+    """Ícones que o app usa: todo texto entre aspas no código que é nome de ícone do Ionicons, mais a variante
+    "-outline" e a cheia de cada um (o código monta nomes como icon + '-outline')."""
+    names = json.load(open(GLYPHS))
+    text = ""
+    for base, dirs, files in os.walk(os.path.join(ROOT, "mobile", "src")):
+        text += "".join(open(os.path.join(base, f), encoding="utf-8").read() for f in files if f.endswith(".js"))
+    text += open(os.path.join(ROOT, "mobile", "App.js"), encoding="utf-8").read()
+    used = set()
+    for word in set(re.findall(r"['\"`]([a-z0-9-]+)['\"`]", text)):
+        used |= {v for v in (word, word + "-outline", re.sub(r"-(outline|sharp)$", "", word)) if v in names}
+    return ",".join(f"U+{names[n]:04X}" for n in sorted(used))
+
+
+def main() -> int:
+    check = "--check" in sys.argv
+    stale = []
+    for path, data in outputs().items():
+        old = open(path, "rb").read() if os.path.exists(path) else None
+        if old == data:
+            continue
+        stale.append(os.path.relpath(path, ROOT))
+        if not check:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "wb").write(data)
+    for path in stale:
+        print(("desatualizado: " if check else "gerado: ") + path)
+    if check:
+        return 1 if stale else 0
+    print("\nFonte reserva (se os números mudarem, atualize landing/styles.css e mobile/src/webFonts.web.js):")
+    for w in WEIGHTS:
+        bold = w >= 600
+        for fb in ("bold", "roboto-bold") if bold else ("regular", "roboto"):
+            print(f"  peso {w}, {fb}: {overrides(w, fb)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

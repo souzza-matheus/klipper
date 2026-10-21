@@ -111,12 +111,16 @@ const BRAND_COLORS = {
   secondary: '#22C55E',
 };
 
+// Na web, cada peso ganha uma fonte reserva com as mesmas medidas (src/webFonts.web.js) e a do sistema: a primeira
+// tela aparece antes de a Plus Jakarta Sans chegar, sem o texto pular na troca
+const WEB = typeof document !== 'undefined';
+const face = (family, weight) => (WEB ? `${family}, "Jakarta Reserva ${weight}", System` : family);
 export const FONTS = {
-  regular: 'PlusJakartaSans_400Regular',
-  medium: 'PlusJakartaSans_500Medium',
-  semibold: 'PlusJakartaSans_600SemiBold',
-  bold: 'PlusJakartaSans_700Bold',
-  extrabold: 'PlusJakartaSans_800ExtraBold',
+  regular: face('PlusJakartaSans_400Regular', 400),
+  medium: face('PlusJakartaSans_500Medium', 500),
+  semibold: face('PlusJakartaSans_600SemiBold', 600),
+  bold: face('PlusJakartaSans_700Bold', 700),
+  extrabold: face('PlusJakartaSans_800ExtraBold', 800),
 };
 // Escala tipográfica 32/24/20/17/15/13
 export const TYPE = { display: 32, title: 24, heading: 20, body: 17, label: 15, caption: 13 };
