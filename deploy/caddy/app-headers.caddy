@@ -1,8 +1,9 @@
 # Cabeçalhos de segurança da versão web do app. Importado duas vezes pelo app.caddy: nas respostas normais e nas
 # de erro (o handle_errors começa uma resposta nova, sem os cabeçalhos de cima).
+# {args[0]} = domínio: o app publicado em app.<domínio> chama a API em https://api.<domínio> (src/config.js).
 
 header {
-	Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+	Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.{args[0]}; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
 	Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	X-Content-Type-Options "nosniff"
 	X-Frame-Options "DENY"

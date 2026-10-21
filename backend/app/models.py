@@ -7,7 +7,7 @@ from sqlalchemy import (
     JSON, BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, LargeBinary,
     Numeric, String, Table, Text, Time, UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship, validates
 
 from .db import Base
 from .config import now_local
@@ -201,28 +201,125 @@ class Shop(Base):
     webhook_secret: Mapped[str] = mapped_column(String(64), default=lambda: secrets.token_urlsafe(32))
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    # Negócio suspenso (ex.: assinatura do SyncServ cancelada): ninguém da equipe entra, os dados continuam
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     barbers: Mapped[list["Barber"]] = relationship(back_populates="shop")
     services: Mapped[list["Service"]] = relationship(back_populates="shop")
 
 
+def normalize_email(raw: str) -> str:
+    """E-mail como fica guardado e é procurado: sem espaços nas pontas e em minúsculas (único na plataforma)."""
+    return (raw or "").strip().lower()
+
+
+class _NotAColumn:
+    """User.shop_id (e role, barber_id) na classe: não é coluna. Comparar numa consulta daria False em silêncio."""
+    def __init__(self, name: str):
+        self.name = name
+
+    def _fail(self, *a):
+        raise TypeError(f"User.{self.name} não é coluna (é do negócio ativo): consulte Membership.{self.name}")
+
+    __eq__ = __ne__ = __lt__ = __gt__ = __le__ = __ge__ = in_ = is_ = _fail
+    __hash__ = object.__hash__
+
+
+class _ActiveField:
+    """Campo do vínculo do negócio ativo, lido e escrito pelo usuário (user.shop_id, user.role, user.barber_id)."""
+    def __init__(self, name: str):
+        self.name = name
+
+    def __get__(self, obj, owner=None):
+        if obj is None:
+            return _NotAColumn(self.name)
+        m = obj.membership
+        return getattr(m, self.name) if m else None
+
+    def __set__(self, obj, value):
+        setattr(obj._membership_for_write(), self.name, value)
+
+
 class User(Base):
+    """Conta de acesso (uma por e-mail na plataforma inteira). Em quais negócios ela entra, e com que papel, fica em
+    Membership. user.shop_id, user.role, user.barber_id e user.shop são os do negócio ATIVO da requisição (o do
+    token; ver use_membership) e, sem negócio escolhido, os do primeiro vínculo ativo."""
     __tablename__ = "users"
+    __table_args__ = (CheckConstraint("email = lower(trim(email))", name="ck_users_email_normalized"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(160), unique=True)
     password_hash: Mapped[str] = mapped_column(String(100))
     # Sobe a cada "sair de todos os aparelhos" ou troca de senha: tokens com versão antiga deixam de valer
     token_version: Mapped[int] = mapped_column(Integer, default=0)
-    role: Mapped[str] = mapped_column(String(15), default=Role.OWNER)
-    # Profissional: a qual cadastro de profissional (agenda) este login pertence
-    barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id", ondelete="SET NULL"), nullable=True)
+    # Conta inteira desativada (vale para todos os negócios); para tirar alguém de um negócio, Membership.active
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)  # convite com senha provisória
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=now_local, nullable=True)
 
+    memberships: Mapped[list["Membership"]] = relationship(back_populates="user", cascade="all, delete-orphan",
+                                                          order_by="Membership.id")
+
+    @validates("email")
+    def _norm_email(self, key, value):
+        return normalize_email(value)
+
+    # ---- negócio ativo
+    def use_membership(self, m: "Membership") -> None:
+        self._active_membership = m
+
+    @property
+    def membership(self) -> "Membership | None":
+        m = getattr(self, "_active_membership", None)
+        if m is not None:
+            return m
+        ms = list(self.memberships)
+        return next((x for x in ms if x.active), ms[0] if ms else None)
+
+    def _membership_for_write(self) -> "Membership":
+        """Construtor e seeds: User(shop_id=..., role=...) cria o vínculo junto (um negócio)."""
+        m = self.membership
+        if m is None:
+            m = Membership(role=Role.OWNER, active=True)
+            self.memberships.append(m)
+            self._active_membership = m
+        return m
+
+    shop_id = _ActiveField("shop_id")
+    role = _ActiveField("role")
+    barber_id = _ActiveField("barber_id")
+
+    @property
+    def shop(self) -> "Shop | None":
+        m = self.membership
+        return m.shop if m else None
+
+    @property
+    def barber(self) -> "Barber | None":
+        m = self.membership
+        return m.barber if m else None
+
+
+class Membership(Base):
+    """Vínculo usuário–negócio: o papel da pessoa em cada negócio em que ela entra. O token de acesso é sempre de
+    um vínculo (negócio ativo) e não abre outro negócio."""
+    __tablename__ = "memberships"
+    __table_args__ = (UniqueConstraint("user_id", "shop_id", name="uq_memberships_user_shop"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("shops.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(15), default=Role.OWNER)
+    # Profissional: a qual cadastro de profissional (agenda) este login pertence
+    barber_id: Mapped[int | None] = mapped_column(ForeignKey("barbers.id", ondelete="SET NULL"), nullable=True)
+    # Desativado pelo dono do negócio: a pessoa não entra mais NESTE negócio (os outros continuam)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Sobe quando o papel, o profissional ou o acesso mudam: os tokens deste vínculo deixam de valer
+    version: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=now_local, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="memberships")
     shop: Mapped[Shop] = relationship()
     barber: Mapped["Barber | None"] = relationship()
 

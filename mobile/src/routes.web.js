@@ -43,6 +43,7 @@ export const AboutScreen = lazyScreen(settings, 'AboutScreen');
 export const MoreScreen = lazyScreen(settings, 'MoreScreen');
 export const SettingsScreen = lazyScreen(settings, 'SettingsScreen');
 export const WhatsAppScreen = lazyScreen(settings, 'WhatsAppScreen');
+export const SwitchBusinessScreen = lazyScreen(settings, 'SwitchBusinessScreen');
 export const ComandaScreen = lazyScreen(comandas, 'ComandaScreen');
 export const ComandasScreen = lazyScreen(comandas, 'ComandasScreen');
 export const ProductEditScreen = lazyScreen(stock, 'ProductEditScreen');

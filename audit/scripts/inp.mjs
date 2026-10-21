@@ -70,7 +70,7 @@ const out = {};
   await p.getByLabel('E-mail').waitFor();
   await p.getByLabel('E-mail').tap();
   await p.keyboard.type('admin@demo.com', { delay: 30 });
-  await p.getByLabel('Senha').tap();
+  await p.getByLabel('Senha', { exact: true }).tap();
   await p.keyboard.type('demo123', { delay: 30 });
   await p.getByRole('button', { name: 'Entrar' }).tap();
   await p.locator('[role=navigation] >> text="Agenda"').waitFor({ timeout: 30000 });

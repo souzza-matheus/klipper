@@ -38,7 +38,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --no-warnings --test \"tests/**/*.test.mjs\" && jest",
-    "test:web": "bash tests/run_web_e2e.sh"
+    "test:web": "bash tests/run_web_e2e.sh",
+    "export:web": "EXPO_PUBLIC_APP_PROFILE=production expo export --platform web --clear"
   },
   "private": true,
   "overrides": {

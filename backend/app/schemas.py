@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field, model_validator
 
 # Limites de entrada: nenhum valor pode passar do que o banco aceita (sem isso o Postgres devolve erro)
 Id = Annotated[int, Field(gt=0, lt=2**31)]
@@ -14,6 +14,8 @@ Money = Annotated[Decimal, Field(ge=0, le=Decimal("99999999.99"), decimal_places
 PositiveMoney = Annotated[Decimal, Field(gt=0, le=Decimal("99999999.99"), decimal_places=2)]
 Phone = Annotated[str, Field(max_length=30)]
 Note = Annotated[str, Field(max_length=2000)]
+# E-mail de login: único na plataforma, guardado e procurado em minúsculas e sem espaços nas pontas
+Email = Annotated[EmailStr, BeforeValidator(lambda v: v.strip().lower() if isinstance(v, str) else v)]
 
 
 def Text(n: int):  # noqa: N802 - tipo: texto com tamanho máximo
@@ -29,9 +31,39 @@ CLIENT = "^(app|web)$"
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: Email
     password: str = Field(max_length=128)
     client: str = Field("app", pattern=CLIENT)  # web: token curto + refresh token
+    # Último negócio escolhido neste aparelho: com mais de um negócio, entra direto nele (se ainda tiver acesso)
+    shop_id: Id | None = None
+
+
+class BusinessOut(BaseModel):
+    """Um negócio da lista "Escolha o negócio"."""
+    shop_id: int
+    name: str
+    niche: str  # o app mostra o símbolo do segmento
+    role: str
+    role_label: str
+
+
+class LoginChoiceOut(BaseModel):
+    """Login de quem tem mais de um negócio: nenhum token de acesso ainda. O app mostra a lista e manda a escolha
+    para /auth/select com o selection_token (vale 5 minutos)."""
+    choose: bool = True
+    user_name: str
+    businesses: list[BusinessOut]
+    selection_token: str
+
+
+class SelectIn(BaseModel):
+    selection_token: str = Field(max_length=2000)
+    shop_id: Id
+    client: str = Field("app", pattern=CLIENT)
+
+
+class SwitchIn(BaseModel):
+    shop_id: Id
 
 
 class RefreshIn(BaseModel):
@@ -42,7 +74,7 @@ class RegisterIn(BaseModel):
     setup_token: str = Field(max_length=200)
     shop_name: str = Field(min_length=1, max_length=120)
     owner_name: str = Field(min_length=1, max_length=120)
-    email: EmailStr
+    email: Email
     password: str = Field(min_length=8, max_length=128)
     owner_phone: Phone = ""
 
@@ -66,6 +98,7 @@ class TokenOut(BaseModel):
     expires_in: int | None = None     # segundos de validade do token (web)
     user_id: int | None = None        # o app apaga os dados offline quando outra pessoa entra no aparelho
     shop_id: int | None = None
+    businesses_count: int = 1         # mais de 1: o app mostra Mais > Trocar de negócio
 
 
 class ChangePasswordIn(BaseModel):
@@ -709,7 +742,7 @@ Percent = Annotated[Decimal, Field(gt=0, le=100, decimal_places=2)]
 # ---- equipe
 class UserInviteIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    email: EmailStr
+    email: Email
     role: str = Field(pattern=ROLE)
     barber_id: Id | None = None  # obrigatório para profissional
 

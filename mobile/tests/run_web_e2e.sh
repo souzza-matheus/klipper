@@ -20,6 +20,22 @@ python3 -c "import playwright" 2>/dev/null || { echo "Instale: pip install playw
   export JWT_SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
   ./.venv/bin/alembic -x url="$DATABASE_URL" upgrade head >/dev/null
   ./.venv/bin/python -m app.seed_mock >/dev/null
+  # Conta com dois negócios (dona da Barbearia Demo e de uma segunda loja), para a escolha e a troca de negócio
+  ./.venv/bin/python - <<'PY'
+from sqlalchemy import select
+from app.auth import hash_password
+from app.db import SessionLocal
+from app.models import Membership, Shop, User
+db = SessionLocal()
+first = db.scalar(select(Shop).where(Shop.evolution_instance == "barbearia-demo"))
+second = Shop(name="Segunda Loja Demo", evolution_instance="segunda-loja-demo", niche="beauty")
+db.add(second)
+db.flush()
+user = User(name="Conta com dois negócios", email="duas.empresas@demo.com", password_hash=hash_password("demo123"))
+user.memberships = [Membership(shop_id=first.id, role="owner"), Membership(shop_id=second.id, role="owner")]
+db.add(user)
+db.commit()
+PY
   exec ./.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port "$PORT" >"$TMP/api.log" 2>&1
 ) &
 API_PID=$!
@@ -28,5 +44,7 @@ curl -sf "http://127.0.0.1:$PORT/health" >/dev/null || { echo "backend não subi
 
 # Fontes web em dia (woff2 e ícones usados no código); falha com "rode scripts/build-fonts" se não
 python3 ../scripts/build-fonts --check 2>/dev/null || { echo "Fontes web desatualizadas: rode python3 scripts/build-fonts"; exit 1; }
-npx expo export --platform web --output-dir "$TMP/web" >/dev/null
+# O endereço da API entra no build, como nos perfis do eas.json (aqui, o backend descartável)
+EXPO_PUBLIC_APP_PROFILE=development EXPO_PUBLIC_API_URL="http://localhost:$PORT" \
+  npx expo export --platform web --clear --output-dir "$TMP/web" >/dev/null
 python3 tests/web_e2e.py "$TMP/web" "http://localhost:$PORT"

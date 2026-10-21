@@ -5,6 +5,9 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { api } from '../api';
+import { changeBusiness } from '../businessSwitch';
+import { BusinessList } from '../components/BusinessList';
+import { guardLeave } from '../leaveGuard';
 import { LogoVertical, Symbol as BrandSymbol } from '../brand/Logo';
 import { useSyncStatus } from '../components/Sync';
 import { moneyInput, parseMoney, phoneLabel } from '../format';
@@ -20,13 +23,10 @@ import { useLoad } from '../useLoad';
 
 export function MoreScreen({ navigation, onLogout, shopName }) {
   const { c, s, font, v } = useTheme();
-  const { role, userName } = useSession();
+  const { role, userName, businessesCount } = useSession();
   const sync = useSyncStatus();
   const items = moreItemsFor(role, v, Platform.OS === 'web').map((m) => [m.route, m.icon, m.label]);
-  const leaveMsg = sync.pending
-    ? `${sync.pending} alteração(ões) feita(s) sem internet ainda não foi(ram) enviada(s) e será(ão) perdida(s). `
-      + 'Os dados deste aparelho serão apagados.'
-    : sync.available ? 'Os dados guardados neste aparelho serão apagados.' : '';
+  const leaveMsg = sync.available ? 'Os dados guardados neste aparelho serão apagados.' : '';
   return (
     <Screen>
       <View style={[s.row, { gap: SPACE(3), marginBottom: SPACE(5) }]}>
@@ -42,11 +42,48 @@ export function MoreScreen({ navigation, onLogout, shopName }) {
                    onPress={() => navigation.navigate(route)} />
         ))}
       </Group>
-      <Button title="Sair" kind="ghost" icon="log-out-outline" onPress={() => confirm('Sair do app?', leaveMsg, onLogout, 'Sair', true)} />
+      {businessesCount > 1 ? (
+        <Button title="Trocar de negócio" kind="secondary" icon="swap-horizontal-outline"
+                onPress={() => navigation.navigate('SwitchBusiness')} />
+      ) : null}
+      <Button title="Sair" kind="ghost" icon="log-out-outline"
+              onPress={() => guardLeave({ title: 'Sair do app?', message: leaveMsg, yesLabel: 'Sair', onGo: onLogout })} />
       <Button title="Sair de todos os aparelhos" kind="danger" icon="phone-portrait-outline"
               onPress={() => confirm('Sair de todos os aparelhos?',
                 'Use se perdeu um celular ou alguém viu sua senha. Todos os aparelhos (inclusive este) vão precisar entrar de novo.',
                 () => run(() => api.post('/auth/logout-all')).then((r) => { if (r) onLogout(); }), 'Sair de todos', true)} />
+    </Screen>
+  );
+}
+
+// Mais > Trocar de negócio: outro negócio da mesma conta, sem sair. Antes de abrir o novo, o banco offline e a fila
+// de alterações do atual são apagados (com aviso se houver alteração não enviada).
+export function SwitchBusinessScreen() {
+  const { s } = useTheme();
+  const { shopId, applySession } = useSession();
+  const { data, error, loading, reload } = useLoad(() => api.get('/auth/businesses'), []);
+  const [busy, setBusy] = useState(null);
+
+  const go = (b) => guardLeave({
+    title: `Abrir ${b.name}?`,
+    message: 'Os dados guardados neste aparelho do negócio atual serão apagados e os do outro serão baixados.',
+    yesLabel: 'Trocar',
+    onGo: async () => {
+      setBusy(b.shop_id);
+      try {
+        await changeBusiness(b.shop_id, applySession);
+      } catch (e) {
+        setBusy(null);
+        toast(e.message || 'Não foi possível trocar de negócio.', 'error');
+      }
+    },
+  });
+
+  if (loading || error) return <Loading error={error} onRetry={reload} />;
+  return (
+    <Screen>
+      <Text style={[s.muted, { marginBottom: SPACE(4) }]}>Escolha o negócio que quer abrir.</Text>
+      <BusinessList businesses={data || []} currentId={shopId} busyId={busy} onPick={go} />
     </Screen>
   );
 }

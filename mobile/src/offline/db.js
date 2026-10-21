@@ -1,6 +1,6 @@
 // Banco local criptografado (só no celular).
 //
-// expo-sqlite com SQLCipher (plugin "expo-sqlite" com useSQLCipher: true no app.json): o arquivo inteiro é
+// expo-sqlite com SQLCipher (plugin "expo-sqlite" com useSQLCipher: true no app.config.js): o arquivo inteiro é
 // criptografado com uma chave aleatória de 256 bits gerada no aparelho e guardada no SecureStore
 // (Keychain/Keystore), que só abre neste aparelho. Sem a chave, o arquivo é ilegível.
 //

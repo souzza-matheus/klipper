@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session, object_session, undefer
 
 from .. import schemas as S
 from ..auth import (
-    check_password_or_dummy, current_user, hash_password, make_refresh_token, make_token, user_from_refresh,
+    active_memberships, check_password_or_dummy, current_user, hash_password, make_refresh_token,
+    make_selection_token, make_token, user_from_refresh, user_from_token,
 )
 from ..security import login_limiter, same_secret
 from ..config import now_local, settings
@@ -66,18 +67,73 @@ def _throttle(email: str, ip: str) -> None:
                             headers={"Retry-After": str(wait)})
 
 
-@router.post("/auth/login", response_model=S.TokenOut, tags=["auth"])
+# Conta ou todos os vínculos desativados (ou negócio suspenso). Só aparece com a senha certa.
+ACCESS_DISABLED = "Seu acesso foi desativado. Fale com o responsável pelo negócio."
+NO_ACCESS = "Você não tem acesso a esse negócio."
+
+
+def _business_out(m) -> S.BusinessOut:
+    return S.BusinessOut(shop_id=m.shop_id, name=m.shop.name, niche=m.shop.niche, role=m.role,
+                         role_label=Role.LABELS.get(m.role, m.role))
+
+
+@router.post("/auth/login", response_model=S.TokenOut | S.LoginChoiceOut, tags=["auth"])
 def login(body: S.LoginIn, request: Request, db: Session = Depends(get_db)):
-    email, ip = body.email.lower(), _client_ip(request)
+    """Login só com e-mail e senha: o servidor descobre o negócio. Um negócio: entra direto. Mais de um: devolve a
+    lista (choose=true) e um selection_token para /auth/select, a não ser que shop_id (o último escolhido no
+    aparelho) seja um deles. Nenhum negócio ativo: 403 com a mensagem de acesso desativado."""
+    email, ip = body.email, _client_ip(request)
     _throttle(email, ip)
     user = db.scalar(select(User).where(User.email == email))
-    if user is not None and not user.active:
-        user = None  # login desativado: mesma resposta de senha errada
     if not check_password_or_dummy(body.password, user.password_hash if user else None):
         login_limiter.failed(email, ip)
         raise HTTPException(401, "E-mail ou senha incorretos")  # mesma mensagem para e-mail ou senha errados
     login_limiter.succeeded(email, ip)
+    memberships = active_memberships(user)
+    if not memberships:
+        raise HTTPException(403, {"message": ACCESS_DISABLED, "code": "access_disabled"})
+    chosen = memberships[0] if len(memberships) == 1 else next(
+        (m for m in memberships if m.shop_id == body.shop_id), None)
+    if chosen is None:
+        return S.LoginChoiceOut(user_name=user.name, businesses=[_business_out(m) for m in memberships],
+                                selection_token=make_selection_token(user))
+    user.use_membership(chosen)
     return _token_out(user, body.client)
+
+
+@router.post("/auth/select", response_model=S.TokenOut, tags=["auth"])
+def select_business(body: S.SelectIn, request: Request, db: Session = Depends(get_db)):
+    """Segunda etapa do login com mais de um negócio: o token de acesso do negócio escolhido."""
+    ip = _client_ip(request)
+    _throttle("select", ip)
+    try:
+        user = user_from_token(body.selection_token, "select", db)
+    except HTTPException:
+        login_limiter.failed("select", ip)
+        raise
+    m = next((x for x in active_memberships(user) if x.shop_id == body.shop_id), None)
+    if m is None:
+        raise HTTPException(403, NO_ACCESS)
+    user.use_membership(m)
+    return _token_out(user, body.client)
+
+
+@router.get("/auth/businesses", response_model=list[S.BusinessOut], tags=["auth"])
+def businesses(user: User = Depends(current_user)):
+    """Negócios em que a pessoa pode entrar (Mais > Trocar de negócio)."""
+    return [_business_out(m) for m in active_memberships(user)]
+
+
+@router.post("/auth/switch", response_model=S.TokenOut, tags=["auth"])
+def switch_business(body: S.SwitchIn, user: User = Depends(current_user)):
+    """Troca o negócio ativo sem sair da conta: token novo, só daquele negócio. O app apaga antes os dados offline
+    do negócio anterior."""
+    m = next((x for x in active_memberships(user) if x.shop_id == body.shop_id), None)
+    if m is None:
+        raise HTTPException(403, NO_ACCESS)
+    client = getattr(user, "token_client", "app")
+    user.use_membership(m)
+    return _token_out(user, client)
 
 
 def _token_out(user: User, client: str = "app") -> S.TokenOut:
@@ -88,7 +144,7 @@ def _token_out(user: User, client: str = "app") -> S.TokenOut:
                       first_login=user.must_change_password,
                       refresh_token=make_refresh_token(user) if web else None,
                       expires_in=settings.web_access_minutes * 60 if web else None, user_id=user.id,
-                      shop_id=user.shop_id)
+                      shop_id=user.shop_id, businesses_count=len(active_memberships(user)))
 
 
 @router.post("/auth/token", response_model=S.TokenOut, tags=["auth"])
@@ -113,7 +169,7 @@ def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)
     if not same_secret(body.setup_token, settings.setup_token):
         login_limiter.failed("setup", ip)
         raise HTTPException(403, "Token de setup inválido")
-    if db.scalar(select(User).where(User.email == body.email.lower())):
+    if db.scalar(select(User).where(User.email == body.email)):
         raise HTTPException(409, "E-mail já cadastrado")
     slug = re.sub(r"[^a-z0-9]+", "-", body.shop_name.lower()).strip("-")[:40] or "barbearia"
     instance = slug
@@ -124,7 +180,7 @@ def register(body: S.RegisterIn, request: Request, db: Session = Depends(get_db)
     shop = Shop(name=body.shop_name, owner_phone=wa.normalize_phone(body.owner_phone), evolution_instance=instance)
     db.add(shop)
     db.flush()
-    user = User(shop_id=shop.id, name=body.owner_name, email=body.email.lower(),
+    user = User(shop_id=shop.id, name=body.owner_name, email=body.email,
                 password_hash=hash_password(body.password), role=Role.OWNER)
     db.add(user)
     db.commit()
@@ -169,7 +225,7 @@ def me(user: User = Depends(current_user)):
     return {"name": user.name, "email": user.email, "user_id": user.id, "shop_id": user.shop_id, "shop_name": user.shop.name,
             "niche": user.shop.niche, "theme_mode": user.shop.theme_mode, "role": user.role,
             "role_label": Role.LABELS.get(user.role, user.role), "barber_id": user.barber_id,
-            "first_login": user.must_change_password}
+            "first_login": user.must_change_password, "businesses_count": len(active_memberships(user))}
 
 
 # ---------------------------------------------------------------- barbearia

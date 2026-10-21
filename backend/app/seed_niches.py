@@ -19,7 +19,8 @@ from .auth import hash_password
 from .config import now_local
 from .db import SessionLocal
 from .models import (
-    AccessStatus, Appointment, ApptStatus, Barber, ConflictAction, CustomerConflict, Service, Shop, User, WorkingHour,
+    AccessStatus, Appointment, ApptStatus, Barber, ConflictAction, CustomerConflict, Membership, Role, Service, Shop,
+    User, WorkingHour,
 )
 from .seed import seed, seed_finance
 from .seed_crm import seed_crm
@@ -170,6 +171,27 @@ def access_demo(db, shop, p, customers, barbers, services, weights, today, now) 
     db.commit()
 
 
+MULTI_EMAIL = "duas.empresas@demo.com"
+
+
+def ensure_multi_business(db) -> None:
+    """Uma conta que entra em dois negócios (dona da Barbearia Demo e recepção no salão), para testar a tela
+    "Escolha o negócio" e Mais > Trocar de negócio."""
+    shops = {s.evolution_instance: s for s in db.scalars(select(Shop))}
+    targets = [(shops.get("barbearia-demo"), Role.OWNER), (shops.get(PROFILES[0]["instance"]), Role.RECEPTION)]
+    if not all(shop for shop, _ in targets):
+        return
+    user = db.scalar(select(User).where(User.email == MULTI_EMAIL))
+    if user is None:
+        user = User(name="Conta com dois negócios", email=MULTI_EMAIL, password_hash=hash_password(PASSWORD))
+        db.add(user)
+    have = {m.shop_id for m in user.memberships}
+    for shop, role in targets:
+        if shop.id not in have:
+            user.memberships.append(Membership(shop_id=shop.id, role=role, active=True))
+    db.commit()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cria uma empresa de demonstração para cada segmento.")
     parser.add_argument("--reset", action="store_true", help="apaga os dados mock dessas empresas e gera de novo")
@@ -208,6 +230,7 @@ def main() -> None:
             seed_finance(db, shop, today, p["one_off"], p["extras"])
             seed_crm(db, shop, now_local(), "." + p["email"].split("@", 1)[0], random.Random(200 + i))
             summary(db, shop)
+        ensure_multi_business(db)
     finally:
         db.close()
 
@@ -215,6 +238,7 @@ def main() -> None:
     print("  barbershop  admin@demo.com")
     for p in PROFILES:
         print(f"  {p['niche']:<11} {p['email']}")
+    print(f"  dois negócios (barbearia e salão): {MULTI_EMAIL}")
 
 
 if __name__ == "__main__":

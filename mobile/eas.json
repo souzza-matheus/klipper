@@ -1,7 +1,19 @@
 {
   "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
   "build": {
-    "apk": { "android": { "buildType": "apk" }, "distribution": "internal" },
-    "production": {}
+    "development": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_APP_PROFILE": "development" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_APP_PROFILE": "preview", "EXPO_PUBLIC_API_URL": "https://staging.[DOMINIO]" }
+    },
+    "apk": { "extends": "preview" },
+    "production": {
+      "env": { "EXPO_PUBLIC_APP_PROFILE": "production", "EXPO_PUBLIC_API_URL": "https://api.[DOMINIO]" }
+    }
   }
 }

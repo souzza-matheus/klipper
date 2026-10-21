@@ -6,7 +6,9 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import ForeignKey, MetaData, Table, UniqueConstraint, create_engine, inspect
+from sqlalchemy import (
+    Column, ForeignKey, Integer, MetaData, String, Table, UniqueConstraint, create_engine, inspect,
+)
 
 from app.db import Base
 
@@ -50,6 +52,8 @@ NEW_COLUMNS = [
     ("appointments", "checked_in_at"), ("appointments", "deposit_amount"), ("appointments", "deposit_status"),
     # 0009: comprovantes
     ("shops", "receipt_auto_confirm"), ("shops", "receipt_auto_confirm_max"),
+    # 0010: negócio suspenso
+    ("shops", "active"),
 ]
 # 0008: tabelas que ganharam as colunas da sincronização (uuid único, sync_seq indexado)
 SYNC_TABLES = ("services", "barbers", "blocks", "customers", "appointments")
@@ -57,7 +61,8 @@ SYNC_COLUMNS = ("uuid", "updated_at", "deleted_at", "version", "sync_seq")
 NEW_TABLES = ("expenses", "customer_conflicts", "conversation_messages", "ai_usage", "products", "service_products",
               "stock_movements", "package_plans", "customer_packages", "package_uses", "subscription_plans",
               "subscription_plan_items", "subscriptions", "subscription_uses", "charges", "comandas",
-              "comanda_items", "comanda_payments", "waitlist_entries", "sync_operations", "payment_receipts")
+              "comanda_items", "comanda_payments", "waitlist_entries", "sync_operations", "payment_receipts",
+              "memberships")
 
 
 def _old_metadata() -> MetaData:
@@ -70,6 +75,9 @@ def _old_metadata() -> MetaData:
         drop = set(SYNC_COLUMNS) if name in SYNC_TABLES else set()
         drop |= {"appointments": {"customer_package_id", "subscription_id"}, "users": {"barber_id"}}.get(name, set())
         cols = []
+        if name == "users":  # antes da 0010 o usuário tinha um negócio só, com o papel nele
+            cols += [Column("shop_id", Integer, ForeignKey("shops.id", ondelete="CASCADE"), index=True),
+                     Column("role", String(15))]
         for c in t.columns:
             if c.name not in drop:
                 col = c._copy()
@@ -113,3 +121,60 @@ def test_upgrade_database_created_without_alembic(tmp_path):
         uid, seq, version = conn.exec_driver_sql("SELECT uuid, sync_seq, version FROM customers").one()
         assert len(uid) == 36 and seq == 1 and version == 1
         assert conn.exec_driver_sql("SELECT sync_seq, deposit_mode FROM shops").one() == (1, "off")
+
+
+def _db_before_0010(tmp_path, users):
+    """Banco na versão 0009 (um negócio por usuário, com o papel na tabela users)."""
+    url = f"sqlite:///{tmp_path / 'v0009.db'}"
+    cfg = Config(os.path.join(BACKEND, "alembic.ini"))
+    cfg.set_main_option("script_location", os.path.join(BACKEND, "migrations"))
+    cfg.cmd_opts = Namespace(x=[f"url={url}"])
+    command.upgrade(cfg, "0009")
+    with create_engine(url).begin() as conn:
+        for shop in ("Loja A", "Loja B"):
+            conn.exec_driver_sql(
+                "INSERT INTO shops (name, address, phone, owner_phone, instagram, pix_enabled, pix_key, pix_key_type, "
+                "pix_receiver_name, pix_city, pix_expire_hours, slot_step_minutes, min_advance_minutes, "
+                "booking_days_ahead, reminder_minutes_before, cancel_min_hours, survey_enabled, survey_delay_minutes, "
+                "daily_summary_hour, welcome_text, human_pause_hours, evolution_instance, created_at, sync_seq, "
+                "deposit_mode, deposit_value, deposit_expire_minutes, deposit_refund_hours, waitlist_hold_minutes, "
+                "niche, theme_mode, ai_enabled, ai_audio_enabled, ai_monthly_limit, ai_allow_free_tier, "
+                "webhook_secret, approval_expire_hours, conflict_default_gap_minutes, receipt_auto_confirm, "
+                "receipt_auto_confirm_max) VALUES "
+                f"('{shop}', '', '', '', '', 0, '', 'random', '', '', 12, 30, 30, 7, 120, 2, 1, 30, 8, '', 3, "
+                f"'{shop}', '2026-01-01', 0, 'off', 0, 30, 24, 10, 'barbershop', 'auto', 0, 0, 3000, 0, 'x', 12, "
+                "240, 0, 0)")
+        for shop_id, email, role, active in users:
+            conn.exec_driver_sql(
+                "INSERT INTO users (shop_id, name, email, password_hash, token_version, role, active, "
+                f"must_change_password, created_at) VALUES ({shop_id}, 'P', '{email}', 'h', 0, '{role}', {active}, 0, "
+                "'2026-01-01')")
+    return url, cfg
+
+
+def test_0010_turns_each_user_into_a_membership(tmp_path):
+    """Cada usuário vira um vínculo com o negócio que tinha, com o mesmo papel; desativado continua desativado
+    naquele negócio; o e-mail fica normalizado; nada se perde."""
+    url, cfg = _db_before_0010(tmp_path, [(1, " Dono@Loja.com ", "owner", 1), (1, "rec@loja.com", "reception", 0),
+                                          (2, "pro@lojab.com", "professional", 1)])
+    command.upgrade(cfg, "head")
+    assert _diff(url) == []
+    with create_engine(url).connect() as conn:
+        users = conn.exec_driver_sql("SELECT id, email, active FROM users ORDER BY id").all()
+        assert [u[1] for u in users] == ["dono@loja.com", "rec@loja.com", "pro@lojab.com"]
+        assert all(u[2] for u in users)  # a conta fica ativa; quem estava desativado perde só o negócio
+        rows = conn.exec_driver_sql("SELECT user_id, shop_id, role, active, version FROM memberships "
+                                    "ORDER BY user_id").all()
+        assert rows == [(1, 1, "owner", 1, 0), (2, 1, "reception", 0, 0), (3, 2, "professional", 1, 0)]
+        cols = {c["name"] for c in inspect(conn).get_columns("users")}
+        assert not cols & {"shop_id", "role", "barber_id"}
+    command.upgrade(cfg, "head")  # de novo: sem efeito
+
+
+def test_0010_stops_on_emails_that_collide_after_normalizing(tmp_path):
+    import pytest
+    url, cfg = _db_before_0010(tmp_path, [(1, "Ana@Loja.com", "owner", 1), (2, "ana@loja.com", "owner", 1)])
+    with pytest.raises(RuntimeError, match="ana@loja.com"):
+        command.upgrade(cfg, "head")
+    with create_engine(url).connect() as conn:  # nada foi apagado
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM users").scalar() == 2

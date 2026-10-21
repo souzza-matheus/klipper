@@ -194,7 +194,11 @@ def test_mobile_offline_db_is_encrypted_and_wiped():
     import re
     mobile = os.path.join(ROOT, "mobile")
     read = lambda *p: open(os.path.join(mobile, *p), encoding="utf-8").read()  # noqa: E731
-    plugins = json.loads(read("app.json"))["expo"]["plugins"]
+    import subprocess
+    # app.config.js (era app.json): a configuração que o Expo usa, resolvida pelo Node
+    out = subprocess.run(["node", "-e", "console.log(JSON.stringify(require('./app.config.js').expo.plugins))"],
+                         cwd=mobile, capture_output=True, text=True, check=True).stdout
+    plugins = json.loads(out)
     assert ["expo-sqlite", {"useSQLCipher": True}] in plugins
     db = read("src", "offline", "db.js")
     assert "PRAGMA key" in db and "cipher_version" in db and "getRandomBytesAsync(32)" in db
@@ -220,7 +224,8 @@ def test_web_app_is_served_with_csp_and_security_headers():
     caddy = open(os.path.join(ROOT, "deploy", "caddy", "app.caddy"), encoding="utf-8").read()
     import re
     policy = re.search(r'Content-Security-Policy "([^"]+)"', headers).group(1)
-    for rule in ("default-src 'self'", "script-src 'self'", "connect-src 'self'", "frame-ancestors 'none'",
+    for rule in ("default-src 'self'", "script-src 'self'", "connect-src 'self' https://api.{args[0]};",
+                 "frame-ancestors 'none'",
                  "object-src 'none'", "base-uri 'none'"):
         assert rule in policy, rule
     assert "unsafe-eval" not in policy and "unsafe-inline" not in policy

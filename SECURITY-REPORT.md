@@ -90,7 +90,7 @@ Depois da atualização: sem pendências no backend. Mobile: ver M-10.
 - [ ] **Segredos trocados:** `POSTGRES_PASSWORD`, `EVOLUTION_API_KEY`, `JWT_SECRET` (32+), `WEBHOOK_SECRET` e `SETUP_TOKEN` gerados com `openssl rand -hex 24`, diferentes dos de desenvolvimento. A API recusa subir com valores de exemplo.
 - [ ] **`DEV_MODE=false`** (o padrão; o `docker-compose.prod.yml` fixa). Conferir que `/docs`, `/dev/simulate` e `/openapi.json` dão 404.
 - [ ] **HTTPS:** Caddy na frente do backend com certificado automático; o app de produção só aceita `https://`.
-- [ ] **CORS:** `CORS_ORIGINS` vazio (o app nativo não precisa) ou só os domínios do painel web, nunca `*`.
+- [ ] **CORS:** `CORS_ORIGINS=https://app.[DOMINIO]` (a versão web chama a API em `https://api.[DOMINIO]`; o app nativo não precisa de CORS), nunca `*`.
 - [ ] **Portas fechadas:** subir com `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`; firewall só com 22, 80 e 443; Postgres, Redis e Evolution sem porta publicada.
 - [ ] **Proxy confiável:** `FORWARDED_ALLOW_IPS` com a rede do Caddy, para o limite de login ver o IP real.
 - [ ] **Webhook:** cada instância com o secret da própria barbearia no cabeçalho (criadas assim pelo `connect`; instâncias antigas: atualizar URL e `headers` como em A-03).
@@ -134,6 +134,15 @@ suíte com as mesmas garantias das antigas:
   `index.html` com 200 para tudo); `tests/`, `README.md` e arquivos ocultos da landing não são servidos; backend fora
   do ar vira 502 com uma mensagem genérica em JSON (sem detalhe do proxy); cabeçalhos de segurança também nas
   respostas de erro. Conferido no Caddy de verdade por `deploy/tests/caddy_e2e.py`, só na máquina local.
+- Login sem endereço de servidor (o endereço da API vem do build) e vínculo usuário–negócio (`memberships`): o token
+  leva o negócio ativo e a versão do vínculo; a cada pedido o servidor confere que o vínculo existe, está ativo e o
+  negócio não está suspenso. Token de um negócio nunca abre outro (nem com o campo `shop` trocado); desativar alguém
+  ou mudar o papel derruba só os tokens daquele negócio; token de escolha de negócio (5 min) não abre a API; o dono de
+  um negócio não gera senha provisória para quem também entra em outro (`tests/security/test_businesses.py`).
+- E-mail único na plataforma, guardado em minúsculas e sem espaços (CHECK no banco). Senha errada: a mesma mensagem
+  para e-mail existente ou não; a mensagem de acesso desativado só aparece com a senha certa.
+- Modo desenvolvedor do app (trocar o endereço da API) só nos perfis development e preview: em produção o código não
+  entra no pacote (conferido no bundle por `mobile/tests/apiConfig.jest.js`).
 - A landing não chama mais o Google Fonts (fontes servidas pelo próprio site): nenhum endereço IP de visitante vai a
   terceiros para carregar a página.
 - **CSP sem `'unsafe-inline'`:** `style-src 'self'` mais um único hash, o da string vazia. O react-native-web cria

@@ -8,7 +8,7 @@ export { CustomerScreen, CustomersScreen } from './screens/Customers';
 export { BarberEditScreen, BarbersScreen, BlocksScreen, ServiceEditScreen, ServicesScreen } from './screens/Catalog';
 export { ReportsScreen, ReviewsScreen } from './screens/Insights';
 export { CommissionRuleEditScreen, CommissionRulesScreen, CommissionsScreen, ExpenseEditScreen, ExpensesScreen, FinanceHomeScreen, SettlementsScreen } from './screens/Finance';
-export { AboutScreen, MoreScreen, SettingsScreen, WhatsAppScreen } from './screens/Settings';
+export { AboutScreen, MoreScreen, SettingsScreen, SwitchBusinessScreen, WhatsAppScreen } from './screens/Settings';
 export { ComandaScreen, ComandasScreen } from './screens/Comandas';
 export { ProductEditScreen, ProductsScreen } from './screens/Stock';
 export { PackageEditScreen, PackagesScreen, PlanEditScreen, SubscribeScreen, SubscriptionsScreen } from './screens/Plans';

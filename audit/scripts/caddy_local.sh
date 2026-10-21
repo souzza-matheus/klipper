@@ -15,7 +15,7 @@ http://127.0.0.1:$PS {
 	import /deploy/caddy/site.caddy /srv/site
 }
 http://127.0.0.1:$PA {
-	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:$API
+	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:$API exemplo.com.br
 }
 CADDY
 docker rm -f syncserv-caddy-medicao >/dev/null 2>&1 || true

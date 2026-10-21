@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 
 from .test_isolation import ROUTE_CASES, all_routes
 
-PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token")}
+PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token"),
+          ("POST", "/api/auth/select")}  # token próprio no corpo (refresh da web ou escolha do negócio)
 
 # Qualquer papel (a rota filtra o que o profissional enxerga)
 TEAM = {
@@ -21,6 +22,7 @@ TEAM = {
     ("GET", "/api/appointments/month"), ("PATCH", "/api/appointments/{aid}"),
     ("POST", "/api/appointments/{aid}/check-in"), ("GET", "/api/customers"), ("GET", "/api/customers/{cid}"),
     ("GET", "/api/reviews"), ("GET", "/api/sync/pull"), ("POST", "/api/sync/push"),
+    ("GET", "/api/auth/businesses"), ("POST", "/api/auth/switch"),
 }
 # Só o profissional (além do dono): as próprias comissões
 PRO_ONLY = {("GET", "/api/finance/commissions")}
@@ -186,7 +188,9 @@ def test_role_change_and_deactivation_take_effect_now(two):
     assert c.get("/api/me").status_code == 401
     r = TestClient(c.app).post("/api/auth/login", json={"email": rec.email,
                                                         "password": two.a.extra["reception_password"]})
-    assert r.status_code == 401  # desativado: mesma resposta de senha errada
+    # Senha certa e nenhum negócio ativo: mensagem de acesso desativado, sem token (senha errada continua 401)
+    assert r.status_code == 403 and "token" not in r.json()
+    assert r.json()["detail"]["message"] == "Seu acesso foi desativado. Fale com o responsável pelo negócio."
 
 
 def test_last_owner_cannot_be_removed_and_pro_needs_a_barber(two):

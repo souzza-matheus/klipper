@@ -89,7 +89,7 @@ export default function App() {
     api.get('/me').then((me) => {
       setAppearance(me.niche, me.theme_mode, me.shop_name);
       setSession((s) => ({ ...s, role: me.role, barberId: me.barber_id, name: me.name, firstLogin: me.first_login,
-                           userId: me.user_id, shopId: me.shop_id }));
+                           userId: me.user_id, shopId: me.shop_id, businessesCount: me.businesses_count || 1 }));
     }).catch(() => {});
   }, [token, setAppearance]);
 
@@ -101,10 +101,19 @@ export default function App() {
     startOffline(`${shopId}:${userId}:${role}`);
   }, [token, userId, shopId, role, barberId, firstLogin]);
 
+  // Login, escolha do negócio e troca de negócio devolvem o mesmo formato (TokenOut)
+  const applySession = useCallback((r) => setSession((s) => ({
+    ...s, token: r.token, name: r.user_name, shop: r.shop_name, niche: r.niche, themeMode: r.theme_mode,
+    role: r.role, barberId: r.barber_id, firstLogin: r.first_login, userId: r.user_id, shopId: r.shop_id,
+    businessesCount: r.businesses_count || 1,
+  })), []);
+
   const sessionValue = useMemo(() => ({
     role: session?.role || 'owner', barberId: session?.barberId || null, userName: session?.name || '',
-    shopName: session?.shop || '',
-  }), [session?.role, session?.barberId, session?.name, session?.shop]);
+    shopName: session?.shop || '', shopId: session?.shopId || null, businessesCount: session?.businessesCount || 1,
+    applySession,
+  }), [session?.role, session?.barberId, session?.name, session?.shop, session?.shopId, session?.businessesCount,
+       applySession]);
 
   if (!fontsLoaded) return null; // a splash nativa continua na tela
   if (NOT_FOUND) {
@@ -119,12 +128,7 @@ export default function App() {
       {!session.token ? (
         <ThemeProvider brand>
           <StatusBar style="light" />
-          <Login initialUrl={session.baseUrl} initialEmail={session.email}
-                 onLogged={(r) => setSession({
-                   ...session, token: r.token, name: r.user_name, shop: r.shop_name, niche: r.niche,
-                   themeMode: r.theme_mode, role: r.role, barberId: r.barber_id, firstLogin: r.first_login,
-                   userId: r.user_id, shopId: r.shop_id,
-                 })} />
+          <Login initialEmail={session.email} onLogged={applySession} />
           <ToastHost />
           <DialogHost />
         </ThemeProvider>
@@ -134,7 +138,8 @@ export default function App() {
             {session.firstLogin ? (
               <FirstLogin onDone={(r) => setSession((s) => ({ ...s, token: r.token, firstLogin: false }))} />
             ) : (
-              <Tabs onLogout={logout} session={session} />
+              // key: outro negócio = navegação do zero (abas do papel novo, nada da tela anterior)
+              <Tabs key={session.shopId} onLogout={logout} session={session} />
             )}
           </SessionProvider>
         </ThemeProvider>

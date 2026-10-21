@@ -25,8 +25,8 @@ import {
   CommissionsScreen, CustomerScreen, CustomersScreen, ExpenseEditScreen, ExpensesScreen, FinanceHomeScreen,
   HomeScreen, MoreScreen, NewAppointmentScreen, PackageEditScreen, PackagesScreen, PaymentsScreen, PlanEditScreen,
   ProductEditScreen, ProductsScreen, ReportsScreen, ReviewsScreen, ServiceEditScreen, ServicesScreen,
-  SettingsScreen, SettlementsScreen, SubscribeScreen, SubscriptionsScreen, TeamScreen, UserEditScreen, WaitlistScreen,
-  WhatsAppScreen,
+  SettingsScreen, SettlementsScreen, SubscribeScreen, SubscriptionsScreen, SwitchBusinessScreen, TeamScreen,
+  UserEditScreen, WaitlistScreen, WhatsAppScreen,
 } from './routes';
 
 provideFocusEffect(useFocusEffect);
@@ -94,6 +94,7 @@ function details(v) {
     ['Settings', SettingsScreen, 'Configurações'],
     ['WhatsApp', WhatsAppScreen, 'Conexão do WhatsApp'],
     ['About', AboutScreen, 'Sobre o SyncServ'],
+    ['SwitchBusiness', SwitchBusinessScreen, 'Trocar de negócio'],
     ['Sync', SyncScreen, 'Sincronização'],
     ['Attention', AttentionScreen, 'Precisa da sua atenção'],
     ['Expenses', ExpensesScreen, 'Gastos'],

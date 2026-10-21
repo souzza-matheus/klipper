@@ -1,26 +1,45 @@
+import { buildApiUrl } from './config';
 import { isOnline } from './net';
 import { getItem, IS_WEB, removeItem, setItem } from './storage';
 
-let baseUrl = '';
+// Modo desenvolvedor (development e preview): endereço trocado nos 7 toques do logo. Em produção a condição vira
+// false na hora do build e o devApi.js não entra no pacote.
+const devApi = process.env.EXPO_PUBLIC_APP_PROFILE !== 'production' ? require('./devApi') : null;
+
+let baseUrl = buildApiUrl();
 let token = '';
 let refreshToken = ''; // só na versão web
 let refreshTimer = null;
 let onUnauthorized = () => {};
 let onWrite = null; // celular: depois de uma alteração feita direto na API, sincroniza o banco local
 
-// Na versão web publicada (app.dominio), a API fica no mesmo endereço (o Caddy encaminha /api)
-const webOrigin = () => (IS_WEB && typeof window !== 'undefined' ? window.location.origin : '');
+const CLIENT = IS_WEB ? 'web' : 'app';
+
+// Endereço da API em uso: o do build (src/config.js) ou, no modo desenvolvedor, o trocado à mão
+export async function resolveApiUrl() {
+  const override = devApi ? await devApi.getDevApiUrl() : '';
+  baseUrl = override || buildApiUrl();
+  return baseUrl;
+}
+export const currentApiUrl = () => baseUrl;
+
+// Versões antigas guardavam o endereço digitado no login: não vale mais (o endereço vem do build) e é apagado
+export async function forgetLegacyServer() {
+  if (await getItem('baseUrl')) await removeItem('baseUrl');
+}
 
 export async function loadSession() {
-  baseUrl = (await getItem('baseUrl')) || webOrigin();
+  await forgetLegacyServer();
+  await resolveApiUrl();
   token = await getItem('token');
   refreshToken = IS_WEB ? await getItem('refreshToken') : '';
   const session = {
-    baseUrl, token, name: await getItem('userName'), shop: await getItem('shopName'),
+    token, name: await getItem('userName'), shop: await getItem('shopName'),
     email: await getItem('lastEmail'), niche: (await getItem('niche')) || 'barbershop',
     themeMode: (await getItem('themeMode')) || 'auto', role: (await getItem('role')) || 'owner',
     barberId: Number(await getItem('barberId')) || null,
     userId: Number(await getItem('userId')) || null, shopId: Number(await getItem('shopId')) || null,
+    businessesCount: Number(await getItem('businessesCount')) || 1,
   };
   if (IS_WEB && !token && refreshToken) {
     // Aba recarregada: o token de acesso estava só na memória; o refresh token da aba gera um novo
@@ -63,9 +82,7 @@ async function useRefreshToken() {
   return r;
 }
 
-async function saveSession(url, r) {
-  baseUrl = url;
-  await setItem('baseUrl', url);
+async function saveSession(r) {
   await keep(r);
   await setItem('userName', r.user_name);
   await setItem('shopName', r.shop_name);
@@ -73,6 +90,8 @@ async function saveSession(url, r) {
   await setItem('barberId', r.barber_id || '');
   await setItem('userId', r.user_id || '');
   await setItem('shopId', r.shop_id || '');
+  await setItem('businessesCount', r.businesses_count || 1);
+  await setItem('lastShopId', r.shop_id || ''); // o próximo login abre direto neste negócio
 }
 
 // Segmento e modo do tema do negócio (aplicados já na abertura do app, antes de carregar a API)
@@ -98,9 +117,10 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
-// status e data permitem tratar respostas específicas (ex.: 409 de conflito entre clientes)
+// status e data permitem tratar respostas específicas (ex.: 409 de conflito entre clientes). status 0 = o pedido
+// nem chegou ao servidor (sem internet ou servidor fora do ar).
 export class ApiError extends Error {
-  constructor(message, status, data) {
+  constructor(message, status = 0, data = null) {
     super(message);
     this.status = status;
     this.data = data;
@@ -147,9 +167,9 @@ export async function request(method, path, body, query, retried = false) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (e) {
-    throw new ApiError(IS_WEB && webOffline() ? OFFLINE_WEB : 'Sem conexão com o servidor. Confira o endereço e a internet.');
+    throw new ApiError(IS_WEB && webOffline() ? OFFLINE_WEB : 'Sem conexão com o servidor. Confira a internet.');
   }
-  if (res.status === 401 && path !== '/auth/login' && path !== '/auth/change-password') {
+  if (res.status === 401 && !['/auth/login', '/auth/select', '/auth/change-password'].includes(path)) {
     if (IS_WEB && refreshToken && !retried) {
       try {
         await useRefreshToken();
@@ -166,7 +186,7 @@ export async function request(method, path, body, query, retried = false) {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      throw new ApiError(res.ok ? 'Resposta inválida do servidor. Confira o endereço.'
+      throw new ApiError(res.ok ? 'Resposta inválida do servidor.'
         : `Erro ${res.status} no servidor: ${text.slice(0, 120)}`, res.status, null);
     }
   }
@@ -188,19 +208,34 @@ export const api = {
   del: (p) => request('DELETE', p),
 };
 
-export async function login(url, email, password) {
-  baseUrl = (url || webOrigin()).trim().replace(/\/$/, '');
+// Login só com e-mail e senha: o servidor descobre o negócio. Quem tem mais de um recebe { choose, businesses,
+// selection_token } (a tela "Escolha o negócio" chama selectBusiness), a não ser que o último negócio escolhido
+// neste aparelho ainda esteja na lista: aí entra direto nele.
+export async function login(email, password) {
   token = '';
-  const r = await request('POST', '/auth/login', { email: email.trim(), password, client: IS_WEB ? 'web' : 'app' });
-  // Outro serviço no endereço (ex.: a porta do Expo responde 200 a qualquer rota) não devolve token
-  if (!r || typeof r.token !== 'string' || !r.token) {
-    throw new ApiError('Esse endereço não é do servidor SyncServ. Confira o IP e a porta do backend '
-      + '(ex.: http://192.168.1.10:8002), não a do Expo.');
-  }
-  await saveSession(baseUrl, r);
-  await saveAppearance(r.niche, r.theme_mode);
+  const lastShop = Number(await getItem('lastShopId')) || undefined;
+  const r = await request('POST', '/auth/login', { email: email.trim(), password, client: CLIENT, shop_id: lastShop });
   await setItem('lastEmail', email.trim());
+  if (r && r.choose) return r;
+  return applyLogin(r);
+}
+
+async function applyLogin(r) {
+  if (!r || typeof r.token !== 'string' || !r.token) throw new ApiError('Resposta inválida do servidor.', 502);
+  await saveSession(r);
+  await saveAppearance(r.niche, r.theme_mode, r.shop_name);
   return r;
+}
+
+export async function selectBusiness(selectionToken, shopId) {
+  return applyLogin(await request('POST', '/auth/select', { selection_token: selectionToken, shop_id: shopId,
+                                                             client: CLIENT }));
+}
+
+// Trocar de negócio sem sair: token novo, só do negócio escolhido (quem chama apaga antes o offline do anterior;
+// ver src/businessSwitch.js)
+export async function switchBusiness(shopId) {
+  return applyLogin(await request('POST', '/auth/switch', { shop_id: shopId }));
 }
 
 // Troca a senha provisória (primeiro acesso) ou a própria senha; devolve o token novo

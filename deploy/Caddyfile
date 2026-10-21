@@ -18,7 +18,15 @@ www.[DOMINIO] {
 	redir https://[DOMINIO]{uri} permanent
 }
 
-# Versão web do app + API
+# Versão web do app (chama a API em api.[DOMINIO]; /api/* aqui também chega ao backend)
 app.[DOMINIO] {
-	import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002
+	import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002 [DOMINIO]
+}
+
+# API: app do celular (perfil production), versão web e webhook da Evolution. O CORS (só https://app.[DOMINIO])
+# fica no backend: CORS_ORIGINS no .env.
+api.[DOMINIO] {
+	encode zstd gzip
+	header -Server
+	reverse_proxy 127.0.0.1:8002
 }

@@ -137,7 +137,9 @@ def build_crm(db, shop: Shop, tag: str, barber: Barber, service: Service, custom
     cp = benefits.sell_package(db, shop, customer, plan)
     sub = billing.subscribe(db, shop, customer, club, charge_now=True)
     charge = db.scalar(select(Charge).where(Charge.subscription_id == sub.id))
-    owner = db.scalar(select(User).where(User.shop_id == shop.id, User.role == Role.OWNER))
+    from app.models import Membership
+    owner = db.scalar(select(User).join(Membership).where(Membership.shop_id == shop.id,
+                                                          Membership.role == Role.OWNER))
     comanda = cs.open_comanda(db, shop, owner, appointment=appt)
     item = cs.add_product(db, shop, owner, comanda, product, 1, barber)
     cpay = cs.add_payment(db, shop, owner, comanda, "dinheiro", Decimal("10"))

@@ -416,6 +416,33 @@ Ele usa um SQLite temporário (não mexe no banco de desenvolvimento) e não env
 
 Builds Android de produção bloqueiam `http://`, por isso o domínio com HTTPS é obrigatório para o app.
 
+## Endereço da API e perfis de build (o app não pede servidor)
+
+O login é só e-mail e senha; o servidor descobre o negócio (quem entra em mais de um escolhe em "Escolha o negócio" e
+troca depois em Mais > Trocar de negócio). O endereço da API vem do build, na variável `EXPO_PUBLIC_API_URL`:
+
+| perfil (eas.json) | endereço | modo desenvolvedor |
+| --- | --- | --- |
+| development | `mobile/.env.local` (modelo: `mobile/.env.example`, fora do git) | sim |
+| preview | `https://staging.[DOMINIO]` | sim |
+| production | `https://api.[DOMINIO]` | não (o código nem entra no pacote) |
+
+A versão web publicada em `app.[DOMINIO]` usa `https://api.[DOMINIO]` sozinha. No backend de produção, defina
+`CORS_ORIGINS=https://app.[DOMINIO]` (a web chama a API em outro endereço). Endereços salvos por versões antigas do
+app são ignorados e apagados na primeira abertura.
+
+**Testar no celular apontando para o PC:** copie `mobile/.env.example` para `mobile/.env.local` com o IP do PC na rede
+Wi-Fi (`EXPO_PUBLIC_API_URL=http://192.168.0.10:8002`, nunca `localhost`) e rode `npx expo start --clear`. Builds de
+produção do Android bloqueiam `http://`: para ter HTTPS, use um túnel, por exemplo
+`cloudflared tunnel --url http://localhost:8002` (Cloudflare Tunnel), e ponha o endereço `https://...trycloudflare.com`
+no `.env.local`. Nos perfis development e preview, tocar 7 vezes no logo do login abre o "Modo desenvolvedor", que
+mostra o endereço em uso e permite trocá-lo sem gerar outro build.
+
+**Gerar os builds:** `npx eas-cli build -p android --profile development` (ou `preview`, ou `production`); o perfil
+`apk` continua existindo e é igual ao `preview`. Versão web: `cd mobile && npm run export:web`. Ao trocar de perfil
+num export local, use sempre `--clear` (o cache do Metro não leva em conta as variáveis `EXPO_PUBLIC_*`); o
+`npm run export:web` já faz isso.
+
 ## Versão web do app (app.[DOMINIO])
 
 O app admin roda também no navegador, com o **mesmo código** (react-native-web). No computador (tela a partir de
@@ -428,7 +455,7 @@ abas embaixo, como no app.
 
 ```bash
 cd mobile
-npx expo export --platform web            # gera mobile/dist (index.html, manifest, ícones, JS)
+npm run export:web                        # gera mobile/dist (perfil production)
 rsync -a --delete dist/ usuario@vps:/srv/syncserv-web/
 ```
 
@@ -437,7 +464,7 @@ No servidor, copie a pasta `deploy/` para `/etc/caddy/` e use o `deploy/Caddyfil
 `[DOMINIO]` (`deploy/caddy/site.caddy`; `www` redireciona) e o app em `app.[DOMINIO]` (`deploy/caddy/app.caddy`):
 encaminha `/api/*` para o backend (`127.0.0.1:8002`) e aplica o CSP e os cabeçalhos de segurança (HSTS, `nosniff`,
 `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`; arquivo `deploy/caddy/app-headers.caddy`, importado também
-nas respostas de erro). Com o app e a API no mesmo endereço não é preciso CORS. O título da aba é "SyncServ" e o
+nas respostas de erro). A versão web em `app.[DOMINIO]` chama a API em `api.[DOMINIO]` (liberado no CSP; `CORS_ORIGINS` no backend). O título da aba é "SyncServ" e o
 `manifest.webmanifest` permite instalar como app (PWA) com os ícones do kit da marca.
 
 - **404 de verdade:** o app só tem um endereço (`/`). Qualquer outro caminho volta com status 404 e o próprio app, que
@@ -498,7 +525,7 @@ No login, o endereço do servidor fica em "Configuração avançada" (na web é 
 O app do celular funciona sem internet e sincroniza sozinho. A versão web continua só online.
 
 **Onde ficam os dados:** num SQLite do aparelho criptografado com **SQLCipher**: o plugin `expo-sqlite` vem com
-`useSQLCipher: true` no `app.json`. A chave é aleatória (256 bits), gerada no aparelho e guardada no SecureStore
+`useSQLCipher: true` no `app.config.js`. A chave é aleatória (256 bits), gerada no aparelho e guardada no SecureStore
 (Keychain/Keystore, `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`). O arquivo e a chave são apagados quando:
 - a pessoa sai da conta;
 - outra pessoa (ou outro papel) entra no aparelho;

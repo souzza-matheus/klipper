@@ -7,7 +7,9 @@ descartável com dados fictícios, gera o export e roda este arquivo). Manual:
 Serve o export com o MESMO CSP do deploy/caddy/app-headers.caddy (mais o endereço da API em connect-src, porque aqui a
 API fica em outra porta) e as mesmas regras de 404 do deploy/caddy/app.caddy, e confere, no Chromium (Playwright), em
 375 e 1440 px:
-- login, abas por papel e menu lateral no computador;
+- login só com e-mail e senha (sem campo de servidor), "E-mail ou senha incorretos" igual para e-mail que existe ou
+  não, "Esqueci minha senha"; conta com dois negócios: "Escolha o negócio" e Mais > Trocar de negócio;
+- abas por papel e menu lateral no computador;
 - o token de acesso não vai para o sessionStorage, nada vai para o localStorage;
 - recarregar a aba mantém a sessão (refresh token); aba nova pede login;
 - sem internet: aviso e escrita bloqueada, com o erro aparecendo NA FRENTE do sheet (A02);
@@ -31,12 +33,14 @@ from playwright.sync_api import sync_playwright
 FONTS = tuple(f"PlusJakartaSans_{w}" for w in ("400Regular", "500Medium", "600SemiBold", "700Bold", "800ExtraBold")) + (
     "ionicons",)
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MULTI = "duas.empresas@demo.com"  # criada pelo run_web_e2e.sh: dona da Barbearia Demo e da Segunda Loja Demo
 
 
 def csp(api_origin: str) -> str:
     caddy = open(os.path.join(ROOT, "deploy", "caddy", "app-headers.caddy"), encoding="utf-8").read()
     policy = re.search(r'Content-Security-Policy "([^"]+)"', caddy).group(1)
-    return policy.replace("connect-src 'self'", f"connect-src 'self' {api_origin}")
+    # No Caddy, {args[0]} é o domínio (a API em https://api.<domínio>); aqui a API está em outra porta local
+    return policy.replace("https://api.{args[0]}", api_origin)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -71,15 +75,45 @@ def serve(directory: str, api: str) -> str:
     return f"http://127.0.0.1:{httpd.server_address[1]}"
 
 
-def login(pg, web, api, email, password="demo123"):
+def login(pg, web, api, email, password="demo123", wait=True):
+    """Só e-mail e senha: o endereço da API veio no build (EXPO_PUBLIC_API_URL do run_web_e2e.sh)."""
     pg.goto(web + "/")
     pg.get_by_label("E-mail").fill(email)
-    pg.get_by_label("Senha").fill(password)
-    if pg.get_by_label("Endereço do servidor").count() == 0:
-        pg.get_by_role("button", name="Configuração avançada", exact=False).click()
-    pg.get_by_label("Endereço do servidor").fill(api)
+    pg.get_by_label("Senha", exact=True).fill(password)
     pg.get_by_role("button", name="Entrar").click()
+    if wait:
+        pg.get_by_text("Agenda", exact=True).first.wait_for(timeout=15000)
+
+
+def check_login_screen(pg, web, api):
+    """Tela de login: sem servidor nem "Configuração avançada"; erro claro abaixo dos campos; "Esqueci minha senha"."""
+    pg.goto(web + "/")
+    pg.get_by_label("E-mail").wait_for(timeout=15000)
+    assert pg.get_by_label("Endereço do servidor").count() == 0
+    assert pg.get_by_text("Configuração avançada").count() == 0
+    login(pg, web, api, "admin@demo.com", "senha-errada", wait=False)
+    pg.get_by_text("E-mail ou senha incorretos").wait_for(timeout=10000)
+    login(pg, web, api, "ninguem@exemplo.com", "senha-errada", wait=False)  # mesma frase: não revela o e-mail
+    pg.get_by_text("E-mail ou senha incorretos").wait_for(timeout=10000)
+    pg.get_by_role("button", name="Esqueci minha senha").click()
+    pg.get_by_text("senha provisória", exact=False).first.wait_for(timeout=5000)
+
+
+def check_two_businesses(pg, web, api):
+    """Conta com dois negócios: "Escolha o negócio" no login e Mais > Trocar de negócio, sem sair da conta."""
+    login(pg, web, api, MULTI, wait=False)
+    pg.get_by_text("Escolha o negócio").wait_for(timeout=15000)
+    pg.get_by_role("button", name="Segunda Loja Demo", exact=False).click()
     pg.get_by_text("Agenda", exact=True).first.wait_for(timeout=15000)
+    assert pg.get_by_text("Segunda Loja Demo").count() >= 1
+    pg.locator('[aria-label="Mais opções"]').first.click()
+    pg.get_by_role("button", name="Trocar de negócio").click()
+    pg.get_by_role("button", name="Barbearia Demo", exact=False).click()
+    pg.get_by_role("button", name="Trocar", exact=True).click()
+    pg.get_by_text("Barbearia Demo").first.wait_for(timeout=15000)
+    assert pg.evaluate("sessionStorage.getItem('syncserv:shopName')") == "Barbearia Demo"
+    # O próximo login (aba nova, mesma conta) abre direto no último negócio escolhido? Na web a lembrança é da aba
+    # (sessionStorage); no celular fica no SecureStore.
 
 
 def open_quick_book(pg) -> bool:
@@ -125,6 +159,16 @@ def main(directory: str, api: str) -> None:
     problems = []
     with sync_playwright() as p:
         browser = p.chromium.launch()
+        ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        pg = ctx.new_page()
+        pg.on("console", lambda m: problems.append(f"login console: {m.text}") if m.type == "error"
+              and "401" not in m.text else None)  # o 401 da senha errada aparece no console do navegador
+        check_login_screen(pg, web, api)
+        ctx.close()
+        ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        pg = ctx.new_page()
+        check_two_businesses(pg, web, api)
+        ctx.close()
         # Endereço desconhecido: 404 de verdade e a tela do app "Página não encontrada"
         ctx = browser.new_context(viewport={"width": 375, "height": 800})
         pg = ctx.new_page()

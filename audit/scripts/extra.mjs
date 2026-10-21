@@ -138,9 +138,8 @@ await page.getByLabel('E-mail').waitFor({ timeout: 30000 });
 await wait(800);
 
 await page.getByLabel('E-mail').fill('admin@demo.com');
-await page.getByLabel('Senha').fill('errada');
-if (await page.getByLabel('Endereço do servidor').count() === 0) await page.getByRole('button', { name: /Configuração avançada/ }).click();
-await page.getByLabel('Endereço do servidor').fill(API);
+await page.getByLabel('Senha', { exact: true }).fill('errada');
+// O endereço da API vem do build: gere o export com EXPO_PUBLIC_API_URL=<API> (ver README)
 if (false) {
   await step('login erro', async () => {
     await page.getByRole('button', { name: 'Entrar' }).filter({ visible: true }).click();
@@ -148,7 +147,7 @@ if (false) {
     await shot('02-login-erro', { a11y: false });
   });
 }
-await page.getByLabel('Senha').fill('demo123');
+await page.getByLabel('Senha', { exact: true }).fill('demo123');
 await page.getByRole('button', { name: 'Entrar' }).filter({ visible: true }).click();
 await text('Agenda').waitFor({ timeout: 20000 });
 await settle();

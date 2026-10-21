@@ -10,7 +10,8 @@ from app.config import Settings, settings
 from app.models import User
 from app.security import check_production, login_limiter, production_problems
 
-PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token")}
+PUBLIC = {("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("POST", "/api/auth/token"),
+          ("POST", "/api/auth/select")}  # token próprio no corpo (refresh da web ou escolha do negócio)
 
 
 def _api_routes():

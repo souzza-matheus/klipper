@@ -107,10 +107,10 @@ http://127.0.0.1:{app} {{
 	handle /__teste-500 {{
 		error 500
 	}}
-	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:{api}
+	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:{api} exemplo.com.br
 }}
 http://127.0.0.1:{dead} {{
-	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:9
+	import /deploy/caddy/app.caddy /srv/web 127.0.0.1:9 exemplo.com.br
 }}
 https://localhost:{tls} {{
 	tls internal
@@ -173,6 +173,9 @@ def test_app(base: str, dead: str):
     for header in ("content-security-policy", "strict-transport-security", "x-frame-options", "referrer-policy",
                    "permissions-policy", "cross-origin-opener-policy"):
         check(header in h, f"app sem {header}")
+    # O app publicado em app.<domínio> chama https://api.<domínio>: liberado no CSP, e só ele
+    check("connect-src 'self' https://api.exemplo.com.br;" in h["content-security-policy"],
+          f"CSP sem a API: {h['content-security-policy']}")
     check(h.get("cache-control") == "no-cache", "index.html do app com cache")
     st, h, body = get(base + "/")
     js = body.decode().split('src="/_expo/static/js/web/')[1].split('"')[0]

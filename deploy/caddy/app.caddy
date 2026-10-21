@@ -1,13 +1,14 @@
 # Versão web do app e API no mesmo endereço. Importado pelo deploy/Caddyfile:
-#   import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002
-# {args[0]} = pasta do export web (cd mobile && npx expo export --platform web; rsync -a --delete dist/ ...)
+#   import caddy/app.caddy /srv/syncserv-web 127.0.0.1:8002 [DOMINIO]
+# {args[0]} = pasta do export web (cd mobile && npm run export:web; rsync -a --delete dist/ ...)
 # {args[1]} = backend (docker-compose.prod.yml publica em 127.0.0.1:8002)
+# {args[2]} = domínio: o app chama a API em https://api.<domínio> (liberado no CSP); /api/* aqui continua
+#             encaminhado ao backend (mesmo endereço, para testes locais e quem servir o app em outro nome)
 #
-# Mesmo endereço para o site e a API: o navegador não precisa de CORS e o CSP pode ser 'self' em tudo.
 
 encode zstd gzip
 
-import app-headers.caddy
+import app-headers.caddy {args[2]}
 
 # API: o mesmo backend do app nativo
 handle /api/* {
@@ -34,7 +35,7 @@ header @fonts Cache-Control "public, max-age=2592000"
 header @shell Cache-Control "no-cache"
 
 handle_errors {
-	import app-headers.caddy
+	import app-headers.caddy {args[2]}
 	# API fora do ar (backend parado, reiniciando): JSON no formato que o app entende, em vez de página vazia
 	@api path /api/*
 	handle @api {

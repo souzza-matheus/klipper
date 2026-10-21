@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from .auth import hash_password
 from .models import (
     Appointment, ApptStatus, Barber, Charge, Comanda, ComandaItem, ComandaPayment, Customer, CustomerPackage,
-    PackagePlan, PackageUse, PayMethod, PayStatus, Product, ProductKind, Role, Service, ServiceProduct, Shop,
-    StockMovement, StockReason, SubStatus, Subscription, SubscriptionPlan, SubscriptionPlanItem, SubscriptionUse,
+    Membership, PackagePlan, PackageUse, PayMethod, PayStatus, Product, ProductKind, Role, Service, ServiceProduct,
+    Shop, StockMovement, StockReason, SubStatus, Subscription, SubscriptionPlan, SubscriptionPlanItem, SubscriptionUse,
     SyncOperation, User, WaitlistEntry,
 )
 from .services import billing, comandas as cs, stock
@@ -121,7 +121,8 @@ def seed_crm(db: Session, shop: Shop, now: datetime, tag: str = "", rng: random.
     if not services:
         return {}
     products, plan, club = _catalog(db, shop, services)
-    owner = db.scalar(select(User).where(User.shop_id == shop.id, User.role == Role.OWNER))
+    owner = db.scalar(select(User).join(Membership).where(Membership.shop_id == shop.id,
+                                                          Membership.role == Role.OWNER))
     customers = list(db.scalars(select(Customer).where(Customer.shop_id == shop.id, Customer.access_status == "normal")
                                 .order_by(Customer.id)))
     stats = {"comandas": 0, "packages": 0, "subscribers": 0}
@@ -199,7 +200,7 @@ def summary_lines(db: Session, shop: Shop) -> list[str]:
         Subscription.shop_id == shop.id, Subscription.status == SubStatus.LATE))
     pending = db.scalar(select(func.count()).select_from(Charge).where(
         Charge.shop_id == shop.id, Charge.status == PayStatus.PENDING))
-    return [f"  Equipe: {n(User)} logins (dono, recepção e profissional)",
+    return [f"  Equipe: {n(Membership)} logins (dono, recepção e profissional)",
             f"  Produtos: {n(Product)} (estoque baixo: {len(stock.low_stock(db, shop))})",
             f"  Comandas fechadas: {n(Comanda)}",
             f"  Pacotes vendidos: {n(CustomerPackage)}",
